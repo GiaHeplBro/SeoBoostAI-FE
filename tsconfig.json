@@ -1,0 +1,28 @@
+{
+  // Chỉ bao gồm các file trong thư mục 'src' của frontend
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist", "**/*.test.ts"],
+  "compilerOptions": {
+    // --- Các cài đặt chung vẫn giữ lại từ file cũ ---
+    "incremental": true,
+    "tsBuildInfoFile": "./node_modules/typescript/tsbuildinfo",
+    "noEmit": true, // Quan trọng: Vite sẽ build, TS chỉ kiểm tra
+    "module": "ESNext",
+    "strict": true,
+    "lib": ["esnext", "dom", "dom.iterable"],
+    "jsx": "preserve", // Vite sẽ xử lý JSX
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "allowImportingTsExtensions": true,
+    "moduleResolution": "bundler", // Cài đặt hiện đại, quan trọng
+    "baseUrl": ".",
+    "types": ["node", "vite/client"], // 'vite/client' rất cần thiết
+
+    // --- Đường dẫn đã được dọn dẹp ---
+    // Đã xóa @db, @db/*, và @shared/*
+    // Giả định code của bạn nằm trong 'src'
+    "paths": {
+      "@/*": ["./src/*"]
+    }
+  }
+}
