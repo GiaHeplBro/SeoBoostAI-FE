@@ -1,284 +1,549 @@
-import { useState, useEffect } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
-} from "@/components/ui/select";
-import { DataTable } from "@/components/ui/data-table";
-import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Plus, Search, Edit, CheckCircle } from "lucide-react";
-import { TaskFormDialog } from "@/components/tasks/task-form-dialog";
+import React, { useState, useEffect, useRef } from "react";
+import { useQuery, QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { format } from "date-fns";
-import { queryClient, apiRequest } from "@/lib/queryClient";
-import { useToast } from "@/hooks/use-toast";
+import {
+  Plus,
+  Search,
+  Edit,
+  CheckCircle,
+  Ban,
+  MessageSquare,
+  Users,
+  PieChart as PieChartIcon, // Đổi tên để tránh xung đột
+  UserX,
+} from "lucide-react";
+import {
+  ResponsiveContainer,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+} from "recharts";
 
-// Priority badge variants
-const priorityBadges: Record<string, string> = {
-  high: "bg-error bg-opacity-10 text-error",
-  medium: "bg-warning bg-opacity-10 text-warning",
-  normal: "bg-info bg-opacity-10 text-info",
-  low: "bg-neutral-300 bg-opacity-10 text-neutral-500"
+// =====================================================
+// 🧩 STUB COMPONENTS (Để fix lỗi imports)
+// =====================================================
+
+// Stub for @tanstack/react-query
+const queryClient = new QueryClient();
+const apiRequest = async (url: string, options?: any) => {
+  console.log("Fake API Request:", url, options);
+  return { success: true };
 };
 
-// Status badge variants
-const statusBadges: Record<string, string> = {
-  pending: "bg-warning bg-opacity-10 text-warning",
-  "in progress": "bg-success bg-opacity-10 text-success",
-  scheduled: "bg-info bg-opacity-10 text-info",
-  completed: "bg-success bg-opacity-10 text-success",
-  cancelled: "bg-neutral-300 bg-opacity-10 text-neutral-500"
+// Stub for @/hooks/use-toast
+const useToast = () => {
+  return {
+    toast: (options: { title: string; description?: string }) => {
+      console.log("TOAST:", options.title, options.description || "");
+    },
+  };
 };
 
-export default function Tasks() {
+// Stub for @/components/ui/button
+const Button = ({
+  variant,
+  size,
+  className,
+  children,
+  ...props
+}: React.ButtonHTMLAttributes<HTMLButtonElement> & {
+  variant?: "ghost" | "destructive" | "outline" | "default";
+  size?: "sm" | "icon" | "default";
+}) => {
+  const baseStyle = "inline-flex items-center justify-center rounded-md font-medium transition-colors";
+  const sizeStyle = size === "sm" ? "h-9 px-3" : size === "icon" ? "h-10 w-10" : "h-10 px-4 py-2";
+  
+  let variantStyle = "bg-blue-600 text-white hover:bg-blue-700"; // default
+  if (variant === "ghost") variantStyle = "text-gray-900 hover:bg-gray-100";
+  if (variant === "destructive") variantStyle = "bg-red-600 text-white hover:bg-red-700";
+  if (variant === "outline") variantStyle = "border border-gray-300 hover:bg-gray-100";
+
+  return (
+    <button className={`${baseStyle} ${sizeStyle} ${variantStyle} ${className}`} {...props}>
+      {children}
+    </button>
+  );
+};
+
+// Stub for @/components/ui/card
+const Card = ({ children, className }: { children: React.ReactNode; className?: string }) => (
+  <div className={`rounded-xl border bg-white text-gray-900 shadow-lg ${className}`}>{children}</div>
+);
+const CardHeader = ({ children, className }: { children: React.ReactNode; className?: string }) => (
+  <div className={`flex flex-col space-y-1.5 p-6 ${className}`}>{children}</div>
+);
+const CardTitle = ({ children, className }: { children: React.ReactNode; className?: string }) => (
+  <h3 className={`font-semibold leading-none tracking-tight text-xl flex items-center gap-2 ${className}`}>{children}</h3>
+);
+const CardContent = ({ children, className }: { children: React.ReactNode; className?: string }) => (
+  <div className={`p-6 pt-0 ${className}`}>{children}</div>
+);
+
+// Stub for @/components/ui/input
+const Input = React.forwardRef<HTMLInputElement, React.InputHTMLAttributes<HTMLInputElement>>(
+  ({ className, ...props }, ref) => (
+    <input
+      ref={ref}
+      className={`flex h-10 w-full rounded-md border border-gray-300 bg-transparent px-3 py-2 text-sm ${className}`}
+      {...props}
+    />
+  )
+);
+
+// Stub for @/components/ui/select
+const Select = ({ children, value, onValueChange }: { children: React.ReactNode; value?: string; onValueChange?: (value: string) => void; }) => (
+  <select className="flex h-10 w-full rounded-md border border-gray-300 bg-transparent px-3 py-2 text-sm" value={value} onChange={(e) => onValueChange?.(e.target.value)}>
+    {children}
+  </select>
+);
+const SelectContent = ({ children }: { children: React.ReactNode }) => <>{children}</>; // Dùng option trong select
+const SelectItem = ({ value, children }: { value: string; children: React.ReactNode }) => <option value={value}>{children}</option>;
+const SelectTrigger = ({ children }: { children: React.ReactNode }) => <div>{children}</div>; // Không cần thiết cho select
+const SelectValue = ({ placeholder }: { placeholder: string }) => <>{placeholder}</>; // Dùng value của select
+
+// Stub for @/components/ui/badge
+const Badge = ({ variant, className, children }: { variant?: "destructive" | "default"; className?: string; children: React.ReactNode; }) => {
+  let colorClass = "bg-gray-100 text-gray-800"; // default
+  if (variant === "destructive") colorClass = "bg-red-100 text-red-800";
+  return <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${colorClass} ${className}`}>{children}</span>;
+};
+
+// Stub for @/components/ui/avatar
+const Avatar = ({ children, className }: { children: React.ReactNode; className?: string }) => (
+  <div className={`relative flex h-10 w-10 shrink-0 overflow-hidden rounded-full ${className}`}>{children}</div>
+);
+const AvatarFallback = ({ children, className }: { children: React.ReactNode; className?: string }) => (
+  <span className={`flex h-full w-full items-center justify-center rounded-full bg-gray-200 text-gray-700 ${className}`}>{children}</span>
+);
+
+// Stub for @/components/ui/data-table
+// Đây là một stub DataTable đơn giản, render một bảng HTML
+const DataTable = ({
+  columns,
+  data,
+  page,
+  pageSize,
+  pageCount,
+  onPageChange,
+  onPageSizeChange,
+  loading,
+}: {
+  columns: { accessorKey: string; header: string; cell?: (row: any) => React.ReactNode }[];
+  data: any[];
+  page: number;
+  pageSize: number;
+  pageCount: number;
+  onPageChange: (page: number) => void;
+  onPageSizeChange: (size: number) => void;
+  loading?: boolean;
+}) => {
+  const paginatedData = data.slice((page - 1) * pageSize, page * pageSize);
+
+  return (
+    <div className="overflow-x-auto">
+      <table className="min-w-full divide-y divide-gray-200">
+        <thead className="bg-gray-50">
+          <tr>
+            {columns.map((col) => (
+              <th key={col.accessorKey} className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                {col.header}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody className="bg-white divide-y divide-gray-200">
+          {loading && (
+            <tr><td colSpan={columns.length} className="text-center p-4">Đang tải...</td></tr>
+          )}
+          {!loading && paginatedData.map((row, rowIndex) => (
+            <tr key={rowIndex}>
+              {columns.map((col) => (
+                <td key={col.accessorKey} className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                  {col.cell ? col.cell(row) : row[col.accessorKey]}
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      {/* Pagination Controls */}
+      <div className="flex items-center justify-between mt-4">
+        <Select value={pageSize.toString()} onValueChange={(val) => onPageSizeChange(Number(val))}>
+          <SelectItem value="10">10 / trang</SelectItem>
+          <SelectItem value="20">20 / trang</SelectItem>
+          <SelectItem value="50">50 / trang</SelectItem>
+        </Select>
+        <div className="flex gap-2">
+          <Button onClick={() => onPageChange(page - 1)} disabled={page <= 1}>Trước</Button>
+          <span className="p-2">Trang {page} / {pageCount}</span>
+          <Button onClick={() => onPageChange(page + 1)} disabled={page >= pageCount}>Sau</Button>
+        </div>
+      </div>
+    </div>
+  );
+};
+// =====================================================
+// 🧩 HẾT STUB COMPONENTS
+// =====================================================
+
+// Hàm định dạng tiền
+const formatCurrency = (amount: number | string) => {
+  const num = typeof amount === 'string' ? parseFloat(amount) : amount;
+  return num.toLocaleString("vi-VN", { style: "currency", currency: "VND" });
+};
+
+// ⛔️ ĐÃ SỬA: Bỏ 'export default' ở đây để tránh lỗi 'Multiple exports'
+function StaffPage() {
   const { toast } = useToast();
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [searchQuery, setSearchQuery] = useState("");
-  const [priorityFilter, setPriorityFilter] = useState("all");
-  const [statusFilter, setStatusFilter] = useState("all");
-  const [isTaskFormOpen, setIsTaskFormOpen] = useState(false);
-  const [editingTask, setEditingTask] = useState<any>(null);
-  
-  // Debounced search
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
+
+  // (Các state sort không được dùng trong UI, tạm ẩn)
+  // const [staffSortKey, setStaffSortKey] = useState("email");
+  // const [staffSortDir, setStaffSortDir] = useState<"asc" | "desc">("asc");
+  // const [banSortKey, setBanSortKey] = useState("email");
+  // const [banSortDir, setBanSortDir] = useState<"asc" | "desc">("asc");
+  // const [feedbackSortKey, setFeedbackSortKey] = useState("time");
+  // const [feedbackSortDir, setFeedbackSortDir] = useState<"asc" | "desc">("desc");
+  
+  const [feedbackFilterStatus, setFeedbackFilterStatus] = useState<"activity" | "close" | "both">("activity");
+
+  // (Các state task form không được dùng trong UI, tạm ẩn)
+  // const [editingTask, setEditingTask] = useState<any>(null);
+  // const [isTaskFormOpen, setIsTaskFormOpen] = useState(false);
+
+  const staffRef = useRef<HTMLDivElement | null>(null);
+  const banRef = useRef<HTMLDivElement | null>(null);
+  const feedbackRef = useRef<HTMLDivElement | null>(null);
+
+  // Debounce search query
   useEffect(() => {
     const handler = setTimeout(() => setDebouncedSearchQuery(searchQuery), 500);
     return () => clearTimeout(handler);
   }, [searchQuery]);
-  
-  // ✅ Fetch tasks (mocked)
+
+  // =====================================================
+  // 🟢 Lấy dữ liệu ảo
+  // =====================================================
   const { data, isLoading } = useQuery({
-    queryKey: ['/api/tasks', { 
-      page, 
-      pageSize, 
-      query: debouncedSearchQuery,
-      priority: priorityFilter !== "all" ? priorityFilter : undefined,
-      status: statusFilter !== "all" ? statusFilter : undefined
-    }],
+    queryKey: ["staffPageData", { page, pageSize, query: debouncedSearchQuery }],
     queryFn: async () => {
-      // Giả lập độ trễ API
-      await new Promise((r) => setTimeout(r, 500));
-      
-      // Fake data — hiển thị luôn
-      const priorities = ["high", "medium", "normal", "low"];
-      const statuses = ["pending", "in progress", "scheduled", "completed", "cancelled"];
-      const fakeClients = ["Vinamilk", "Shopee", "VNPT", "FPT", "VNG", "Grab", "Tiki", "Zalo"];
-      const fakeIndustries = ["Tech", "Finance", "Retail", "Service", "Logistics"];
-      
-      const fakeTasks = Array.from({ length: pageSize }, (_, i) => {
-        const id = (page - 1) * pageSize + i + 1;
-        const priority = priorities[Math.floor(Math.random() * priorities.length)];
-        const status = statuses[Math.floor(Math.random() * statuses.length)];
-        const clientName = fakeClients[Math.floor(Math.random() * fakeClients.length)];
-        const industry = fakeIndustries[Math.floor(Math.random() * fakeIndustries.length)];
-        const initials = clientName.slice(0, 2).toUpperCase();
-        
-        return {
-          id,
-          description: `Task ${id}: Review campaign results`,
-          dueDate: new Date(Date.now() + (Math.random() * 10 - 5) * 86400000).toISOString(),
-          priority,
-          status,
-          client: { name: clientName, initials, industry }
-        };
+      await new Promise((r) => setTimeout(r, 500)); // Giả lập loading
+
+      const roles = ["user", "moderator", "admin"];
+      const emails = ["alice@example.com", "bob@example.com", "carol@example.com", "dan@example.com", "eva@example.com", "frank@example.com", "gina@example.com", "harry@example.com"];
+
+      // Tạo 40 user
+      const allUsers = Array.from({ length: 40 }, (_, i) => {
+        const email = emails[i % emails.length].replace("@", `+${i}@`);
+        const name = `User ${i + 1}`;
+        const role = roles[i % roles.length];
+        const usage = Math.floor(Math.random() * 100);
+        const wallet = Math.random() * 200000;
+        const initials = name.split(" ").map((s) => s[0]).join("").toUpperCase();
+        const topups = Array.from({ length: Math.floor(Math.random() * 3) }, () => ({ time: new Date(Date.now() - Math.random() * 1000 * 60 * 60 * 24 * 30).toISOString(), amount: Math.floor(Math.random() * 500000) + 10000 }));
+        const purchases = Array.from({ length: Math.floor(Math.random() * 3) }, () => ({ time: new Date(Date.now() - Math.random() * 1000 * 60 * 60 * 24 * 60).toISOString(), qty: Math.ceil(Math.random() * 5), total: Math.floor(Math.random() * 200000) + 5000 }));
+        const banned = Math.random() > 0.85;
+        return { id: i + 1, email, name, role, usage, wallet, initials, topups, purchases, banned };
       });
+
+      // Tạo 30 feedback
+      const allFeedbacks = Array.from({ length: 30 }, (_, i) => {
+        const user = allUsers[i % allUsers.length];
+        const time = new Date(Date.now() - i * 3600 * 1000).toISOString();
+        const status = Math.random() > 0.7 ? "close" : "activity";
+        return { id: i + 1, email: user.email, name: user.name, status, message: `Đây là nội dung feedback số ${i + 1}`, time };
+      });
+
+      // Lọc dữ liệu theo search query
+      const filteredUsers = allUsers.filter(u => 
+        u.email.includes(debouncedSearchQuery) || 
+        u.name.toLowerCase().includes(debouncedSearchQuery.toLowerCase())
+      );
       
-      return { tasks: fakeTasks, total: 40 };
+      const filteredFeedbacks = allFeedbacks.filter(f => 
+        (f.email.includes(debouncedSearchQuery) || 
+         f.name.toLowerCase().includes(debouncedSearchQuery.toLowerCase())) &&
+        (feedbackFilterStatus === 'both' ? true : f.status === feedbackFilterStatus)
+      );
+
+      return { users: filteredUsers, feedbacks: filteredFeedbacks };
     },
+    // ⛔️ SỬA LỖI Ở ĐÂY ⛔️
+    // 'keepPreviousData' là cú pháp cũ. Đổi sang 'placeholderData'
+    // keepPreviousData: true, // Giữ data cũ khi đang load data mới
+    placeholderData: (previousData) => previousData, // Giữ data cũ khi đang load data mới (v4/v5)
   });
-  
-  const tasks = data?.tasks || [];
-  const totalTasks = data?.total || 0;
-  const pageCount = Math.ceil(totalTasks / pageSize);
 
-  const handleEditTask = (task: any) => {
-    setEditingTask(task);
-    setIsTaskFormOpen(true);
-  };
+  const users = data?.users || [];
+  const feedbacks = data?.feedbacks || [];
+  const totalUsers = data?.users?.length || 0;
+  const totalFeedbacks = data?.feedbacks?.length || 0;
 
-  const handleCompleteTask = async (taskId: number) => {
-    try {
-      await apiRequest('PATCH', `/api/tasks/${taskId}/complete`, null);
-      toast({
-        title: "Task completed",
-        description: "The task has been marked as completed.",
-      });
-      queryClient.invalidateQueries({ queryKey: ['/api/tasks'] });
-    } catch (error) {
-      console.error('Error completing task:', error);
-      toast({
-        title: "Error",
-        description: "There was an error updating the task. Please try again.",
-        variant: "destructive",
-      });
-    }
-  };
+  const scrollTo = (ref: any) => ref.current?.scrollIntoView({ behavior: "smooth" });
 
-  const columns = [
-    {
-      accessorKey: "client",
-      header: "Client",
-      cell: (task: any) => (
-        <div className="flex items-center">
-          <Avatar className="h-8 w-8 rounded-full bg-primary-light flex items-center justify-center text-white font-medium">
-            <AvatarFallback>{task.client.initials}</AvatarFallback>
+  // =====================================================
+  // 🟢 Định nghĩa cột (Columns) cho DataTables
+  // =====================================================
+  const staffColumns = [
+    { 
+      accessorKey: "name", 
+      header: "Name", 
+      cell: (row: any) => (
+        <div className="flex items-center gap-2">
+          <Avatar className="h-8 w-8">
+            <AvatarFallback>{row.initials}</AvatarFallback>
           </Avatar>
-          <div className="ml-4">
-            <div className="text-sm font-medium text-neutral-500">{task.client.name}</div>
-            <div className="text-xs text-neutral-400">{task.client.industry}</div>
-          </div>
+          <span className="font-medium">{row.name}</span>
         </div>
-      ),
+      )
     },
-    {
-      accessorKey: "description",
-      header: "Task",
-      cell: (task: any) => (
-        <div className="text-sm text-neutral-500">{task.description}</div>
-      ),
+    { accessorKey: "email", header: "Email" },
+    { 
+      accessorKey: "role", 
+      header: "Role", 
+      cell: (row: any) => (
+        <Badge className={
+          row.role === 'admin' ? 'bg-red-100 text-red-800' :
+          row.role === 'moderator' ? 'bg-yellow-100 text-yellow-800' :
+          'bg-gray-100 text-gray-800'
+        }>{row.role}</Badge>
+      )
     },
-    {
-      accessorKey: "dueDate",
-      header: "Due",
-      cell: (task: any) => {
-        const dueDate = new Date(task.dueDate);
-        const isOverdue = dueDate < new Date() && task.status !== 'completed';
-        return (
-          <div className={`text-sm ${isOverdue ? 'text-error' : 'text-neutral-500'} font-medium`}>
-            {format(dueDate, 'MMM d, yyyy h:mm a')}
-          </div>
-        );
-      },
+    { accessorKey: "usage", header: "Usage" },
+    { 
+      accessorKey: "wallet", 
+      header: "Wallet", 
+      cell: (row: any) => formatCurrency(row.wallet)
     },
-    {
-      accessorKey: "priority",
-      header: "Priority",
-      cell: (task: any) => (
-        <Badge className={`${priorityBadges[task.priority.toLowerCase()]} capitalize`}>
-          {task.priority}
-        </Badge>
-      ),
+    { 
+      accessorKey: "topups", 
+      header: "Topups", 
+      cell: (row: any) => `${row.topups.length} lần`
     },
-    {
-      accessorKey: "status",
-      header: "Status",
-      cell: (task: any) => (
-        <Badge className={`${statusBadges[task.status.toLowerCase()]} capitalize`}>
-          {task.status}
-        </Badge>
-      ),
-    },
-    {
-      accessorKey: "actions",
-      header: "Actions",
-      cell: (task: any) => (
-        <div className="flex space-x-1">
-          <Button
-            variant="ghost"
-            size="sm"
-            className="text-primary p-1 h-8 w-8 hover:bg-primary hover:bg-opacity-10 rounded"
-            onClick={() => handleEditTask(task)}
-          >
-            <Edit className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="text-primary p-1 h-8 w-8 hover:bg-primary hover:bg-opacity-10 rounded"
-            onClick={() => handleCompleteTask(task.id)}
-            disabled={task.status === 'completed'}
-          >
-            <CheckCircle className="h-4 w-4" />
-          </Button>
-        </div>
-      ),
+    { 
+      accessorKey: "purchases", 
+      header: "Purchases", 
+      cell: (row: any) => `${row.purchases.length} lần`
     },
   ];
 
+  const banColumns = [
+    { 
+      accessorKey: "name", 
+      header: "Name", 
+      cell: (row: any) => (
+        <div className="flex items-center gap-2">
+          <Avatar className="h-8 w-8">
+            <AvatarFallback>{row.initials}</AvatarFallback>
+          </Avatar>
+          <span className="font-medium">{row.name}</span>
+        </div>
+      )
+    },
+    { accessorKey: "email", header: "Email" },
+    { 
+      accessorKey: "banned", 
+      header: "Status", 
+      cell: (row: any) => (
+        <Badge variant={row.banned ? 'destructive' : 'default'} className={row.banned ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'}>
+          {row.banned ? 'Banned' : 'Active'}
+        </Badge> 
+      )
+    },
+    { 
+      accessorKey: "actions", 
+      header: "Actions", 
+      cell: (row: any) => (
+        row.banned ? (
+          <Button size="sm" variant="outline" className="text-green-600 border-green-500" onClick={() => toast({ title: 'Đã unban (mock)' })}>
+            <CheckCircle className="mr-2 h-4 w-4" /> Unban
+          </Button>
+        ) : (
+          <Button size="sm" variant="destructive" onClick={() => toast({ title: 'Đã ban (mock)' })}>
+            <Ban className="mr-2 h-4 w-4" /> Ban User
+          </Button>
+        )
+      )
+    }
+  ];
+
+  const feedbackColumns = [
+    { accessorKey: "email", header: "Email" },
+    { 
+      accessorKey: "status", 
+      header: "Status", 
+      cell: (row: any) => (
+        <Badge className={row.status === 'activity' ? 'bg-yellow-100 text-yellow-800' : 'bg-gray-100 text-gray-800'}>
+          {row.status}
+        </Badge> 
+      )
+    },
+    { 
+      accessorKey: "time", 
+      header: "Time", 
+      cell: (row: any) => format(new Date(row.time), 'MMM d, yyyy h:mm a') 
+    },
+    { accessorKey: "message", header: "Message", cell: (row: any) => (
+      <span className="truncate w-32 block">{row.message}</span>
+    )},
+    { 
+      accessorKey: "actions", 
+      header: "Actions", 
+      cell: (row: any) => (
+        <Button size="icon" variant="ghost" onClick={() => toast({ title: 'Reply mock', description: row.message })}>
+          <MessageSquare className="h-5 w-5 text-blue-600" />
+        </Button>
+      )
+    }
+  ];
+
   return (
-    <>
-      <Card>
-        <CardHeader className="border-b border-neutral-200 p-4">
-          <div className="flex justify-between items-center">
-            <CardTitle className="text-lg font-medium text-neutral-500">Tasks</CardTitle>
-            <div className="flex items-center">
-              <div className="relative mr-2">
-                <Input
-                  type="text"
-                  placeholder="Search tasks..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="h-9 pr-8 text-sm w-64"
-                />
-                <Search className="absolute right-2 top-2 h-4 w-4 text-muted-foreground" />
-              </div>
-              
-              <Select value={priorityFilter} onValueChange={setPriorityFilter}>
-                <SelectTrigger className="w-[110px] mr-2 h-9">
-                  <SelectValue placeholder="Priority" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Priorities</SelectItem>
-                  <SelectItem value="high">High</SelectItem>
-                  <SelectItem value="medium">Medium</SelectItem>
-                  <SelectItem value="normal">Normal</SelectItem>
-                  <SelectItem value="low">Low</SelectItem>
-                </SelectContent>
-              </Select>
-              
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-[110px] mr-2 h-9">
-                  <SelectValue placeholder="Status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Statuses</SelectItem>
-                  <SelectItem value="pending">Pending</SelectItem>
-                  <SelectItem value="in progress">In Progress</SelectItem>
-                  <SelectItem value="scheduled">Scheduled</SelectItem>
-                  <SelectItem value="completed">Completed</SelectItem>
-                  <SelectItem value="cancelled">Cancelled</SelectItem>
-                </SelectContent>
-              </Select>
-              
-              <Button 
-                size="sm" 
-                onClick={() => {
-                  setEditingTask(null);
-                  setIsTaskFormOpen(true);
-                }}
-              >
-                <Plus className="h-4 w-4 mr-1" />
-                New Task
-              </Button>
+    <div className="flex gap-6 p-6 bg-gray-100 min-h-screen">
+      {/* Sidebar */}
+      <aside className="w-56 sticky top-6 self-start">
+        <Card className="shadow-none border-0">
+          <CardContent className="p-4">
+            <div className="flex flex-col space-y-2">
+              <Button variant="ghost" className="justify-start gap-2" onClick={() => scrollTo(staffRef)}><Users className="mr-2 h-4 w-4 text-blue-500" /> Staff Info</Button>
+              <Button variant="ghost" className="justify-start gap-2" onClick={() => scrollTo(banRef)}><UserX className="mr-2 h-4 w-4 text-red-500" /> Ban/Unban</Button>
+              <Button variant="ghost" className="justify-start gap-2" onClick={() => scrollTo(feedbackRef)}><MessageSquare className="mr-2 h-4 w-4 text-green-500" /> Feedback</Button>
             </div>
-          </div>
-        </CardHeader>
-        <CardContent className="p-0">
-          <DataTable
-            columns={columns}
-            data={tasks}
-            pageSize={pageSize}
-            page={page}
-            pageCount={pageCount}
-            onPageChange={setPage}
-            onPageSizeChange={setPageSize}
-            loading={isLoading}
+          </CardContent>
+        </Card>
+      </aside>
+
+      {/* Main content */}
+      <main className="flex-1 space-y-8">
+        
+        {/* === Thanh tìm kiếm chung === */}
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+          <Input 
+            placeholder="Tìm kiếm email hoặc tên user..."
+            className="pl-10 h-12 text-lg"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
           />
-        </CardContent>
-      </Card>
-      
-      <TaskFormDialog 
-        open={isTaskFormOpen} 
-        onOpenChange={setIsTaskFormOpen}
-        task={editingTask}
-      />
-    </>
+        </div>
+
+        {/* Staff Info Section */}
+        <div ref={staffRef} id="staff">
+          <Card>
+            <CardHeader>
+              <CardTitle><Users className="text-blue-600"/> Staff Information ({totalUsers})</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <DataTable
+                columns={staffColumns}
+                data={users}
+                page={page}
+                pageSize={pageSize}
+                pageCount={Math.ceil(totalUsers / pageSize)}
+                onPageChange={setPage}
+                onPageSizeChange={setPageSize}
+                loading={isLoading}
+              />
+              <div className="mt-4 h-60">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={users.map(u => ({ name: u.name, usage: u.usage }))}>
+                    <XAxis dataKey="name" hide={true} />
+                    <YAxis />
+                    <Tooltip />
+                    <Bar dataKey="usage" fill="#8884d8" />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Ban/Unban Section */}
+        <div ref={banRef} id="ban">
+          <Card>
+            <CardHeader>
+              <CardTitle><UserX className="text-red-600" /> Ban / Unban Users</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <DataTable
+                columns={banColumns}
+                data={users}
+                page={page}
+                pageSize={pageSize}
+                pageCount={Math.ceil(totalUsers / pageSize)}
+                onPageChange={setPage}
+                onPageSizeChange={setPageSize}
+                loading={isLoading}
+              />
+              <div className="mt-4 h-60">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={[{ name: 'Banned', value: users.filter(u=>u.banned).length }, { name: 'Active', value: users.filter(u=>!u.banned).length }]}>
+                    <XAxis dataKey="name" />
+                    <YAxis />
+                    <Tooltip />
+                    <Bar dataKey="value" fill="#ff4d4f" />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Feedback Section */}
+        <div ref={feedbackRef} id="feedback">
+          <Card>
+            <CardHeader>
+              <CardTitle><MessageSquare className="text-green-600" /> User Feedback ({totalFeedbacks})</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {/* === Filter Bar === */}
+              <div className="w-1/3">
+                <Select value={feedbackFilterStatus} onValueChange={(val) => setFeedbackFilterStatus(val as any)}>
+                  <SelectItem value="activity">Đang hoạt động (Activity)</SelectItem>
+                  <SelectItem value="close">Đã đóng (Close)</SelectItem>
+                  <SelectItem value="both">Tất cả (Both)</SelectItem>
+                </Select>
+              </div>
+              <DataTable
+                columns={feedbackColumns}
+                data={feedbacks}
+                page={page}
+                pageSize={pageSize}
+                pageCount={Math.ceil(totalFeedbacks / pageSize)}
+                onPageChange={setPage}
+                onPageSizeChange={setPageSize}
+                loading={isLoading}
+              />
+              <div className="mt-4 h-60">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={[
+                    { name: 'Activity', value: feedbacks.filter(f => f.status === 'activity').length },
+                    { name: 'Close', value: feedbacks.filter(f => f.status === 'close').length }
+                  ]}>
+                    <XAxis dataKey="name" />
+                    <YAxis />
+                    <Tooltip />
+                    <Bar dataKey="value" fill="#82ca9d" />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </main>
+    </div>
+  );
+}
+
+// ✅ ĐÂY LÀ EXPORT DEFAULT DUY NHẤT: Bọc component trong QueryClientProvider để useQuery hoạt động
+export default function StaffPageWrapper() {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <StaffPage />
+    </QueryClientProvider>
   );
 }
