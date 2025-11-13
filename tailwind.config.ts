@@ -88,5 +88,5 @@ export default {
             },
         },
     },
-    plugins: [tailwindcssAnimate, tailwindcssTypography], // <-- SỬA LẠI DÒNG NÀY
+    plugins: [tailwindcssAnimate, tailwindcssTypography, require("tailwindcss-animate")], // <-- SỬA LẠI DÒNG NÀY
 } satisfies Config;
