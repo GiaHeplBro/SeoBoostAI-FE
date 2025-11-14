@@ -6,8 +6,8 @@ import {
   QueryClient,
   QueryClientProvider,
 } from "@tanstack/react-query";
-import axios from "axios";
-// ⛔️ Sửa lỗi: Import 'LogOut' icon
+// ✅ SỬA 1: Thêm 'isAxiosError' để kiểm tra lỗi an toàn
+import axios, { isAxiosError } from "axios";
 import {
   CheckCircle,
   XCircle,
@@ -18,9 +18,8 @@ import {
   DollarSign,
   Clock,
   UserPlus,
-  LogOut, // 👈 THÊM ICON NÀY
+  LogOut,
 } from "lucide-react";
-// ⛔️ Sửa lỗi: Import 'recharts'
 import {
   LineChart,
   Line,
@@ -125,8 +124,8 @@ const Badge = ({
 // Stub for @/hooks/use-toast
 const useToast = () => {
   return {
-    toast: ({ title, description }: { title: string; description: string }) => {
-      console.log(`TOAST: ${title} - ${description}`);
+    toast: ({ title, description, variant }: { title: string; description: string; variant?: string }) => {
+      console.log(`TOAST (${variant || 'default'}): ${title} - ${description}`);
     },
   };
 };
@@ -242,7 +241,6 @@ const updateTransactionStatus = async ({ id, status }: { id: number; status: str
 };
 
 // ========================= 🧩 COMPONENT =========================
-// ⛔️ Sửa lỗi: Nhận 'onLogout' prop
 function AdminPage({ onLogout }: { onLogout: () => void }) {
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -257,8 +255,24 @@ function AdminPage({ onLogout }: { onLogout: () => void }) {
       toast({ title: "✅ Thành công", description: "Đã cập nhật trạng thái giao dịch." });
       queryClient.invalidateQueries({ queryKey: ["adminTransactions"] });
     },
+    // ✅ SỬA 2: Thay thế 'onError' bằng trình xử lý lỗi an toàn
     onError: (error) => {
-      toast({ title: "❌ Lỗi", description: (error as Error).message, variant: "destructive" });
+      let description = "Có lỗi không xác định xảy ra.";
+
+      if (isAxiosError(error)) {
+        // Ưu tiên lấy lỗi từ response của server (nếu backend trả về { message: "..." })
+        description = error.response?.data?.message || error.message;
+      } else if (error instanceof Error) {
+        description = error.message;
+      } else if (typeof error === 'string') {
+        description = error;
+      }
+
+      toast({
+        title: "❌ Lỗi",
+        description: description,
+        variant: "destructive",
+      });
     },
   });
 
@@ -335,8 +349,8 @@ function AdminPage({ onLogout }: { onLogout: () => void }) {
   return (
     <div className="flex bg-gray-50 dark:bg-gray-900">
       {/* ===== Sidebar ===== */}
-      <aside className="fixed left-0 top-0 h-full w-64 bg-gray-900 text-white p-6 shadow-lg flex flex-col"> {/* 👈 Thêm flex-col */}
-        <div className="flex-grow"> {/* 👈 Wrapper cho nội dung chính của sidebar */}
+      <aside className="fixed left-0 top-0 h-full w-64 bg-gray-900 text-white p-6 shadow-lg flex flex-col">
+        <div className="flex-grow">
           <h2 className="text-2xl font-bold mb-4 flex items-center gap-2">
             <Settings className="text-blue-400" />
             Admin Panel
@@ -356,7 +370,7 @@ function AdminPage({ onLogout }: { onLogout: () => void }) {
             </Button>
           </nav>
         </div>
-        {/* ⛔️ Sửa lỗi: Thêm nút Logout ở cuối sidebar */}
+        {/* Nút Logout đã có ở đây */}
         <div className="mt-auto">
           <Button 
             variant="destructive" 

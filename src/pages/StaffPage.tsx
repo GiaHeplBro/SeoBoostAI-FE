@@ -11,6 +11,7 @@ import {
   Users,
   PieChart as PieChartIcon, // Đổi tên để tránh xung đột
   UserX,
+  LogOut, // ✅ THÊM: Import icon LogOut
 } from "lucide-react";
 import {
   ResponsiveContainer,
@@ -22,16 +23,10 @@ import {
 } from "recharts";
 
 // =====================================================
-// 🧩 STUB COMPONENTS (Để fix lỗi imports)
+// 🧩 STUB COMPONENTS (Giữ nguyên)
 // =====================================================
-
-// Stub for @tanstack/react-query
 const queryClient = new QueryClient();
-const apiRequest = async (url: string, options?: any) => {
-  console.log("Fake API Request:", url, options);
-  return { success: true };
-};
-
+// ... (Tất cả stub components của bạn giữ nguyên)
 // Stub for @/hooks/use-toast
 const useToast = () => {
   return {
@@ -67,7 +62,7 @@ const Button = ({
   );
 };
 
-// Stub for @/components/ui/card
+// ... (Các stub components khác Card, Input, Select... giữ nguyên)
 const Card = ({ children, className }: { children: React.ReactNode; className?: string }) => (
   <div className={`rounded-xl border bg-white text-gray-900 shadow-lg ${className}`}>{children}</div>
 );
@@ -80,8 +75,6 @@ const CardTitle = ({ children, className }: { children: React.ReactNode; classNa
 const CardContent = ({ children, className }: { children: React.ReactNode; className?: string }) => (
   <div className={`p-6 pt-0 ${className}`}>{children}</div>
 );
-
-// Stub for @/components/ui/input
 const Input = React.forwardRef<HTMLInputElement, React.InputHTMLAttributes<HTMLInputElement>>(
   ({ className, ...props }, ref) => (
     <input
@@ -91,35 +84,23 @@ const Input = React.forwardRef<HTMLInputElement, React.InputHTMLAttributes<HTMLI
     />
   )
 );
-
-// Stub for @/components/ui/select
 const Select = ({ children, value, onValueChange }: { children: React.ReactNode; value?: string; onValueChange?: (value: string) => void; }) => (
   <select className="flex h-10 w-full rounded-md border border-gray-300 bg-transparent px-3 py-2 text-sm" value={value} onChange={(e) => onValueChange?.(e.target.value)}>
     {children}
   </select>
 );
-const SelectContent = ({ children }: { children: React.ReactNode }) => <>{children}</>; // Dùng option trong select
 const SelectItem = ({ value, children }: { value: string; children: React.ReactNode }) => <option value={value}>{children}</option>;
-const SelectTrigger = ({ children }: { children: React.ReactNode }) => <div>{children}</div>; // Không cần thiết cho select
-const SelectValue = ({ placeholder }: { placeholder: string }) => <>{placeholder}</>; // Dùng value của select
-
-// Stub for @/components/ui/badge
 const Badge = ({ variant, className, children }: { variant?: "destructive" | "default"; className?: string; children: React.ReactNode; }) => {
   let colorClass = "bg-gray-100 text-gray-800"; // default
   if (variant === "destructive") colorClass = "bg-red-100 text-red-800";
   return <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${colorClass} ${className}`}>{children}</span>;
 };
-
-// Stub for @/components/ui/avatar
 const Avatar = ({ children, className }: { children: React.ReactNode; className?: string }) => (
   <div className={`relative flex h-10 w-10 shrink-0 overflow-hidden rounded-full ${className}`}>{children}</div>
 );
 const AvatarFallback = ({ children, className }: { children: React.ReactNode; className?: string }) => (
   <span className={`flex h-full w-full items-center justify-center rounded-full bg-gray-200 text-gray-700 ${className}`}>{children}</span>
 );
-
-// Stub for @/components/ui/data-table
-// Đây là một stub DataTable đơn giản, render một bảng HTML
 const DataTable = ({
   columns,
   data,
@@ -140,7 +121,6 @@ const DataTable = ({
   loading?: boolean;
 }) => {
   const paginatedData = data.slice((page - 1) * pageSize, page * pageSize);
-
   return (
     <div className="overflow-x-auto">
       <table className="min-w-full divide-y divide-gray-200">
@@ -194,27 +174,14 @@ const formatCurrency = (amount: number | string) => {
   return num.toLocaleString("vi-VN", { style: "currency", currency: "VND" });
 };
 
-// ⛔️ ĐÃ SỬA: Bỏ 'export default' ở đây để tránh lỗi 'Multiple exports'
-function StaffPage() {
+// ✅ SỬA 1: Nhận prop 'onLogout'
+function StaffPage({ onLogout }: { onLogout: () => void }) {
   const { toast } = useToast();
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
-
-  // (Các state sort không được dùng trong UI, tạm ẩn)
-  // const [staffSortKey, setStaffSortKey] = useState("email");
-  // const [staffSortDir, setStaffSortDir] = useState<"asc" | "desc">("asc");
-  // const [banSortKey, setBanSortKey] = useState("email");
-  // const [banSortDir, setBanSortDir] = useState<"asc" | "desc">("asc");
-  // const [feedbackSortKey, setFeedbackSortKey] = useState("time");
-  // const [feedbackSortDir, setFeedbackSortDir] = useState<"asc" | "desc">("desc");
-  
   const [feedbackFilterStatus, setFeedbackFilterStatus] = useState<"activity" | "close" | "both">("activity");
-
-  // (Các state task form không được dùng trong UI, tạm ẩn)
-  // const [editingTask, setEditingTask] = useState<any>(null);
-  // const [isTaskFormOpen, setIsTaskFormOpen] = useState(false);
 
   const staffRef = useRef<HTMLDivElement | null>(null);
   const banRef = useRef<HTMLDivElement | null>(null);
@@ -226,18 +193,13 @@ function StaffPage() {
     return () => clearTimeout(handler);
   }, [searchQuery]);
 
-  // =====================================================
-  // 🟢 Lấy dữ liệu ảo
-  // =====================================================
+  // ... (useQuery và data ảo giữ nguyên)
   const { data, isLoading } = useQuery({
     queryKey: ["staffPageData", { page, pageSize, query: debouncedSearchQuery }],
     queryFn: async () => {
       await new Promise((r) => setTimeout(r, 500)); // Giả lập loading
-
       const roles = ["user", "moderator", "admin"];
       const emails = ["alice@example.com", "bob@example.com", "carol@example.com", "dan@example.com", "eva@example.com", "frank@example.com", "gina@example.com", "harry@example.com"];
-
-      // Tạo 40 user
       const allUsers = Array.from({ length: 40 }, (_, i) => {
         const email = emails[i % emails.length].replace("@", `+${i}@`);
         const name = `User ${i + 1}`;
@@ -250,33 +212,24 @@ function StaffPage() {
         const banned = Math.random() > 0.85;
         return { id: i + 1, email, name, role, usage, wallet, initials, topups, purchases, banned };
       });
-
-      // Tạo 30 feedback
       const allFeedbacks = Array.from({ length: 30 }, (_, i) => {
         const user = allUsers[i % allUsers.length];
         const time = new Date(Date.now() - i * 3600 * 1000).toISOString();
         const status = Math.random() > 0.7 ? "close" : "activity";
         return { id: i + 1, email: user.email, name: user.name, status, message: `Đây là nội dung feedback số ${i + 1}`, time };
       });
-
-      // Lọc dữ liệu theo search query
       const filteredUsers = allUsers.filter(u => 
         u.email.includes(debouncedSearchQuery) || 
         u.name.toLowerCase().includes(debouncedSearchQuery.toLowerCase())
       );
-      
       const filteredFeedbacks = allFeedbacks.filter(f => 
         (f.email.includes(debouncedSearchQuery) || 
          f.name.toLowerCase().includes(debouncedSearchQuery.toLowerCase())) &&
         (feedbackFilterStatus === 'both' ? true : f.status === feedbackFilterStatus)
       );
-
       return { users: filteredUsers, feedbacks: filteredFeedbacks };
     },
-    // ⛔️ SỬA LỖI Ở ĐÂY ⛔️
-    // 'keepPreviousData' là cú pháp cũ. Đổi sang 'placeholderData'
-    // keepPreviousData: true, // Giữ data cũ khi đang load data mới
-    placeholderData: (previousData) => previousData, // Giữ data cũ khi đang load data mới (v4/v5)
+    placeholderData: (previousData) => previousData, // Giữ data cũ khi đang load data mới
   });
 
   const users = data?.users || [];
@@ -286,9 +239,7 @@ function StaffPage() {
 
   const scrollTo = (ref: any) => ref.current?.scrollIntoView({ behavior: "smooth" });
 
-  // =====================================================
-  // 🟢 Định nghĩa cột (Columns) cho DataTables
-  // =====================================================
+  // ... (Định nghĩa các cột 'staffColumns', 'banColumns', 'feedbackColumns' giữ nguyên)
   const staffColumns = [
     { 
       accessorKey: "name", 
@@ -413,6 +364,15 @@ function StaffPage() {
               <Button variant="ghost" className="justify-start gap-2" onClick={() => scrollTo(banRef)}><UserX className="mr-2 h-4 w-4 text-red-500" /> Ban/Unban</Button>
               <Button variant="ghost" className="justify-start gap-2" onClick={() => scrollTo(feedbackRef)}><MessageSquare className="mr-2 h-4 w-4 text-green-500" /> Feedback</Button>
             </div>
+            
+            {/* ✅ SỬA 2: Thêm nút Logout vào đây */}
+            <Button 
+              variant="destructive" 
+              className="justify-start gap-2 mt-10 w-full" 
+              onClick={onLogout}
+            >
+              <LogOut className="mr-2 h-4 w-4" /> Đăng xuất
+            </Button>
           </CardContent>
         </Card>
       </aside>
@@ -420,6 +380,7 @@ function StaffPage() {
       {/* Main content */}
       <main className="flex-1 space-y-8">
         
+        {/* ... (Toàn bộ nội dung chính <main> giữ nguyên) ... */}
         {/* === Thanh tìm kiếm chung === */}
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
@@ -539,11 +500,11 @@ function StaffPage() {
   );
 }
 
-// ✅ ĐÂY LÀ EXPORT DEFAULT DUY NHẤT: Bọc component trong QueryClientProvider để useQuery hoạt động
-export default function StaffPageWrapper() {
+// ✅ SỬA 3: Chấp nhận 'onLogout' và truyền nó xuống cho 'StaffPage'
+export default function StaffPageWrapper({ onLogout }: { onLogout: () => void }) {
   return (
     <QueryClientProvider client={queryClient}>
-      <StaffPage />
+      <StaffPage onLogout={onLogout} />
     </QueryClientProvider>
   );
 }
