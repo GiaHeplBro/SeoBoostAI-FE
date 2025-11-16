@@ -10,14 +10,15 @@ api.interceptors.request.use(
   (config) => {
     // Lấy chuỗi token đã được mã hóa từ localStorage
     const encodedTokens = localStorage.getItem('tokens');
-    
+
     if (encodedTokens) {
       try {
         // Giải mã chuỗi bằng atob()
-        const decodedString = atob(encodedTokens);
+
+        const decodedString = decodeURIComponent(atob(encodedTokens)); // Thêm decodeURIComponent
         // Chuyển chuỗi JSON thành object
         const { accessToken } = JSON.parse(decodedString);
-        
+
         if (accessToken) {
           // Gắn token vào header Authorization theo chuẩn "Bearer"
           config.headers.Authorization = `Bearer ${accessToken}`;
@@ -29,7 +30,7 @@ api.interceptors.request.use(
         // localStorage.removeItem('user');
       }
     }
-    
+
     // Trả về config đã được chỉnh sửa để request được gửi đi
     return config;
   },
