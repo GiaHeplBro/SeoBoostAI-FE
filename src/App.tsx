@@ -75,7 +75,7 @@ function App() {
     const encodedUser = localStorage.getItem('user');
     if (encodedUser) {
       try {
-        const decodedUser = JSON.parse(atob(encodedUser));
+        const decodedUser = JSON.parse(decodeURIComponent(atob(encodedUser)));
         setUser(decodedUser);
       } catch (error) {
         console.error("Lỗi khi giải mã user từ localStorage", error);
