@@ -12,8 +12,8 @@ const menuItems = [
     category: "Công Cụ SEO",
     items: [
       { name: "Trang Chủ", icon: <LayoutDashboard className="mr-3 h-5 w-5" />, path: "/dashboard" },
-      { name: "Phân Tích Keyword", icon: <Search className="mr-3 h-5 w-5" />, path: "/keyword-analysis" },
-      { name: "Phân Tích Website", icon: <FileSearch className="mr-3 h-5 w-5" />, path: "/seo-audit" },
+      { name: "Phân tích Xu hướng", icon: <Search className="mr-3 h-5 w-5" />, path: "/keyword-analysis" },
+      { name: "Tối ưu hóa Website", icon: <FileSearch className="mr-3 h-5 w-5" />, path: "/seo-audit" },
       { name: "Tối Ưu Hóa Nội Dung", icon: <Sparkles className="mr-3 h-5 w-5" />, path: "/content-optimization" },
     ],
   },
