@@ -1,34 +1,39 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Progress } from "@/components/ui/progress";
-import CircularProgress from "@/components/ui/GradientCircularProgress"; // Sửa lại tên import
-import GradientCircularProgress from "@/components/ui/GradientCircularProgress"; // 1. Import component mới
-import { Badge } from "@/components/ui/badge";
-import api from "@/axiosInstance";
-import { useToast } from "@/hooks/use-toast";
-import { jwtDecode } from "jwt-decode";
+// SỬA: Dùng nháy đơn chuẩn
+import { jwtDecode } from 'jwt-decode';
+// SỬA: Thử đường dẫn tương đối cùng thư mục (nếu file này nằm ở root src)
+import api from '@/axiosInstance';
 
-
+// --- Import các components UI cần thiết ---
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Tooltip, TooltipProvider, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useToast } from "@/hooks/use-toast";
 
 // --- Import Icons ---
-import { History, Smartphone, Laptop, Search } from "lucide-react";
+// Đảm bảo RefreshCcw đã được import
+import { History, Smartphone, Laptop, Search, Info, RefreshCcw } from "lucide-react";
 
 // --- 1. Định nghĩa các kiểu dữ liệu (Types) ---
 
-// Payload cho API 1 (Phân tích)
+// Payload cho API 1 (Phân tích - POST)
 interface PerformanceHistoryPayload {
   userId: number;
   url: string;
   strategy: "desktop" | "mobile";
+}
+
+// Payload cho API Update (Phân tích lại - PUT)
+interface UpdatePerformanceHistoryPayload {
+  performanceHistoryId: number;
+  userId: number;
 }
 
 // Các điểm số (bên trong `pageSpeedResponse` đã được parse)
@@ -55,7 +60,7 @@ interface AnalysisCache {
   elements: any[]; 
 }
 
-// Response từ API 1
+// Response từ API 1 & PUT
 interface PerformanceHistoryResponse {
   scanHistoryID: number;
   userID: number;
@@ -73,8 +78,8 @@ interface ElementSuggestion {
   outerHTML: string;
   important: boolean;
   hasSuggestion: boolean;
-  aiRecommendation: string | null; // SỬA: Có thể là null
-  description: string | null; // SỬA: Có thể là null
+  aiRecommendation: string | null; 
+  description: string | null; 
   createdAt: string;
 }
 
@@ -87,7 +92,6 @@ interface HistoryApiResponse {
 }
 
 // Kiểu dữ liệu cho một mục trong danh sách
-// (Giờ nó chính là PerformanceHistoryResponse)
 type HistoryItem = PerformanceHistoryResponse;
 
 
@@ -183,9 +187,15 @@ const PerformanceScoreCircle = ({ metric, score }: { metric: string, score: numb
 
 // --- 4. Các hàm gọi API ---
 
-// API 1: Phân tích URL
+// API 1: Phân tích URL (POST)
 const analyzeWebsite = async (payload: PerformanceHistoryPayload): Promise<PerformanceHistoryResponse> => {
   const { data } = await api.post('/performance-histories', payload);
+  return data;
+};
+
+// API UPDATE: Chạy lại phân tích (PUT)
+const updateWebsiteAnalysis = async (payload: UpdatePerformanceHistoryPayload): Promise<PerformanceHistoryResponse> => {
+  const { data } = await api.put('/performance-histories', payload);
   return data;
 };
 
@@ -284,6 +294,22 @@ export default function ContentOptimization() {
     },
   });
 
+  // Mutation Update: Chạy lại phân tích (PUT)
+  const updateAnalysisMutation = useMutation({
+    mutationFn: updateWebsiteAnalysis,
+    onSuccess: (data) => {
+      toast({ title: "Cập nhật thành công!", description: "Kết quả phân tích đã được làm mới." });
+      setCurrentAnalysis(data);
+      // Reset phần chuyên sâu vì nội dung đã thay đổi
+      setDeepDiveAnalysis(null); 
+      setShowDeepDive(false);
+      queryClient.invalidateQueries({ queryKey: ['performanceHistory', userId] });
+    },
+    onError: (error) => {
+      toast({ title: "Lỗi cập nhật", description: error.message, variant: "destructive" });
+    },
+  });
+
   // Mutation 2: Tạo mới Element (API 3)
   const generateDeepDiveMutation = useMutation<ElementSuggestion[], Error, number>({
     mutationFn: generateDeepDiveAnalysis,
@@ -301,19 +327,12 @@ export default function ContentOptimization() {
   const fetchDeepDiveMutation = useMutation<ElementSuggestion[], Error, number>({
     mutationFn: fetchExistingElements,
     onSuccess: (data) => {
-      // SỬA LỖI LOGIC:
-      // Chỉ hiển thị Bảng 2 nếu 'aiRecommendation' hoặc 'description' tồn tại.
       if (data && data.length > 0 && (data[0].aiRecommendation || data[0].description)) {
-        // Phân tích chuyên sâu đã chạy -> Hiển thị Bảng 2
         setDeepDiveAnalysis(data);
         setShowDeepDive(true);
       }
-      // Ngược lại, nếu data rỗng HOẶC chưa có khuyến nghị (chuyên sâu chưa chạy)
-      // thì không làm gì cả. `showDeepDive` vẫn là `false`
-      // và nút "Phân tích chuyên sâu" sẽ hiển thị.
     },
     onError: (error) => {
-      // Lỗi (như 404) cũng có nghĩa là chưa có -> Bỏ qua, giữ nguyên `showDeepDive = false`
       console.error("Không tìm thấy phân tích chuyên sâu (an toàn):", error);
     },
   });
@@ -324,7 +343,7 @@ export default function ContentOptimization() {
     onSuccess: (data) => {
       setCurrentAnalysis(data);
       setDeepDiveAnalysis(null);
-      setShowDeepDive(false); // Reset trước khi thử tải
+      setShowDeepDive(false); 
       toast({ title: "Đã tải báo cáo", description: "Đã tải kết quả từ lịch sử." });
       window.scrollTo({ top: 0, behavior: 'smooth' });
       
@@ -370,14 +389,23 @@ export default function ContentOptimization() {
     analysisMutation.mutate(payload);
   };
 
-  // Hàm này gọi mutation TẠO MỚI Bảng 2
-  const handleGenerateDeepDive = () => {
+  // Hàm xử lý nút cập nhật
+  const handleUpdateAnalysis = () => {
+    if (!currentAnalysis || !userId) return;
 
+    const payload: UpdatePerformanceHistoryPayload = {
+      performanceHistoryId: currentAnalysis.scanHistoryID, 
+      userId: parseInt(userId, 10)
+    };
+
+    updateAnalysisMutation.mutate(payload);
+  };
+
+  const handleGenerateDeepDive = () => {
     if (!currentAnalysis?.analysisCache?.analysisCacheID) return;
     generateDeepDiveMutation.mutate(currentAnalysis.analysisCache.analysisCacheID);
   };
 
-  // Hàm này để tải lại kết quả cũ từ lịch sử
   const handleLoadFromHistory = (scanHistoryID: number) => {
     singleReportMutation.mutate(scanHistoryID);
   }
@@ -482,7 +510,6 @@ export default function ContentOptimization() {
 
         {/* --- CỘT PHẢI: KẾT QUẢ --- */}
         <div className="lg:col-span-2 space-y-6">
-
           {!currentAnalysis && !analysisMutation.isPending && (
             <Card className="flex items-center justify-center min-h-[500px]">
               <p className="text-muted-foreground">
@@ -492,7 +519,7 @@ export default function ContentOptimization() {
             </Card>
           )}
 
-          {analysisMutation.isPending && (
+          {(analysisMutation.isPending || updateAnalysisMutation.isPending) && (
             <Card className="min-h-[500px] p-6 space-y-4">
               <Skeleton className="h-8 w-1/2" />
               <div className="flex justify-around pt-4">
@@ -505,15 +532,28 @@ export default function ContentOptimization() {
             </Card>
           )}
 
-          {currentAnalysis && scores && (
+          {currentAnalysis && scores && !analysisMutation.isPending && !updateAnalysisMutation.isPending && (
             <>
               {/* --- 7 Ô ĐIỂM SỐ --- */}
               <Card>
-
                 <CardHeader>
                   <CardTitle>Điểm hiệu suất (Core Web Vitals)</CardTitle>
-                  <CardDescription>
-                    Điểm số dựa trên phân tích của Google PageSpeed Insights cho <strong>{currentAnalysis.analysisCache.strategy}</strong>
+                  <CardDescription className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+                    <span>
+                      Điểm số dựa trên phân tích của Google PageSpeed Insights cho <strong>{currentAnalysis.analysisCache.strategy}</strong>
+                    </span>
+                    
+                    {/* Nút Update */}
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="flex items-center gap-2 text-xs h-8"
+                      onClick={handleUpdateAnalysis}
+                      disabled={updateAnalysisMutation.isPending}
+                    >
+                       <RefreshCcw className={`h-3 w-3 ${updateAnalysisMutation.isPending ? 'animate-spin' : ''}`} />
+                       {updateAnalysisMutation.isPending ? "Đang cập nhật..." : "Cập nhật kết quả"}
+                    </Button>
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="flex flex-wrap justify-center gap-2">
@@ -529,7 +569,6 @@ export default function ContentOptimization() {
 
               {/* --- BẢNG THÔNG TIN 1 --- */}
               <Card>
-
                 <CardHeader>
                   <CardTitle>Bảng thông tin 1: Đánh giá chung (AI)</CardTitle>
                 </CardHeader>
@@ -547,26 +586,22 @@ export default function ContentOptimization() {
                     </p>
                   </div>
                 </CardContent>
-                {/* Chỉ hiển thị nút nếu Bảng 2 CHƯA hiển thị */}
                 {!showDeepDive && (
                   <CardFooter>
                     <Button 
                       className="ml-auto" 
-                      onClick={handleGenerateDeepDive} // gọi hàm tạo mới
+                      onClick={handleGenerateDeepDive} 
                       disabled={generateDeepDiveMutation.isPending}
                     >
                       {generateDeepDiveMutation.isPending ? "Đang tải..." : "Phân tích chuyên sâu"}
-
                     </Button>
                   </CardFooter>
                 )}
               </Card>
 
               {/* --- BẢNG THÔNG TIN 2 (ẨN/HIỆN) --- */}
-              {/* Hiển thị nếu đang tải, hoặc đã có dữ liệu */}
               {(fetchDeepDiveMutation.isPending || (showDeepDive && deepDiveAnalysis)) && (
                 <Card>
-
                   <CardHeader>
                     <CardTitle>Bảng thông tin 2: Phân tích chuyên sâu (Elements)</CardTitle>
                   </CardHeader>
@@ -597,10 +632,8 @@ export default function ContentOptimization() {
                         </Table>
                       </ScrollArea>
                     )}
-                    {/* Hiển thị nếu có data nhưng không có item (trường hợp hiếm) */}
                     {deepDiveAnalysis && deepDiveAnalysis.length === 0 && (
                       <p className="text-sm text-muted-foreground">Không tìm thấy chi tiết element nào.</p>
-
                     )}
                   </CardContent>
                 </Card>
