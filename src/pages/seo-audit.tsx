@@ -1,8 +1,6 @@
 import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-// SỬA: Dùng nháy đơn chuẩn
 import { jwtDecode } from 'jwt-decode';
-// SỬA: Thử đường dẫn tương đối cùng thư mục (nếu file này nằm ở root src)
 import api from '@/axiosInstance';
 
 // --- Import các components UI cần thiết ---
@@ -18,7 +16,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 
 // --- Import Icons ---
-// Đảm bảo RefreshCcw đã được import
 import { History, Smartphone, Laptop, Search, Info, RefreshCcw } from "lucide-react";
 
 // --- 1. Định nghĩa các kiểu dữ liệu (Types) ---
@@ -300,7 +297,6 @@ export default function ContentOptimization() {
     onSuccess: (data) => {
       toast({ title: "Cập nhật thành công!", description: "Kết quả phân tích đã được làm mới." });
       setCurrentAnalysis(data);
-      // Reset phần chuyên sâu vì nội dung đã thay đổi
       setDeepDiveAnalysis(null); 
       setShowDeepDive(false);
       queryClient.invalidateQueries({ queryKey: ['performanceHistory', userId] });
@@ -315,7 +311,10 @@ export default function ContentOptimization() {
     mutationFn: generateDeepDiveAnalysis,
     onSuccess: (data) => {
       setDeepDiveAnalysis(data);
-      setShowDeepDive(true); // Hiển thị bảng 2
+      // Khi chạy POST, dữ liệu trả về chắc chắn đã có AI Suggestion
+      // nên ta có thể set showDeepDive = true luôn.
+      // Tuy nhiên, để an toàn (trường hợp POST trả về element rỗng), ta vẫn set.
+      setShowDeepDive(true); 
       toast({ title: "Phân tích chuyên sâu hoàn tất!" });
     },
     onError: (error) => {
@@ -327,9 +326,20 @@ export default function ContentOptimization() {
   const fetchDeepDiveMutation = useMutation<ElementSuggestion[], Error, number>({
     mutationFn: fetchExistingElements,
     onSuccess: (data) => {
-      if (data && data.length > 0 && (data[0].aiRecommendation || data[0].description)) {
+      // SỬA: Logic hiển thị mới
+      // Nếu có dữ liệu Element trả về (dù có suggestion hay chưa) -> LƯU VÀO STATE
+      if (data && data.length > 0) {
         setDeepDiveAnalysis(data);
-        setShowDeepDive(true);
+        
+        // Kiểm tra xem đã có aiRecommendation nào chưa
+        // Nếu CÓ ít nhất 1 cái -> Hiển thị Bảng 2 (đã chạy chuyên sâu)
+        // Nếu KHÔNG có cái nào -> Ẩn Bảng 2 (chưa chạy chuyên sâu) -> Để hiện nút
+        const hasAnalysis = data.some(item => item.aiRecommendation || item.description);
+        
+        setShowDeepDive(hasAnalysis);
+      } else {
+        // Nếu không có element nào -> Chưa chạy -> Ẩn bảng 2
+        setShowDeepDive(false);
       }
     },
     onError: (error) => {
@@ -586,6 +596,7 @@ export default function ContentOptimization() {
                     </p>
                   </div>
                 </CardContent>
+                {/* SỬA: Nút chỉ hiển thị nếu showDeepDive = false */}
                 {!showDeepDive && (
                   <CardFooter>
                     <Button 
@@ -600,13 +611,13 @@ export default function ContentOptimization() {
               </Card>
 
               {/* --- BẢNG THÔNG TIN 2 (ẨN/HIỆN) --- */}
-              {(fetchDeepDiveMutation.isPending || (showDeepDive && deepDiveAnalysis)) && (
+              {(fetchDeepDiveMutation.isPending || generateDeepDiveMutation.isPending || (showDeepDive && deepDiveAnalysis)) && (
                 <Card>
                   <CardHeader>
                     <CardTitle>Bảng thông tin 2: Phân tích chuyên sâu (Elements)</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    {fetchDeepDiveMutation.isPending && <p>Đang tải dữ liệu chuyên sâu...</p>}
+                    {(fetchDeepDiveMutation.isPending || generateDeepDiveMutation.isPending) && <p>Đang tải dữ liệu chuyên sâu...</p>}
                     
                     {deepDiveAnalysis && deepDiveAnalysis.length > 0 && (
                       <ScrollArea className="max-h-[600px] overflow-auto border rounded-md">
@@ -624,15 +635,15 @@ export default function ContentOptimization() {
                               <TableRow key={item.elementID}>
                                 <TableCell><code className="text-xs">{item.tagName}</code></TableCell>
                                 <TableCell><pre className="text-xs bg-muted p-1 rounded max-w-xs overflow-x-auto"><code>{item.outerHTML}</code></pre></TableCell>
-                                <TableCell className="text-xs">{item.description}</TableCell>
-                                <TableCell className="text-xs font-medium text-blue-600">{item.aiRecommendation}</TableCell>
+                                <TableCell className="text-xs">{item.description || "Chưa phân tích"}</TableCell>
+                                <TableCell className="text-xs font-medium text-blue-600">{item.aiRecommendation || "Chưa phân tích"}</TableCell>
                               </TableRow>
                             ))}
                           </TableBody>
                         </Table>
                       </ScrollArea>
                     )}
-                    {deepDiveAnalysis && deepDiveAnalysis.length === 0 && (
+                    {deepDiveAnalysis && deepDiveAnalysis.length === 0 && !fetchDeepDiveMutation.isPending && (
                       <p className="text-sm text-muted-foreground">Không tìm thấy chi tiết element nào.</p>
                     )}
                   </CardContent>
