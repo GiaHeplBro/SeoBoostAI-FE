@@ -37,7 +37,7 @@ const Auth: React.FC<{ onLoginSuccess: (user: UserProfile) => void }> = ({ onLog
     try {
       // Bây giờ 'api' đã là instance có sẵn interceptor để tự động thêm token
       const response = await api.post(
-        '/Authens/login-with-google',
+        '/Authens/login-member',
         JSON.stringify(credentialResponse.credential),
         { headers: { 'Content-Type': 'application/json' } }
       );
