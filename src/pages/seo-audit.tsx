@@ -25,12 +25,16 @@ interface PerformanceHistoryPayload {
   userId: number;
   url: string;
   strategy: "desktop" | "mobile";
+  featureId: number; // SỬA: Thêm featureId vào đây nữa
+
 }
 
 // Payload cho API Update (Phân tích lại - PUT)
 interface UpdatePerformanceHistoryPayload {
   performanceHistoryId: number;
   userId: number;
+  featureId: number; // Đã thêm trường này theo yêu cầu
+
 }
 
 // Các điểm số (bên trong `pageSpeedResponse` đã được parse)
@@ -54,7 +58,7 @@ interface AnalysisCache {
   generalAssessment: string;
   suggestion: string;
   lastAnalyzedAt: string;
-  elements: any[]; 
+  elements: any[];
 }
 
 // Response từ API 1 & PUT
@@ -75,8 +79,8 @@ interface ElementSuggestion {
   outerHTML: string;
   important: boolean;
   hasSuggestion: boolean;
-  aiRecommendation: string | null; 
-  description: string | null; 
+  aiRecommendation: string | null;
+  description: string | null;
   createdAt: string;
 }
 
@@ -101,18 +105,18 @@ const METRIC_THRESHOLDS = {
   FCP: { good: 1800, needsImprovement: 3000 },
   SI: { good: 3400, needsImprovement: 5800 },
   TTI: { good: 3800, needsImprovement: 7300 },
-  PerformanceScore: { good: 90, needsImprovement: 50 } 
+  PerformanceScore: { good: 90, needsImprovement: 50 }
 };
 
 const getScoreColor = (metric: keyof typeof METRIC_THRESHOLDS, value: number) => {
   if (value === null || value === undefined) return 'text-gray-500';
   const thresholds = METRIC_THRESHOLDS[metric];
-  
-  if (metric === 'PerformanceScore') { 
+
+  if (metric === 'PerformanceScore') {
     if (value >= thresholds.good) return 'text-green-500';
     if (value >= thresholds.needsImprovement) return 'text-amber-500';
     return 'text-red-500';
-  } else { 
+  } else {
     if (value <= thresholds.good) return 'text-green-500';
     if (value <= thresholds.needsImprovement) return 'text-amber-500';
     return 'text-red-500';
@@ -120,7 +124,7 @@ const getScoreColor = (metric: keyof typeof METRIC_THRESHOLDS, value: number) =>
 };
 
 const getMetricUnit = (metric: string) => {
-  switch(metric) {
+  switch (metric) {
     case 'CLS':
       return '';
     case 'PerformanceScore':
@@ -131,7 +135,7 @@ const getMetricUnit = (metric: string) => {
 }
 
 const getMetricInfo = (metric: string) => {
-  switch(metric) {
+  switch (metric) {
     case 'LCP':
       return 'Tốc độ tải trang. Thời gian để nội dung lớn nhất (văn bản, hình ảnh) hiển thị.';
     case 'CLS':
@@ -167,7 +171,7 @@ const PerformanceScoreCircle = ({ metric, score }: { metric: string, score: numb
             <div className={`relative w-20 h-20 flex items-center justify-center border-4 rounded-full ${colorClass.replace('text-', 'border-')}`}>
               <span className={`text-xl font-bold ${colorClass}`}>{displayScore}</span>
               {unit && <span className="text-xs text-muted-foreground absolute bottom-3">{unit}</span>}
-              
+
               <TooltipContent side="top" className="max-w-[200px] text-center">
                 <p className="font-semibold">{metric}</p>
                 <p className="text-xs">{info}</p>
@@ -204,11 +208,8 @@ const fetchExistingElements = async (analysisCacheID: number): Promise<ElementSu
 
 // API 3: Tạo mới Element (POST)
 const generateDeepDiveAnalysis = async (analysisCacheID: number): Promise<ElementSuggestion[]> => {
-  const { data } = await api.post(`/element/suggestion`, analysisCacheID, {
-    headers: {
-      'Content-Type': 'application/json'
-    }
-  });
+  const { data } = await api.get(`/element/suggestion/${analysisCacheID}`); 
+
   return data;
 }
 
@@ -219,14 +220,14 @@ const fetchPerformanceHistory = async (userId: string | null): Promise<HistoryIt
     const { data } = await api.get(`/performance-histories`, {
       params: {
         CurrentPage: 1,
-        PageSize: 20, 
+        PageSize: 20,
         UserId: userId
       }
     });
     return data.items || [];
   } catch (error) {
     console.error("Lỗi khi tải lịch sử:", error);
-    return []; 
+    return [];
   }
 };
 
@@ -243,7 +244,7 @@ export default function ContentOptimization() {
   // --- States ---
   const [url, setUrl] = useState("");
   const [strategy, setStrategy] = useState<"desktop" | "mobile">("desktop");
-  
+
   const [currentAnalysis, setCurrentAnalysis] = useState<PerformanceHistoryResponse | null>(null);
   const [deepDiveAnalysis, setDeepDiveAnalysis] = useState<ElementSuggestion[] | null>(null);
   const [showDeepDive, setShowDeepDive] = useState(false);
@@ -256,7 +257,7 @@ export default function ContentOptimization() {
     try {
       const encodedTokens = localStorage.getItem('tokens');
       if (!encodedTokens) return null;
-      
+
       const decodedString = decodeURIComponent(atob(encodedTokens));
       const { accessToken } = JSON.parse(decodedString);
       const decodedToken: { user_ID: string } = jwtDecode(accessToken);
@@ -273,7 +274,7 @@ export default function ContentOptimization() {
   const historyQuery = useQuery({
     queryKey: ['performanceHistory', userId],
     queryFn: () => fetchPerformanceHistory(userId),
-    enabled: !!userId, 
+    enabled: !!userId,
   });
 
   // Mutation 1: Chạy phân tích (API 1)
@@ -297,7 +298,7 @@ export default function ContentOptimization() {
     onSuccess: (data) => {
       toast({ title: "Cập nhật thành công!", description: "Kết quả phân tích đã được làm mới." });
       setCurrentAnalysis(data);
-      setDeepDiveAnalysis(null); 
+      setDeepDiveAnalysis(null);
       setShowDeepDive(false);
       queryClient.invalidateQueries({ queryKey: ['performanceHistory', userId] });
     },
@@ -314,7 +315,7 @@ export default function ContentOptimization() {
       // Khi chạy POST, dữ liệu trả về chắc chắn đã có AI Suggestion
       // nên ta có thể set showDeepDive = true luôn.
       // Tuy nhiên, để an toàn (trường hợp POST trả về element rỗng), ta vẫn set.
-      setShowDeepDive(true); 
+      setShowDeepDive(true);
       toast({ title: "Phân tích chuyên sâu hoàn tất!" });
     },
     onError: (error) => {
@@ -330,12 +331,12 @@ export default function ContentOptimization() {
       // Nếu có dữ liệu Element trả về (dù có suggestion hay chưa) -> LƯU VÀO STATE
       if (data && data.length > 0) {
         setDeepDiveAnalysis(data);
-        
+
         // Kiểm tra xem đã có aiRecommendation nào chưa
         // Nếu CÓ ít nhất 1 cái -> Hiển thị Bảng 2 (đã chạy chuyên sâu)
         // Nếu KHÔNG có cái nào -> Ẩn Bảng 2 (chưa chạy chuyên sâu) -> Để hiện nút
         const hasAnalysis = data.some(item => item.aiRecommendation || item.description);
-        
+
         setShowDeepDive(hasAnalysis);
       } else {
         // Nếu không có element nào -> Chưa chạy -> Ẩn bảng 2
@@ -353,10 +354,10 @@ export default function ContentOptimization() {
     onSuccess: (data) => {
       setCurrentAnalysis(data);
       setDeepDiveAnalysis(null);
-      setShowDeepDive(false); 
+      setShowDeepDive(false);
       toast({ title: "Đã tải báo cáo", description: "Đã tải kết quả từ lịch sử." });
       window.scrollTo({ top: 0, behavior: 'smooth' });
-      
+
       if (data.analysisCache.analysisCacheID) {
         fetchDeepDiveMutation.mutate(data.analysisCache.analysisCacheID);
       }
@@ -394,7 +395,8 @@ export default function ContentOptimization() {
     const payload: PerformanceHistoryPayload = {
       userId: parseInt(userId, 10),
       url: url,
-      strategy: strategy
+      strategy: strategy,
+      featureId: 3 // SỬA: Thêm featureId: 3 vào hàm POST (Tạo mới)
     };
     analysisMutation.mutate(payload);
   };
@@ -405,7 +407,8 @@ export default function ContentOptimization() {
 
     const payload: UpdatePerformanceHistoryPayload = {
       performanceHistoryId: currentAnalysis.scanHistoryID, 
-      userId: parseInt(userId, 10)
+      userId: parseInt(userId, 10),
+      featureId: 3 // Đã có featureId: 3 cho hàm PUT (Cập nhật)
     };
 
     updateAnalysisMutation.mutate(payload);
@@ -429,7 +432,7 @@ export default function ContentOptimization() {
       </p>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        
+
         {/* --- CỘT TRÁI: NHẬP LIỆU VÀ LỊCH SỬ --- */}
         <div className="lg:col-span-1 space-y-6">
           <Card>
@@ -440,12 +443,12 @@ export default function ContentOptimization() {
             <CardContent className="space-y-4">
               <div className="relative">
                 <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                <Input 
-                  id="url-input" 
-                  placeholder="https://example.com" 
+                <Input
+                  id="url-input"
+                  placeholder="https://example.com"
                   value={url}
                   onChange={(e) => setUrl(e.target.value)}
-                  className="pl-9" 
+                  className="pl-9"
                 />
               </div>
               <Select value={strategy} onValueChange={(value: "desktop" | "mobile") => setStrategy(value)}>
@@ -467,8 +470,8 @@ export default function ContentOptimization() {
               </Select>
             </CardContent>
             <CardFooter>
-              <Button 
-                className="w-full" 
+              <Button
+                className="w-full"
                 onClick={handleAnalyze}
                 disabled={analysisMutation.isPending}
               >
@@ -491,15 +494,15 @@ export default function ContentOptimization() {
                     {historyQuery.data.map(item => (
                       <AccordionItem value={`item-${item.scanHistoryID}`} key={item.scanHistoryID}>
                         <AccordionTrigger>
-                           <div className="text-left truncate">
-                             <p className="font-semibold truncate pr-4">{item.analysisCache.normalizedUrl}</p>
-                             <p className="text-xs text-muted-foreground">{new Date(item.scanTime).toLocaleString('vi-VN')}</p>
-                           </div>
+                          <div className="text-left truncate">
+                            <p className="font-semibold truncate pr-4">{item.analysisCache.normalizedUrl}</p>
+                            <p className="text-xs text-muted-foreground">{new Date(item.scanTime).toLocaleString('vi-VN')}</p>
+                          </div>
                         </AccordionTrigger>
                         <AccordionContent>
-                          <Button 
-                            variant="outline" 
-                            size="sm" 
+                          <Button
+                            variant="outline"
+                            size="sm"
                             onClick={() => handleLoadFromHistory(item.scanHistoryID)}
                             disabled={singleReportMutation.isPending && singleReportMutation.variables === item.scanHistoryID}
                           >
@@ -552,17 +555,17 @@ export default function ContentOptimization() {
                     <span>
                       Điểm số dựa trên phân tích của Google PageSpeed Insights cho <strong>{currentAnalysis.analysisCache.strategy}</strong>
                     </span>
-                    
+
                     {/* Nút Update */}
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
+                    <Button
+                      variant="outline"
+                      size="sm"
                       className="flex items-center gap-2 text-xs h-8"
                       onClick={handleUpdateAnalysis}
                       disabled={updateAnalysisMutation.isPending}
                     >
-                       <RefreshCcw className={`h-3 w-3 ${updateAnalysisMutation.isPending ? 'animate-spin' : ''}`} />
-                       {updateAnalysisMutation.isPending ? "Đang cập nhật..." : "Cập nhật kết quả"}
+                      <RefreshCcw className={`h-3 w-3 ${updateAnalysisMutation.isPending ? 'animate-spin' : ''}`} />
+                      {updateAnalysisMutation.isPending ? "Đang cập nhật..." : "Cập nhật kết quả"}
                     </Button>
                   </CardDescription>
                 </CardHeader>
@@ -599,9 +602,9 @@ export default function ContentOptimization() {
                 {/* SỬA: Nút chỉ hiển thị nếu showDeepDive = false */}
                 {!showDeepDive && (
                   <CardFooter>
-                    <Button 
-                      className="ml-auto" 
-                      onClick={handleGenerateDeepDive} 
+                    <Button
+                      className="ml-auto"
+                      onClick={handleGenerateDeepDive}
                       disabled={generateDeepDiveMutation.isPending}
                     >
                       {generateDeepDiveMutation.isPending ? "Đang tải..." : "Phân tích chuyên sâu"}
@@ -618,7 +621,7 @@ export default function ContentOptimization() {
                   </CardHeader>
                   <CardContent>
                     {(fetchDeepDiveMutation.isPending || generateDeepDiveMutation.isPending) && <p>Đang tải dữ liệu chuyên sâu...</p>}
-                    
+
                     {deepDiveAnalysis && deepDiveAnalysis.length > 0 && (
                       <ScrollArea className="max-h-[600px] overflow-auto border rounded-md">
                         <Table>
@@ -635,8 +638,8 @@ export default function ContentOptimization() {
                               <TableRow key={item.elementID}>
                                 <TableCell><code className="text-xs">{item.tagName}</code></TableCell>
                                 <TableCell><pre className="text-xs bg-muted p-1 rounded max-w-xs overflow-x-auto"><code>{item.outerHTML}</code></pre></TableCell>
-                                <TableCell className="text-xs">{item.description || "Chưa phân tích"}</TableCell>
-                                <TableCell className="text-xs font-medium text-blue-600">{item.aiRecommendation || "Chưa phân tích"}</TableCell>
+                                <TableCell className="text-xs">{item.description || "Đã tối ưu"}</TableCell>
+                                <TableCell className="text-xs font-medium text-blue-600">{item.aiRecommendation || "Đã phân tích, không cần điều chỉnh"}</TableCell>
                               </TableRow>
                             ))}
                           </TableBody>
