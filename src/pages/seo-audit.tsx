@@ -1,7 +1,6 @@
 import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { jwtDecode } from 'jwt-decode';
-import api from '@/axiosInstance';
 
 // --- Import các components UI cần thiết ---
 import { Button } from "@/components/ui/button";
@@ -16,229 +15,34 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 
 // --- Import Icons ---
-import { History, Smartphone, Laptop, Search, Info, RefreshCcw } from "lucide-react";
+import { History, Smartphone, Laptop, Search, RefreshCcw } from "lucide-react";
 
-// --- 1. Định nghĩa các kiểu dữ liệu (Types) ---
+// --- Import from feature modules ---
+import type {
+  PerformanceHistoryPayload,
+  UpdatePerformanceHistoryPayload,
+  PageSpeedScores,
+  ComparisonModel,
+  PerformanceHistoryResponse,
+  ElementSuggestion,
+  HistoryItem
+} from "@/features/seo-audit/types";
 
-// Payload cho API 1 (Phân tích - POST)
-interface PerformanceHistoryPayload {
-  userId: number;
-  url: string;
-  strategy: "desktop" | "mobile";
-  featureId: number; // SỬA: Thêm featureId vào đây nữa
+import {
+  analyzeWebsite,
+  updateWebsiteAnalysis,
+  fetchExistingElements,
+  generateDeepDiveAnalysis,
+  fetchPerformanceHistory,
+  fetchSingleReport,
+  fetchComparisonResult
+} from "@/features/seo-audit/api";
 
-}
-
-// Payload cho API Update (Phân tích lại - PUT)
-interface UpdatePerformanceHistoryPayload {
-  performanceHistoryId: number;
-  userId: number;
-  featureId: number; // Đã thêm trường này theo yêu cầu
-
-}
-
-// Các điểm số (bên trong `pageSpeedResponse` đã được parse)
-interface PageSpeedScores {
-  PerformanceScore: number;
-  FCP: number;
-  LCP: number;
-  CLS: number;
-  TBT: number;
-  SpeedIndex: number;
-  TimeToInteractive: number;
-}
-
-// Dữ liệu cache (trong response API 1)
-interface AnalysisCache {
-  analysisCacheID: number;
-  url: string;
-  normalizedUrl: string;
-  strategy: string;
-  pageSpeedResponse: string; // Đây là JSON string
-  generalAssessment: string;
-  suggestion: string;
-  lastAnalyzedAt: string;
-  elements: any[];
-}
-
-// Response từ API 1 & PUT
-interface PerformanceHistoryResponse {
-  scanHistoryID: number;
-  userID: number;
-  analysisCacheID: number;
-  scanTime: string;
-  analysisCache: AnalysisCache;
-}
-
-// Response từ API 2 (Chuyên sâu)
-interface ElementSuggestion {
-  elementID: number;
-  analysisCacheID: number;
-  tagName: string;
-  innerText: string;
-  outerHTML: string;
-  important: boolean;
-  hasSuggestion: boolean;
-  aiRecommendation: string | null;
-  description: string | null;
-  createdAt: string;
-}
-
-// Kiểu dữ liệu cho API Lịch sử (API 1 Response)
-interface HistoryApiResponse {
-  totalItems: number;
-  totalPages: number;
-  pageSize: number;
-  items: PerformanceHistoryResponse[]; // Mảng items
-}
-
-// Kiểu dữ liệu cho một mục trong danh sách
-type HistoryItem = PerformanceHistoryResponse;
+import { MetricsGrid } from "@/features/seo-audit/components/MetricsGrid";
 
 
-// --- 2. Hằng số và Helper Functions ---
-
-const METRIC_THRESHOLDS = {
-  LCP: { good: 2500, needsImprovement: 4000 },
-  CLS: { good: 0.1, needsImprovement: 0.25 },
-  TBT: { good: 200, needsImprovement: 600 },
-  FCP: { good: 1800, needsImprovement: 3000 },
-  SI: { good: 3400, needsImprovement: 5800 },
-  TTI: { good: 3800, needsImprovement: 7300 },
-  PerformanceScore: { good: 90, needsImprovement: 50 }
-};
-
-const getScoreColor = (metric: keyof typeof METRIC_THRESHOLDS, value: number) => {
-  if (value === null || value === undefined) return 'text-gray-500';
-  const thresholds = METRIC_THRESHOLDS[metric];
-
-  if (metric === 'PerformanceScore') {
-    if (value >= thresholds.good) return 'text-green-500';
-    if (value >= thresholds.needsImprovement) return 'text-amber-500';
-    return 'text-red-500';
-  } else {
-    if (value <= thresholds.good) return 'text-green-500';
-    if (value <= thresholds.needsImprovement) return 'text-amber-500';
-    return 'text-red-500';
-  }
-};
-
-const getMetricUnit = (metric: string) => {
-  switch (metric) {
-    case 'CLS':
-      return '';
-    case 'PerformanceScore':
-      return '';
-    default:
-      return 'ms';
-  }
-}
-
-const getMetricInfo = (metric: string) => {
-  switch (metric) {
-    case 'LCP':
-      return 'Tốc độ tải trang. Thời gian để nội dung lớn nhất (văn bản, hình ảnh) hiển thị.';
-    case 'CLS':
-      return 'Tính ổn định hình ảnh. Đo lường mức độ "nhảy" (dịch chuyển) của các yếu tố trên trang khi tải.';
-    case 'TBT':
-      return 'Khả năng tương tác. Tổng thời gian trang bị "treo" (bị chặn) không thể phản hồi người dùng.';
-    case 'FCP':
-      return 'Tốc độ phản hồi đầu tiên. Thời gian từ khi tải trang đến khi bất kỳ nội dung nào (văn bản, màu nền) xuất hiện.';
-    case 'SI':
-      return 'Tốc độ hiển thị trực quan. Đo lường mức độ nhanh chóng mà nội dung trong màn hình đầu tiên được hiển thị.';
-    case 'TTI':
-      return 'Thời gian sẵn sàng tương tác. Thời gian để trang tải xong, hiển thị nội dung và sẵn sàng phản hồi tương tác.';
-    case 'PerformanceScore':
-      return 'Điểm hiệu suất tổng thể của trang web do PageSpeed Insights đánh giá.';
-    default:
-      return '';
-  }
-}
-
-// --- 3. Component con: Vòng tròn điểm số ---
-const PerformanceScoreCircle = ({ metric, score }: { metric: string, score: number }) => {
-  const roundedScore = Math.round(score);
-  const colorClass = getScoreColor(metric as keyof typeof METRIC_THRESHOLDS, metric === 'CLS' ? score : roundedScore);
-  const unit = getMetricUnit(metric);
-  const info = getMetricInfo(metric);
-  const displayScore = metric === 'CLS' ? score.toFixed(2) : roundedScore;
-
-  return (
-    <TooltipProvider delayDuration={100}>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <div className="flex flex-col items-center justify-center p-2 text-center">
-            <div className={`relative w-20 h-20 flex items-center justify-center border-4 rounded-full ${colorClass.replace('text-', 'border-')}`}>
-              <span className={`text-xl font-bold ${colorClass}`}>{displayScore}</span>
-              {unit && <span className="text-xs text-muted-foreground absolute bottom-3">{unit}</span>}
-
-              <TooltipContent side="top" className="max-w-[200px] text-center">
-                <p className="font-semibold">{metric}</p>
-                <p className="text-xs">{info}</p>
-              </TooltipContent>
-            </div>
-            <p className="mt-2 text-sm font-medium text-muted-foreground">{metric}</p>
-          </div>
-        </TooltipTrigger>
-      </Tooltip>
-    </TooltipProvider>
-  );
-};
-
-
-// --- 4. Các hàm gọi API ---
-
-// API 1: Phân tích URL (POST)
-const analyzeWebsite = async (payload: PerformanceHistoryPayload): Promise<PerformanceHistoryResponse> => {
-  const { data } = await api.post('/performance-histories', payload);
-  return data;
-};
-
-// API UPDATE: Chạy lại phân tích (PUT)
-const updateWebsiteAnalysis = async (payload: UpdatePerformanceHistoryPayload): Promise<PerformanceHistoryResponse> => {
-  const { data } = await api.put('/performance-histories', payload);
-  return data;
-};
-
-// API 2: Tải Element đã có (GET)
-const fetchExistingElements = async (analysisCacheID: number): Promise<ElementSuggestion[]> => {
-  const { data } = await api.get(`/element/analysis/${analysisCacheID}`);
-  return data;
-}
-
-// API 3: Tạo mới Element (POST)
-const generateDeepDiveAnalysis = async (analysisCacheID: number): Promise<ElementSuggestion[]> => {
-  const { data } = await api.get(`/element/suggestion/${analysisCacheID}`); 
-
-  return data;
-}
-
-// API 4: Lấy lịch sử (GET List)
-const fetchPerformanceHistory = async (userId: string | null): Promise<HistoryItem[]> => {
-  if (!userId) return [];
-  try {
-    const { data } = await api.get(`/performance-histories`, {
-      params: {
-        CurrentPage: 1,
-        PageSize: 20,
-        UserId: userId
-      }
-    });
-    return data.items || [];
-  } catch (error) {
-    console.error("Lỗi khi tải lịch sử:", error);
-    return [];
-  }
-};
-
-// API 5: Lấy 1 báo cáo (GET by ID)
-const fetchSingleReport = async (id: number): Promise<PerformanceHistoryResponse> => {
-  const { data } = await api.get(`/performance-histories/${id}`);
-  return data;
-};
-
-
-// --- 5. Component chính ---
+// --- Component chính ---
+// --- Component chính ---
 
 export default function ContentOptimization() {
   // --- States ---
@@ -248,6 +52,7 @@ export default function ContentOptimization() {
   const [currentAnalysis, setCurrentAnalysis] = useState<PerformanceHistoryResponse | null>(null);
   const [deepDiveAnalysis, setDeepDiveAnalysis] = useState<ElementSuggestion[] | null>(null);
   const [showDeepDive, setShowDeepDive] = useState(false);
+  const [comparisonData, setComparisonData] = useState<ComparisonModel | null>(null);
 
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -280,12 +85,25 @@ export default function ContentOptimization() {
   // Mutation 1: Chạy phân tích (API 1)
   const analysisMutation = useMutation({
     mutationFn: analyzeWebsite,
-    onSuccess: (data) => {
+    onSuccess: async (data) => {
       toast({ title: "Phân tích hoàn tất!", description: "Đã tải xong kết quả." });
       setCurrentAnalysis(data);
       setDeepDiveAnalysis(null);
       setShowDeepDive(false);
+      setComparisonData(null);
       queryClient.invalidateQueries({ queryKey: ['performanceHistory', userId] });
+
+      // Tải dữ liệu so sánh
+      if (data.analysisCache.analysisCacheID) {
+        try {
+          const comparisonResult = await fetchComparisonResult(data.analysisCache.analysisCacheID);
+          if (comparisonResult.data.comparisonModel) {
+            setComparisonData(comparisonResult.data.comparisonModel);
+          }
+        } catch (error) {
+          console.error("Không tải được dữ liệu so sánh:", error);
+        }
+      }
     },
     onError: (error) => {
       toast({ title: "Lỗi phân tích", description: error.message, variant: "destructive" });
@@ -295,12 +113,24 @@ export default function ContentOptimization() {
   // Mutation Update: Chạy lại phân tích (PUT)
   const updateAnalysisMutation = useMutation({
     mutationFn: updateWebsiteAnalysis,
-    onSuccess: (data) => {
+    onSuccess: async (data) => {
       toast({ title: "Cập nhật thành công!", description: "Kết quả phân tích đã được làm mới." });
       setCurrentAnalysis(data);
       setDeepDiveAnalysis(null);
       setShowDeepDive(false);
       queryClient.invalidateQueries({ queryKey: ['performanceHistory', userId] });
+
+      // Tải dữ liệu so sánh
+      if (data.analysisCache.analysisCacheID) {
+        try {
+          const comparisonResult = await fetchComparisonResult(data.analysisCache.analysisCacheID);
+          if (comparisonResult.data.comparisonModel) {
+            setComparisonData(comparisonResult.data.comparisonModel);
+          }
+        } catch (error) {
+          console.error("Không tải được dữ liệu so sánh:", error);
+        }
+      }
     },
     onError: (error) => {
       toast({ title: "Lỗi cập nhật", description: error.message, variant: "destructive" });
@@ -351,15 +181,26 @@ export default function ContentOptimization() {
   // Mutation 4: Tải 1 báo cáo từ lịch sử (API 5)
   const singleReportMutation = useMutation<PerformanceHistoryResponse, Error, number>({
     mutationFn: fetchSingleReport,
-    onSuccess: (data) => {
+    onSuccess: async (data) => {
       setCurrentAnalysis(data);
       setDeepDiveAnalysis(null);
       setShowDeepDive(false);
+      setComparisonData(null);
       toast({ title: "Đã tải báo cáo", description: "Đã tải kết quả từ lịch sử." });
       window.scrollTo({ top: 0, behavior: 'smooth' });
 
       if (data.analysisCache.analysisCacheID) {
         fetchDeepDiveMutation.mutate(data.analysisCache.analysisCacheID);
+
+        // Tải dữ liệu so sánh
+        try {
+          const comparisonResult = await fetchComparisonResult(data.analysisCache.analysisCacheID);
+          if (comparisonResult.data.comparisonModel) {
+            setComparisonData(comparisonResult.data.comparisonModel);
+          }
+        } catch (error) {
+          console.error("Không tải được dữ liệu so sánh:", error);
+        }
       }
     },
     onError: (error) => {
@@ -406,7 +247,7 @@ export default function ContentOptimization() {
     if (!currentAnalysis || !userId) return;
 
     const payload: UpdatePerformanceHistoryPayload = {
-      performanceHistoryId: currentAnalysis.scanHistoryID, 
+      performanceHistoryId: currentAnalysis.scanHistoryID,
       userId: parseInt(userId, 10),
       featureId: 3 // Đã có featureId: 3 cho hàm PUT (Cập nhật)
     };
@@ -547,14 +388,16 @@ export default function ContentOptimization() {
 
           {currentAnalysis && scores && !analysisMutation.isPending && !updateAnalysisMutation.isPending && (
             <>
-              {/* --- 7 Ô ĐIỂM SỐ --- */}
+              {/* --- METRICS GRID CARDS --- */}
               <Card>
                 <CardHeader>
-                  <CardTitle>Điểm hiệu suất (Core Web Vitals)</CardTitle>
-                  <CardDescription className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
-                    <span>
-                      Điểm số dựa trên phân tích của Google PageSpeed Insights cho <strong>{currentAnalysis.analysisCache.strategy}</strong>
-                    </span>
+                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                    <div>
+                      <CardTitle>Điểm hiệu suất (Core Web Vitals)</CardTitle>
+                      <CardDescription>
+                        Điểm số dựa trên phân tích của Google PageSpeed Insights cho <strong>{currentAnalysis.analysisCache.strategy}</strong>
+                      </CardDescription>
+                    </div>
 
                     {/* Nút Update */}
                     <Button
@@ -567,16 +410,10 @@ export default function ContentOptimization() {
                       <RefreshCcw className={`h-3 w-3 ${updateAnalysisMutation.isPending ? 'animate-spin' : ''}`} />
                       {updateAnalysisMutation.isPending ? "Đang cập nhật..." : "Cập nhật kết quả"}
                     </Button>
-                  </CardDescription>
+                  </div>
                 </CardHeader>
-                <CardContent className="flex flex-wrap justify-center gap-2">
-                  <PerformanceScoreCircle metric="PerformanceScore" score={scores.PerformanceScore} />
-                  <PerformanceScoreCircle metric="LCP" score={scores.LCP} />
-                  <PerformanceScoreCircle metric="FCP" score={scores.FCP} />
-                  <PerformanceScoreCircle metric="CLS" score={scores.CLS} />
-                  <PerformanceScoreCircle metric="TBT" score={scores.TBT} />
-                  <PerformanceScoreCircle metric="SI" score={scores.SpeedIndex} />
-                  <PerformanceScoreCircle metric="TTI" score={scores.TimeToInteractive} />
+                <CardContent>
+                  <MetricsGrid scores={scores} comparisonData={comparisonData} />
                 </CardContent>
               </Card>
 
