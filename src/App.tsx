@@ -87,11 +87,15 @@ function App() {
 
   const handleLoginSuccess = (loggedInUser: UserProfile) => {
     setUser(loggedInUser);
+    // Clear old cache and refetch for new user
+    queryClient.invalidateQueries();
     // Logic lưu vào localStorage đã được xử lý trong Auth.tsx
     navigate('/dashboard');
   };
 
   const handleLogout = () => {
+    // Clear all React Query cache to prevent showing old user data
+    queryClient.clear();
     localStorage.removeItem('user');
     localStorage.removeItem('tokens');
     setUser(null);
