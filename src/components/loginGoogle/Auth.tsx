@@ -11,8 +11,8 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-// Đảm bảo bạn đã import đúng instance axios của bạn
-import api from '@/axiosInstance'; 
+// SỬA Ở ĐÂY 1: Import instance axios trung tâm
+import api from '@/axiosInstance';
 
 interface UserProfile {
   email?: string;
@@ -33,42 +33,33 @@ const Auth: React.FC<{ onLoginSuccess: (user: UserProfile) => void }> = ({ onLog
   const handleMemberLoginSuccess = async (credentialResponse: CredentialResponse) => {
     if (!credentialResponse.credential) return;
 
+    console.log("Credential nhận được:", credentialResponse.credential);
+
     try {
       const response = await api.post(
-        '/Authens/login-member',
+        '/authen/login-member',
         JSON.stringify(credentialResponse.credential),
         { headers: { 'Content-Type': 'application/json' } }
       );
-      
+
       if (response.data && response.data.success && response.data.accessToken) {
-        // Member login thành công -> gọi callback để App.tsx xử lý điều hướng
-        saveUserAndNotify(response.data, 'Member'); 
-      } else {
-        alert("Lỗi đăng nhập Member: " + (response.data?.message || "Unknown error"));
-      }
-    } catch (error: any) {
-      console.error('Member Login failed:', error);
-      alert(error.response?.data?.message || 'Đăng nhập Member thất bại.');
-    }
-  };
 
-  // --- 2. LOGIC CHO ADMIN VÀ STAFF (MỚI) ---
-  const handleAdminStaffLoginSuccess = async (credentialResponse: CredentialResponse) => {
-    if (!credentialResponse.credential) return;
-    const credential = credentialResponse.credential;
-    const headers = { headers: { 'Content-Type': 'application/json' } };
+        const { accessToken, refreshToken } = response.data;
+        const decodedUser: UserProfile = jwtDecode(accessToken);
 
-    try {
-        // BƯỚC 1: Thử đăng nhập vào cổng ADMIN
-        try {
-            const adminRes = await api.post('/Authens/login-admin', JSON.stringify(credential), headers);
-            if (adminRes.data && adminRes.data.success) {
-                saveUserAndNotify(adminRes.data, 'Admin');
-                return; 
-            }
-        } catch (error) {
-            // Lờ đi lỗi này để thử tiếp Staff
-        }
+        const userToStore = {
+          ...decodedUser,
+          fullName: decodedUser.fullname
+        };
+
+        // Mã hóa và lưu vào localStorage
+        localStorage.setItem('user', btoa(encodeURIComponent(JSON.stringify(userToStore))));
+
+        // SỬA LUÔN DÒNG NÀY CHO AN TOÀN:
+        // localStorage.setItem('tokens', btoa(JSON.stringify({ accessToken, refreshToken })));
+        localStorage.setItem('tokens', btoa(encodeURIComponent(JSON.stringify({ accessToken, refreshToken }))));
+
+        onLoginSuccess(userToStore);
 
         // BƯỚC 2: Nếu không phải Admin, thử cổng STAFF
         try {
@@ -104,7 +95,7 @@ const Auth: React.FC<{ onLoginSuccess: (user: UserProfile) => void }> = ({ onLog
   };
 
   return (
-    <div 
+    <div
       className="flex min-h-screen w-full items-center justify-center bg-cover bg-center p-4"
       style={{
         backgroundImage: `url('https://firebasestorage.googleapis.com/v0/b/imageuploadv3.appspot.com/o/TestFile%2F3d-network-communications-background-with-flowing-floating-particles.jpg?alt=media&token=dd55b96f-4e4f-454b-869a-ef54b22241c5')`,

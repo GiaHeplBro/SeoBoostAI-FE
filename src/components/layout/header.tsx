@@ -12,6 +12,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { WalletBalance } from "@/features/wallet/components/WalletBalance";
 
 const pathToTitle: Record<string, string> = {
   "/": "Dashboard",
@@ -22,6 +23,7 @@ const pathToTitle: Record<string, string> = {
   "/profile": "Hồ sơ của tôi",
   "/pricing": "Upgrade Plan",
   "/feature-comparison": "Pricing Details",
+  "/transaction-history": "Lịch sử giao dịch",
 };
 
 const pathToDescription: Record<string, string> = {
@@ -29,6 +31,7 @@ const pathToDescription: Record<string, string> = {
   "/profile": "Xem và chỉnh sửa thông tin cá nhân của bạn",
   "/pricing": "Choose a plan that fits your needs",
   "/feature-comparison": "A detailed look at our features and plans",
+  "/transaction-history": "Xem tất cả giao dịch của ví",
 };
 
 interface UserProfile {
@@ -79,19 +82,14 @@ export default function Header({ onLogout, user, setSidebarOpen }: HeaderProps) 
         </div>
 
         <div className="flex items-center gap-2">
-          {/* ... các nút Bảng giá, Upgrade, Bell, Avatar giữ nguyên ... */}
-          <Link href="/feature-comparison">
-            <Button variant="outline" size="sm" className="hidden md:flex items-center gap-2">
-              <Tags className="h-4 w-4" />
-              <span>Bảng giá</span>
-            </Button>
-          </Link>
           <Link href="/pricing">
             <Button size="sm" className="hidden md:flex items-center gap-2 bg-primary text-primary-foreground hover:bg-primary/90">
               <Zap className="h-4 w-4" />
               <span>Upgrade</span>
             </Button>
           </Link>
+          {/* Wallet Balance */}
+          <WalletBalance />
           <div className="relative">
             <button className="relative p-1 text-gray-500 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 focus:outline-none">
               <Bell className="h-5 w-5" />

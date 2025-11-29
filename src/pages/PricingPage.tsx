@@ -6,9 +6,9 @@ import { Check, ArrowLeft, Zap } from "lucide-react";
 // Dữ liệu cho các gói pricing
 const pricingTiers = [
   {
-    name: "Free",
-    price: "0 VNĐ",
-    description: "Bắt đầu với các tính năng cơ bản, hoàn toàn miễn phí cho bạn.",
+    name: "Chức năng 1",
+    price: "100.000 VNĐ",
+    description: "Giới thiệu chức năng 1",
     features: [
       "20.000 Token mỗi tháng",
       "Tối ưu từ khóa",
@@ -17,13 +17,14 @@ const pricingTiers = [
       "Hỗ trợ và tư vấn qua Email",
 
     ],
-    buttonText: "Gói hiện tại",
-    isCurrent: true,
+    buttonText: "Mua ngay",
+    isCurrent: false,
+    isPopular: true,
   },
   {
-    name: "Basic",
+    name: "Chức năng 2",
     price: "250.000 VNĐ",
-    description: "Mở khóa các công cụ mạnh mẽ dành cho các chuyên gia SEO có kinh nghiệm hoặc muốn bắt đầu.",
+    description: "Giới thiệu chức năng 2",
     features: [
       "100.000 Token mỗi tháng",
       "Tối ưu từ khóa",
@@ -32,14 +33,14 @@ const pricingTiers = [
       "Báo cáo và phân tích backlink tự động.",
       "Hỗ trợ tư vấn qua Email và Chat Support",
     ],
-    buttonText: "Nâng cấp lên gói Basic",
+    buttonText: "Mua ngay",
     isCurrent: false,
     isPopular: true,
   },
   {
-    name: "Pro",
+    name: "Chức năng 3",
     price: "370.000 VNĐ",
-    description: "The complete suite for agencies and large teams.",
+    description: "Giới thiệu chức năng 3",
     features: [
       "350.000 Token mỗi tháng",
       "Tối ưu từ khóa",
@@ -49,8 +50,9 @@ const pricingTiers = [
       "Đề xuất cải tiến kỹ thuật SEO.",
       "Hỗ trợ tư vấn qua Email và Chat Support",
     ],
-    buttonText: "Nâng cấp lên gói Pro",
+    buttonText: "Mua ngay",
     isCurrent: false,
+    isPopular: true,
   },
 ];
 
@@ -76,7 +78,7 @@ export default function PricingPage() {
               <CardTitle className="text-2xl">{tier.name}</CardTitle>
               <div className="flex items-baseline justify-center gap-1">
                 <span className="text-4xl font-bold">{tier.price}</span>
-                <span className="text-muted-foreground">/ month</span>
+                <span className="text-muted-foreground">/ lần sử dụng</span>
               </div>
               <CardDescription>{tier.description}</CardDescription>
             </CardHeader>

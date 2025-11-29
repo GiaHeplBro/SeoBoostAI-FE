@@ -18,10 +18,10 @@ import LandingPage from '@/pages/LandingPage';
 import Auth from '@/components/loginGoogle/Auth';
 import Sidebar from "@/components/layout/sidebar";
 import Header from "@/components/layout/header";
-import FeatureComparisonPage from '@/pages/FeatureComparisonPage';
 import AdminPage from '@/pages/AdminPage';
 // Bạn có thể xóa dòng UsersPage nếu không dùng đến trang này nữa
-import UsersPage from '@/pages/UsersPage'; 
+import UsersPage from '@/pages/UsersPage';
+import TransactionHistoryPage from '@/pages/TransactionHistoryPage';
 
 // Định nghĩa interface UserProfile
 interface UserProfile {
@@ -54,8 +54,8 @@ function MainAppLayout({ onLogout, user }: { onLogout: () => void; user: UserPro
             <Route path="/users" component={UsersPage} />
             <Route path="/profile" component={ProfilePage} />
             <Route path="/pricing" component={PricingPage} />
-            <Route path="/feature-comparison" component={FeatureComparisonPage} />
-            
+            <Route path="/transaction-history" component={TransactionHistoryPage} />
+
             {/* Nếu người dùng đã đăng nhập mà vào trang gốc, tự động chuyển đến dashboard */}
             <Route path="/"><Redirect to="/dashboard" /></Route>
             <Route component={NotFound} />
@@ -87,15 +87,19 @@ function App() {
 
   const handleLoginSuccess = (loggedInUser: UserProfile) => {
     setUser(loggedInUser);
+    // Clear old cache and refetch for new user
+    queryClient.invalidateQueries();
     // Logic lưu vào localStorage đã được xử lý trong Auth.tsx
-    navigate('/dashboard'); 
+    navigate('/dashboard');
   };
-  
+
   const handleLogout = () => {
+    // Clear all React Query cache to prevent showing old user data
+    queryClient.clear();
     localStorage.removeItem('user');
     localStorage.removeItem('tokens');
     setUser(null);
-    navigate('/'); 
+    navigate('/');
   };
 
   return (

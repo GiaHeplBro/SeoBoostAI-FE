@@ -15,7 +15,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 
 // --- Import Icons ---
-import { History, Smartphone, Laptop, Search, RefreshCcw } from "lucide-react";
+import { History, Smartphone, Laptop, Search, Info, RefreshCcw, TrendingUp, TrendingDown } from "lucide-react";
 
 // --- Import from feature modules ---
 import type {
@@ -23,9 +23,8 @@ import type {
   UpdatePerformanceHistoryPayload,
   PageSpeedScores,
   ComparisonModel,
-  PerformanceHistoryResponse,
-  ElementSuggestion,
-  HistoryItem
+  HistoryItem,
+  PerformanceHistoryResponse
 } from "@/features/seo-audit/types";
 
 import {
@@ -38,18 +37,142 @@ import {
   fetchComparisonResult
 } from "@/features/seo-audit/api";
 
-import { MetricsGrid } from "@/features/seo-audit/components/MetricsGrid";
+// Element suggestion type from feature modules
+import type { ElementSuggestion } from "@/features/seo-audit/types";
 
 
-// --- Component chính ---
-// --- Component chính ---
+// --- 2. Hằng số và Helper Functions ---
+
+const METRIC_THRESHOLDS = {
+  LCP: { good: 2500, needsImprovement: 4000 },
+  CLS: { good: 0.1, needsImprovement: 0.25 },
+  TBT: { good: 200, needsImprovement: 600 },
+  FCP: { good: 1800, needsImprovement: 3000 },
+  SI: { good: 3400, needsImprovement: 5800 },
+  TTI: { good: 3800, needsImprovement: 7300 },
+  PerformanceScore: { good: 90, needsImprovement: 50 }
+};
+
+const getScoreColor = (metric: keyof typeof METRIC_THRESHOLDS, value: number) => {
+  if (value === null || value === undefined) return 'text-gray-500';
+  const thresholds = METRIC_THRESHOLDS[metric];
+
+  if (metric === 'PerformanceScore') {
+    if (value >= thresholds.good) return 'text-green-500';
+    if (value >= thresholds.needsImprovement) return 'text-amber-500';
+    return 'text-red-500';
+  } else {
+    if (value <= thresholds.good) return 'text-green-500';
+    if (value <= thresholds.needsImprovement) return 'text-amber-500';
+    return 'text-red-500';
+  }
+};
+
+const getMetricUnit = (metric: string) => {
+  switch (metric) {
+    case 'CLS':
+      return '';
+    case 'PerformanceScore':
+      return '';
+    default:
+      return 'ms';
+  }
+}
+
+const getMetricInfo = (metric: string) => {
+  switch (metric) {
+    case 'LCP':
+      return 'Tốc độ tải trang. Thời gian để nội dung lớn nhất (văn bản, hình ảnh) hiển thị.';
+    case 'CLS':
+      return 'Tính ổn định hình ảnh. Đo lường mức độ "nhảy" (dịch chuyển) của các yếu tố trên trang khi tải.';
+    case 'TBT':
+      return 'Khả năng tương tác. Tổng thời gian trang bị "treo" (bị chặn) không thể phản hồi người dùng.';
+    case 'FCP':
+      return 'Tốc độ phản hồi đầu tiên. Thời gian từ khi tải trang đến khi bất kỳ nội dung nào (văn bản, màu nền) xuất hiện.';
+    case 'SI':
+      return 'Tốc độ hiển thị trực quan. Đo lường mức độ nhanh chóng mà nội dung trong màn hình đầu tiên được hiển thị.';
+    case 'TTI':
+      return 'Thời gian sẵn sàng tương tác. Thời gian để trang tải xong, hiển thị nội dung và sẵn sàng phản hồi tương tác.';
+    case 'PerformanceScore':
+      return 'Điểm hiệu suất tổng thể của trang web do PageSpeed Insights đánh giá.';
+    default:
+      return '';
+  }
+}
+
+// --- 3. Component con: Vòng tròn điểm số ---
+const PerformanceScoreCircle = ({ metric, score, change }: { metric: string, score: number, change?: number }) => {
+  const roundedScore = Math.round(score);
+  const colorClass = getScoreColor(metric as keyof typeof METRIC_THRESHOLDS, metric === 'CLS' ? score : roundedScore);
+  const unit = getMetricUnit(metric);
+  const info = getMetricInfo(metric);
+  const displayScore = metric === 'CLS' ? score.toFixed(2) : roundedScore;
+
+  // Determine change color and icon
+  const getChangeColor = () => {
+    if (!change || change === 0) return 'text-gray-400';
+
+    // For Performance Score, positive change is good
+    if (metric === 'PerformanceScore') {
+      return change > 0 ? 'text-green-500' : 'text-red-500';
+    }
+
+    // For other metrics (lower is better), negative change is good
+    return change < 0 ? 'text-green-500' : 'text-red-500';
+  };
+
+  const getChangeIcon = () => {
+    if (!change || change === 0) return null;
+
+    // For Performance Score, positive change shows up arrow
+    if (metric === 'PerformanceScore') {
+      return change > 0 ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />;
+    }
+
+    // For other metrics, negative change shows down arrow (improvement)
+    return change < 0 ? <TrendingDown className="h-3 w-3" /> : <TrendingUp className="h-3 w-3" />;
+  };
+
+  return (
+    <TooltipProvider delayDuration={100}>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <div className="flex flex-col items-center justify-center p-2 text-center">
+            <div className={`relative w-20 h-20 flex items-center justify-center border-4 rounded-full ${colorClass.replace('text-', 'border-')}`}>
+              <span className={`text-xl font-bold ${colorClass}`}>{displayScore}</span>
+              {unit && <span className="text-xs text-muted-foreground absolute bottom-3">{unit}</span>}
+
+              <TooltipContent side="top" className="max-w-[200px] text-center">
+                <p className="font-semibold">{metric}</p>
+                <p className="text-xs">{info}</p>
+              </TooltipContent>
+            </div>
+            <p className="mt-2 text-sm font-medium text-muted-foreground">{metric}</p>
+
+            {/* Display change indicator */}
+            {change !== undefined && change !== 0 && (
+              <div className={`flex items-center gap-1 text-xs mt-1 ${getChangeColor()}`}>
+                {getChangeIcon()}
+                <span>{metric === 'CLS' ? change.toFixed(3) : Math.abs(change).toFixed(0)}</span>
+              </div>
+            )}
+          </div>
+        </TooltipTrigger>
+      </Tooltip>
+    </TooltipProvider>
+  );
+};
+
+
+
+// --- 3. Component chính ---
 
 export default function ContentOptimization() {
   // --- States ---
   const [url, setUrl] = useState("");
   const [strategy, setStrategy] = useState<"desktop" | "mobile">("desktop");
 
-  const [currentAnalysis, setCurrentAnalysis] = useState<PerformanceHistoryResponse | null>(null);
+  const [currentAnalysis, setCurrentAnalysis] = useState<HistoryItem | null>(null);
   const [deepDiveAnalysis, setDeepDiveAnalysis] = useState<ElementSuggestion[] | null>(null);
   const [showDeepDive, setShowDeepDive] = useState(false);
   const [comparisonData, setComparisonData] = useState<ComparisonModel | null>(null);
@@ -75,33 +198,36 @@ export default function ContentOptimization() {
 
   // --- React Query Hooks ---
 
-  // Query 1: Lấy lịch sử (API 4)
+  // Query 1: Lấy lịch sử (API 4) - userId từ token
   const historyQuery = useQuery({
-    queryKey: ['performanceHistory', userId],
-    queryFn: () => fetchPerformanceHistory(userId),
-    enabled: !!userId,
+    queryKey: ['performanceHistory'],
+    queryFn: () => fetchPerformanceHistory(),
+    enabled: true,
   });
 
   // Mutation 1: Chạy phân tích (API 1)
   const analysisMutation = useMutation({
     mutationFn: analyzeWebsite,
-    onSuccess: async (data) => {
+    onSuccess: async (response) => {
       toast({ title: "Phân tích hoàn tất!", description: "Đã tải xong kết quả." });
-      setCurrentAnalysis(data);
+      setCurrentAnalysis(response.data); // Extract data from wrapper
       setDeepDiveAnalysis(null);
       setShowDeepDive(false);
       setComparisonData(null);
-      queryClient.invalidateQueries({ queryKey: ['performanceHistory', userId] });
+      queryClient.invalidateQueries({ queryKey: ['performanceHistory'] });
 
       // Tải dữ liệu so sánh
-      if (data.analysisCache.analysisCacheID) {
+      if (response.data.analysisCache.analysisCacheID) {
         try {
-          const comparisonResult = await fetchComparisonResult(data.analysisCache.analysisCacheID);
+          const comparisonResult = await fetchComparisonResult(response.data.analysisCache.analysisCacheID);
           if (comparisonResult.data.comparisonModel) {
             setComparisonData(comparisonResult.data.comparisonModel);
           }
-        } catch (error) {
-          console.error("Không tải được dữ liệu so sánh:", error);
+        } catch (error: any) {
+          // 404 means no previous data to compare - this is OK for first scan
+          if (error?.response?.status !== 404) {
+            console.error("Lỗi tải dữ liệu so sánh:", error);
+          }
         }
       }
     },
@@ -113,22 +239,25 @@ export default function ContentOptimization() {
   // Mutation Update: Chạy lại phân tích (PUT)
   const updateAnalysisMutation = useMutation({
     mutationFn: updateWebsiteAnalysis,
-    onSuccess: async (data) => {
+    onSuccess: async (response) => {
       toast({ title: "Cập nhật thành công!", description: "Kết quả phân tích đã được làm mới." });
-      setCurrentAnalysis(data);
+      setCurrentAnalysis(response.data); // Extract data from wrapper
       setDeepDiveAnalysis(null);
       setShowDeepDive(false);
-      queryClient.invalidateQueries({ queryKey: ['performanceHistory', userId] });
+      queryClient.invalidateQueries({ queryKey: ['performanceHistory'] });
 
       // Tải dữ liệu so sánh
-      if (data.analysisCache.analysisCacheID) {
+      if (response.data.analysisCache.analysisCacheID) {
         try {
-          const comparisonResult = await fetchComparisonResult(data.analysisCache.analysisCacheID);
+          const comparisonResult = await fetchComparisonResult(response.data.analysisCache.analysisCacheID);
           if (comparisonResult.data.comparisonModel) {
             setComparisonData(comparisonResult.data.comparisonModel);
           }
-        } catch (error) {
-          console.error("Không tải được dữ liệu so sánh:", error);
+        } catch (error: any) {
+          // 404 means no previous data to compare - this is OK for first scan
+          if (error?.response?.status !== 404) {
+            console.error("Lỗi tải dữ liệu so sánh:", error);
+          }
         }
       }
     },
@@ -141,6 +270,12 @@ export default function ContentOptimization() {
   const generateDeepDiveMutation = useMutation<ElementSuggestion[], Error, number>({
     mutationFn: generateDeepDiveAnalysis,
     onSuccess: (data) => {
+      console.log("✅ Deep dive RAW data received:", data);
+      console.log("✅ Data type:", typeof data);
+      console.log("✅ Data is array?:", Array.isArray(data));
+      console.log("✅ Data length:", data?.length);
+      console.log("✅ First 3 items:", data?.slice(0, 3));
+
       setDeepDiveAnalysis(data);
       // Khi chạy POST, dữ liệu trả về chắc chắn đã có AI Suggestion
       // nên ta có thể set showDeepDive = true luôn.
@@ -148,7 +283,10 @@ export default function ContentOptimization() {
       setShowDeepDive(true);
       toast({ title: "Phân tích chuyên sâu hoàn tất!" });
     },
-    onError: (error) => {
+    onError: (error: any) => {
+      console.error("❌ Deep dive error:", error);
+      console.error("❌ Error response:", error?.response);
+      console.error("❌ Error data:", error?.response?.data);
       toast({ title: "Lỗi phân tích chuyên sâu", description: error.message, variant: "destructive" });
     },
   });
@@ -165,7 +303,7 @@ export default function ContentOptimization() {
         // Kiểm tra xem đã có aiRecommendation nào chưa
         // Nếu CÓ ít nhất 1 cái -> Hiển thị Bảng 2 (đã chạy chuyên sâu)
         // Nếu KHÔNG có cái nào -> Ẩn Bảng 2 (chưa chạy chuyên sâu) -> Để hiện nút
-        const hasAnalysis = data.some(item => item.aiRecommendation || item.description);
+        const hasAnalysis = data?.some(item => item.aiRecommendation || item.description) ?? false;
 
         setShowDeepDive(hasAnalysis);
       } else {
@@ -173,33 +311,39 @@ export default function ContentOptimization() {
         setShowDeepDive(false);
       }
     },
-    onError: (error) => {
-      console.error("Không tìm thấy phân tích chuyên sâu (an toàn):", error);
+    onError: (error: any) => {
+      // 404 means elements don't exist yet - this is OK, just don't show deep dive
+      console.log("Chưa có phân tích chuyên sâu (404 is expected):", error?.response?.status);
+      setDeepDiveAnalysis(null);
+      setShowDeepDive(false); // Make sure button shows up
     },
   });
 
   // Mutation 4: Tải 1 báo cáo từ lịch sử (API 5)
   const singleReportMutation = useMutation<PerformanceHistoryResponse, Error, number>({
     mutationFn: fetchSingleReport,
-    onSuccess: async (data) => {
-      setCurrentAnalysis(data);
+    onSuccess: async (response) => {
+      setCurrentAnalysis(response.data); // Extract data from wrapper
       setDeepDiveAnalysis(null);
       setShowDeepDive(false);
       setComparisonData(null);
       toast({ title: "Đã tải báo cáo", description: "Đã tải kết quả từ lịch sử." });
       window.scrollTo({ top: 0, behavior: 'smooth' });
 
-      if (data.analysisCache.analysisCacheID) {
-        fetchDeepDiveMutation.mutate(data.analysisCache.analysisCacheID);
+      if (response.data.analysisCache.analysisCacheID) {
+        fetchDeepDiveMutation.mutate(response.data.analysisCache.analysisCacheID);
 
         // Tải dữ liệu so sánh
         try {
-          const comparisonResult = await fetchComparisonResult(data.analysisCache.analysisCacheID);
+          const comparisonResult = await fetchComparisonResult(response.data.analysisCache.analysisCacheID);
           if (comparisonResult.data.comparisonModel) {
             setComparisonData(comparisonResult.data.comparisonModel);
           }
-        } catch (error) {
-          console.error("Không tải được dữ liệu so sánh:", error);
+        } catch (error: any) {
+          // 404 means no previous data to compare - this is OK for first scan
+          if (error?.response?.status !== 404) {
+            console.error("Lỗi tải dữ liệu so sánh:", error);
+          }
         }
       }
     },
@@ -228,28 +372,23 @@ export default function ContentOptimization() {
       toast({ title: "Lỗi", description: "Vui lòng nhập URL.", variant: "destructive" });
       return;
     }
-    if (!userId) {
-      toast({ title: "Lỗi", description: "Không tìm thấy thông tin người dùng. Vui lòng đăng nhập lại.", variant: "destructive" });
-      return;
-    }
+    // userId không cần check vì BE lấy từ token
 
     const payload: PerformanceHistoryPayload = {
-      userId: parseInt(userId, 10),
       url: url,
       strategy: strategy,
-      featureId: 3 // SỬA: Thêm featureId: 3 vào hàm POST (Tạo mới)
+      featureId: 3 // featureId cho SEO Audit
     };
     analysisMutation.mutate(payload);
   };
 
   // Hàm xử lý nút cập nhật
   const handleUpdateAnalysis = () => {
-    if (!currentAnalysis || !userId) return;
+    if (!currentAnalysis) return;
 
     const payload: UpdatePerformanceHistoryPayload = {
       performanceHistoryId: currentAnalysis.scanHistoryID,
-      userId: parseInt(userId, 10),
-      featureId: 3 // Đã có featureId: 3 cho hàm PUT (Cập nhật)
+      featureId: 3 // featureId cho SEO Audit
     };
 
     updateAnalysisMutation.mutate(payload);
@@ -330,9 +469,9 @@ export default function ContentOptimization() {
             <CardContent>
               <ScrollArea className="h-[300px] pr-4">
                 {historyQuery.isLoading && <p>Đang tải lịch sử...</p>}
-                {historyQuery.data && historyQuery.data.length > 0 ? (
+                {historyQuery.data && historyQuery.data.data && historyQuery.data.data.items.length > 0 ? (
                   <Accordion type="single" collapsible className="w-full">
-                    {historyQuery.data.map(item => (
+                    {historyQuery.data.data.items.map((item: HistoryItem) => (
                       <AccordionItem value={`item-${item.scanHistoryID}`} key={item.scanHistoryID}>
                         <AccordionTrigger>
                           <div className="text-left truncate">
@@ -413,7 +552,210 @@ export default function ContentOptimization() {
                   </div>
                 </CardHeader>
                 <CardContent>
-                  <MetricsGrid scores={scores} comparisonData={comparisonData} />
+                  {/* Debug: Show comparison data status */}
+                  {comparisonData && (
+                    <div className="mb-4 p-2 bg-blue-50 dark:bg-blue-900/20 rounded text-xs">
+                      <p className="text-blue-600 dark:text-blue-400">✓ Dữ liệu so sánh đã tải</p>
+                    </div>
+                  )}
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {/* Performance Score Card */}
+                    <div className="flex flex-col gap-2 rounded-xl p-6 border border-border bg-card">
+                      <div className="flex items-center gap-2">
+                        <div className={`w-2 h-2 rounded-full ${getScoreColor('PerformanceScore', scores.PerformanceScore).replace('text-', 'bg-')}`}></div>
+                        <p className="text-sm font-medium text-muted-foreground">Performance Score</p>
+                      </div>
+                      <p className="text-4xl font-bold">{Math.round(scores.PerformanceScore)}</p>
+                      {comparisonData?.scoreChange !== undefined && comparisonData.scoreChange !== 0 && (
+                        <div className="flex items-center gap-1">
+                          {comparisonData.scoreChange > 0 ? (
+                            <>
+                              <TrendingUp className="h-4 w-4 text-green-500" />
+                              <p className="text-sm font-medium text-green-500">
+                                +{comparisonData.scoreChange.toFixed(0)} điểm so với lần trước
+                              </p>
+                            </>
+                          ) : (
+                            <>
+                              <TrendingDown className="h-4 w-4 text-red-500" />
+                              <p className="text-sm font-medium text-red-500">
+                                {comparisonData.scoreChange.toFixed(0)} điểm so với lần trước
+                              </p>
+                            </>
+                          )}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* LCP Card */}
+                    <div className="flex flex-col gap-2 rounded-xl p-6 border border-border bg-card">
+                      <div className="flex items-center gap-2">
+                        <div className={`w-2 h-2 rounded-full ${getScoreColor('LCP', scores.LCP).replace('text-', 'bg-')}`}></div>
+                        <p className="text-sm font-medium text-muted-foreground">LCP (Largest Contentful Paint)</p>
+                      </div>
+                      <p className="text-4xl font-bold">{Math.round(scores.LCP)}<span className="text-lg text-muted-foreground ml-1">ms</span></p>
+                      {comparisonData?.lcpChange !== undefined && comparisonData.lcpChange !== 0 && (
+                        <div className="flex items-center gap-1">
+                          {comparisonData.lcpChange < 0 ? (
+                            <>
+                              <TrendingDown className="h-4 w-4 text-green-500" />
+                              <p className="text-sm font-medium text-green-500">
+                                {Math.abs(comparisonData.lcpChange).toFixed(0)}ms nhanh hơn
+                              </p>
+                            </>
+                          ) : (
+                            <>
+                              <TrendingUp className="h-4 w-4 text-red-500" />
+                              <p className="text-sm font-medium text-red-500">
+                                +{comparisonData.lcpChange.toFixed(0)}ms chậm hơn
+                              </p>
+                            </>
+                          )}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* FCP Card */}
+                    <div className="flex flex-col gap-2 rounded-xl p-6 border border-border bg-card">
+                      <div className="flex items-center gap-2">
+                        <div className={`w-2 h-2 rounded-full ${getScoreColor('FCP', scores.FCP).replace('text-', 'bg-')}`}></div>
+                        <p className="text-sm font-medium text-muted-foreground">FCP (First Contentful Paint)</p>
+                      </div>
+                      <p className="text-4xl font-bold">{Math.round(scores.FCP)}<span className="text-lg text-muted-foreground ml-1">ms</span></p>
+                      {comparisonData?.fcpChange !== undefined && comparisonData.fcpChange !== 0 && (
+                        <div className="flex items-center gap-1">
+                          {comparisonData.fcpChange < 0 ? (
+                            <>
+                              <TrendingDown className="h-4 w-4 text-green-500" />
+                              <p className="text-sm font-medium text-green-500">
+                                {Math.abs(comparisonData.fcpChange).toFixed(0)}ms nhanh hơn
+                              </p>
+                            </>
+                          ) : (
+                            <>
+                              <TrendingUp className="h-4 w-4 text-red-500" />
+                              <p className="text-sm font-medium text-red-500">
+                                +{comparisonData.fcpChange.toFixed(0)}ms chậm hơn
+                              </p>
+                            </>
+                          )}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* CLS Card */}
+                    <div className="flex flex-col gap-2 rounded-xl p-6 border border-border bg-card">
+                      <div className="flex items-center gap-2">
+                        <div className={`w-2 h-2 rounded-full ${getScoreColor('CLS', scores.CLS).replace('text-', 'bg-')}`}></div>
+                        <p className="text-sm font-medium text-muted-foreground">CLS (Cumulative Layout Shift)</p>
+                      </div>
+                      <p className="text-4xl font-bold">{scores.CLS.toFixed(3)}</p>
+                      {comparisonData?.clsChange !== undefined && comparisonData.clsChange !== 0 && (
+                        <div className="flex items-center gap-1">
+                          {comparisonData.clsChange < 0 ? (
+                            <>
+                              <TrendingDown className="h-4 w-4 text-green-500" />
+                              <p className="text-sm font-medium text-green-500">
+                                {Math.abs(comparisonData.clsChange).toFixed(3)} ổn định hơn
+                              </p>
+                            </>
+                          ) : (
+                            <>
+                              <TrendingUp className="h-4 w-4 text-red-500" />
+                              <p className="text-sm font-medium text-red-500">
+                                +{comparisonData.clsChange.toFixed(3)} kém ổn định hơn
+                              </p>
+                            </>
+                          )}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* TBT Card */}
+                    <div className="flex flex-col gap-2 rounded-xl p-6 border border-border bg-card">
+                      <div className="flex items-center gap-2">
+                        <div className={`w-2 h-2 rounded-full ${getScoreColor('TBT', scores.TBT).replace('text-', 'bg-')}`}></div>
+                        <p className="text-sm font-medium text-muted-foreground">TBT (Total Blocking Time)</p>
+                      </div>
+                      <p className="text-4xl font-bold">{Math.round(scores.TBT)}<span className="text-lg text-muted-foreground ml-1">ms</span></p>
+                      {comparisonData?.tbtChange !== undefined && comparisonData.tbtChange !== 0 && (
+                        <div className="flex items-center gap-1">
+                          {comparisonData.tbtChange < 0 ? (
+                            <>
+                              <TrendingDown className="h-4 w-4 text-green-500" />
+                              <p className="text-sm font-medium text-green-500">
+                                {Math.abs(comparisonData.tbtChange).toFixed(0)}ms ít hơn
+                              </p>
+                            </>
+                          ) : (
+                            <>
+                              <TrendingUp className="h-4 w-4 text-red-500" />
+                              <p className="text-sm font-medium text-red-500">
+                                +{comparisonData.tbtChange.toFixed(0)}ms nhiều hơn
+                              </p>
+                            </>
+                          )}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Speed Index Card */}
+                    <div className="flex flex-col gap-2 rounded-xl p-6 border border-border bg-card">
+                      <div className="flex items-center gap-2">
+                        <div className={`w-2 h-2 rounded-full ${getScoreColor('SI', scores.SpeedIndex).replace('text-', 'bg-')}`}></div>
+                        <p className="text-sm font-medium text-muted-foreground">SI (Speed Index)</p>
+                      </div>
+                      <p className="text-4xl font-bold">{Math.round(scores.SpeedIndex)}<span className="text-lg text-muted-foreground ml-1">ms</span></p>
+                      {comparisonData?.siChange !== undefined && comparisonData.siChange !== 0 && (
+                        <div className="flex items-center gap-1">
+                          {comparisonData.siChange < 0 ? (
+                            <>
+                              <TrendingDown className="h-4 w-4 text-green-500" />
+                              <p className="text-sm font-medium text-green-500">
+                                {Math.abs(comparisonData.siChange).toFixed(0)}ms nhanh hơn
+                              </p>
+                            </>
+                          ) : (
+                            <>
+                              <TrendingUp className="h-4 w-4 text-red-500" />
+                              <p className="text-sm font-medium text-red-500">
+                                +{comparisonData.siChange.toFixed(0)}ms chậm hơn
+                              </p>
+                            </>
+                          )}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* TTI Card */}
+                    <div className="flex flex-col gap-2 rounded-xl p-6 border border-border bg-card">
+                      <div className="flex items-center gap-2">
+                        <div className={`w-2 h-2 rounded-full ${getScoreColor('TTI', scores.TimeToInteractive).replace('text-', 'bg-')}`}></div>
+                        <p className="text-sm font-medium text-muted-foreground">TTI (Time to Interactive)</p>
+                      </div>
+                      <p className="text-4xl font-bold">{Math.round(scores.TimeToInteractive)}<span className="text-lg text-muted-foreground ml-1">ms</span></p>
+                      {comparisonData?.ttiChange !== undefined && comparisonData.ttiChange !== 0 && (
+                        <div className="flex items-center gap-1">
+                          {comparisonData.ttiChange < 0 ? (
+                            <>
+                              <TrendingDown className="h-4 w-4 text-green-500" />
+                              <p className="text-sm font-medium text-green-500">
+                                {Math.abs(comparisonData.ttiChange).toFixed(0)}ms nhanh hơn
+                              </p>
+                            </>
+                          ) : (
+                            <>
+                              <TrendingUp className="h-4 w-4 text-red-500" />
+                              <p className="text-sm font-medium text-red-500">
+                                +{comparisonData.ttiChange.toFixed(0)}ms chậm hơn
+                              </p>
+                            </>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 </CardContent>
               </Card>
 
@@ -475,8 +817,12 @@ export default function ContentOptimization() {
                               <TableRow key={item.elementID}>
                                 <TableCell><code className="text-xs">{item.tagName}</code></TableCell>
                                 <TableCell><pre className="text-xs bg-muted p-1 rounded max-w-xs overflow-x-auto"><code>{item.outerHTML}</code></pre></TableCell>
-                                <TableCell className="text-xs">{item.description || "Đã tối ưu"}</TableCell>
-                                <TableCell className="text-xs font-medium text-blue-600">{item.aiRecommendation || "Đã phân tích, không cần điều chỉnh"}</TableCell>
+                                <TableCell className="text-xs">
+                                  {typeof item.description === 'string' ? item.description : (item.description ? "Có vấn đề" : "Đã tối ưu")}
+                                </TableCell>
+                                <TableCell className="text-xs font-medium text-blue-600">
+                                  {typeof item.aiRecommendation === 'string' ? item.aiRecommendation : "Đã phân tích, không cần điều chỉnh"}
+                                </TableCell>
                               </TableRow>
                             ))}
                           </TableBody>
