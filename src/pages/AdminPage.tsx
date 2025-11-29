@@ -6,8 +6,7 @@ import {
   QueryClient,
   QueryClientProvider,
 } from "@tanstack/react-query";
-// ✅ SỬA 1: Thêm 'isAxiosError' để kiểm tra lỗi an toàn
-import axios, { isAxiosError } from "axios";
+import { isAxiosError } from "axios";
 import {
   CheckCircle,
   XCircle,
@@ -38,107 +37,40 @@ import {
   Area,
 } from "recharts";
 
+// ✅ IMPORT API
+import api from '@/axiosInstance';
+
 // =====================================================
-// 🧩 STUB COMPONENTS (Để fix lỗi imports)
+// 🧩 STUB COMPONENTS (GIỮ NGUYÊN ĐỂ UI KHÔNG VỠ)
 // =====================================================
 const queryClient = new QueryClient();
-
-// Stub for @/components/ui/button
-const Button = ({
-  variant,
-  size,
-  className,
-  children,
-  ...props
-}: React.ButtonHTMLAttributes<HTMLButtonElement> & {
-  variant?: "ghost" | "destructive" | "outline" | "default" | "secondary";
-  size?: "sm" | "icon" | "default";
-}) => {
-  const baseStyle = "inline-flex items-center justify-center rounded-md font-medium transition-colors";
-  const sizeStyle = size === "sm" ? "h-9 px-3" : "h-10 px-4 py-2";
-  let variantStyle = "bg-blue-600 text-white hover:bg-blue-700";
-  if (variant === "outline") variantStyle = "border border-gray-300 hover:bg-gray-100";
-  if (variant === "ghost") variantStyle = "hover:bg-gray-100";
-  if (variant === "destructive") variantStyle = "bg-red-600 text-white hover:bg-red-700";
-  return (
-    <button className={`${baseStyle} ${sizeStyle} ${variantStyle} ${className}`} {...props}>
-      {children}
-    </button>
-  );
+// ... (Giữ nguyên Button, Card, Table, Badge như cũ)
+const Button = ({ variant, size, className, children, ...props }: any) => {
+  const base = "inline-flex items-center justify-center rounded-md font-medium transition-colors";
+  const sz = size === "sm" ? "h-9 px-3" : "h-10 px-4 py-2";
+  let clr = "bg-blue-600 text-white hover:bg-blue-700";
+  if (variant === "destructive") clr = "bg-red-600 text-white";
+  if (variant === "outline") clr = "border border-gray-300 hover:bg-gray-100";
+  if (variant === "ghost") clr = "hover:bg-gray-100 text-gray-900";
+  return <button className={`${base} ${sz} ${clr} ${className}`} {...props}>{children}</button>;
 };
-
-// Stub for @/components/ui/card
-const Card = ({ children, className }: { children: React.ReactNode; className?: string }) => (
-  <div className={`rounded-xl border bg-white text-gray-900 shadow ${className}`}>{children}</div>
-);
-const CardHeader = ({ children, className }: { children: React.ReactNode; className?: string }) => (
-  <div className={`flex flex-col space-y-1.5 p-6 ${className}`}>{children}</div>
-);
-const CardTitle = ({ children, className }: { children: React.ReactNode; className?: string }) => (
-  <h3 className={`font-semibold leading-none tracking-tight ${className}`}>{children}</h3>
-);
-const CardContent = ({ children, className }: { children: React.ReactNode; className?: string }) => (
-  <div className={`p-6 pt-0 ${className}`}>{children}</div>
-);
-
-// Stub for @/components/ui/table
-const Table = ({ children, className }: { children: React.ReactNode; className?: string }) => (
-  <table className={`w-full caption-bottom text-sm ${className}`}>{children}</table>
-);
-const TableHeader = ({ children, className }: { children: React.ReactNode; className?: string }) => (
-  <thead className={`[&_tr]:border-b ${className}`}>{children}</thead>
-);
-const TableBody = ({ children, className }: { children: React.ReactNode; className?: string }) => (
-  <tbody className={`[&_tr:last-child]:border-0 ${className}`}>{children}</tbody>
-);
-const TableRow = ({ children, className }: { children: React.ReactNode; className?: string }) => (
-  <tr className={`border-b transition-colors hover:bg-gray-100 ${className}`}>{children}</tr>
-);
-const TableHead = ({ children, className }: { children: React.ReactNode; className?: string }) => (
-  <th className={`h-12 px-4 text-left align-middle font-medium text-gray-500 ${className}`}>{children}</th>
-);
-const TableCell = ({ children, className }: { children: React.ReactNode; className?: string }) => (
-  <td className={`p-4 align-middle ${className}`}>{children}</td>
-);
-
-// Stub for @/components/ui/badge
-const Badge = ({
-  variant,
-  className,
-  children,
-}: {
-  variant?: "destructive" | "default" | "secondary" | "outline";
-  className?: string;
-  children: React.ReactNode;
-}) => {
-  let variantStyle = "bg-blue-600 text-white";
-  if (variant === "destructive") variantStyle = "bg-red-600 text-white";
-  if (variant === "secondary") variantStyle = "bg-gray-200 text-gray-800";
-  return (
-    <span className={`inline-block px-2.5 py-0.5 rounded-full text-xs font-semibold ${variantStyle} ${className}`}>
-      {children}
-    </span>
-  );
+const Card = ({ children, className }: any) => <div className={`rounded-xl border bg-white text-gray-900 shadow ${className}`}>{children}</div>;
+const CardHeader = ({ children, className }: any) => <div className={`flex flex-col space-y-1.5 p-6 ${className}`}>{children}</div>;
+const CardTitle = ({ children, className }: any) => <h3 className={`font-semibold leading-none tracking-tight ${className}`}>{children}</h3>;
+const CardContent = ({ children, className }: any) => <div className={`p-6 pt-0 ${className}`}>{children}</div>;
+const Table = ({ children, className }: any) => <table className={`w-full caption-bottom text-sm ${className}`}>{children}</table>;
+const TableHeader = ({ children, className }: any) => <thead className={`[&_tr]:border-b ${className}`}>{children}</thead>;
+const TableBody = ({ children, className }: any) => <tbody className={`[&_tr:last-child]:border-0 ${className}`}>{children}</tbody>;
+const TableRow = ({ children, className }: any) => <tr className={`border-b transition-colors hover:bg-gray-100 ${className}`}>{children}</tr>;
+const TableHead = ({ children, className }: any) => <th className={`h-12 px-4 text-left align-middle font-medium text-gray-500 ${className}`}>{children}</th>;
+const TableCell = ({ children, className }: any) => <td className={`p-4 align-middle ${className}`}>{children}</td>;
+const Badge = ({ variant, className, children }: any) => {
+  let clr = "bg-blue-600 text-white";
+  if (variant === "destructive") clr = "bg-red-600 text-white";
+  if (variant === "secondary") clr = "bg-gray-200 text-gray-800";
+  return <span className={`inline-block px-2.5 py-0.5 rounded-full text-xs font-semibold ${clr} ${className}`}>{children}</span>;
 };
-
-// Stub for @/hooks/use-toast
-const useToast = () => {
-  return {
-    toast: ({ title, description, variant }: { title: string; description: string; variant?: string }) => {
-      console.log(`TOAST (${variant || 'default'}): ${title} - ${description}`);
-    },
-  };
-};
-
-// =====================================================
-// 🧩 HẾT STUB COMPONENTS
-// =====================================================
-
-
-// ========================= 🧩 API SETUP =========================
-const adminApi = axios.create({
-  baseURL: "https://localhost:7144", // chỉnh URL backend thật tại đây
-});
+const useToast = () => ({ toast: (opts: any) => console.log("Toast:", opts) });
 
 // ========================= 🧩 TYPES =========================
 interface Transaction {
@@ -146,7 +78,7 @@ interface Transaction {
   walletId: number;
   money: number;
   description: string;
-  type: "Deposit" | "Withdraw"; // Type
+  type: "Deposit" | "Withdraw";
   status: "Pending" | "Completed" | "Failed";
   bankTransId: string;
   createdAt: string;
@@ -157,7 +89,7 @@ interface User {
   id: number;
   fullName: string;
   email: string;
-  role: "member" | "staff";
+  role: "member" | "staff" | "admin";
   status: "active" | "banned";
 }
 
@@ -169,75 +101,27 @@ interface FunctionUsage {
   lastUsed: string;
 }
 
-// ========================= 🧩 MOCK DATA (Đã thêm nhiều) =========================
-const mockUsers: User[] = [
-  { id: 1, fullName: "Nguyễn Văn A", email: "a@gmail.com", role: "member", status: "active" },
-  { id: 2, fullName: "Trần Thị B", email: "b@gmail.com", role: "staff", status: "active" },
-  { id: 3, fullName: "Phạm Văn C", email: "c@gmail.com", role: "member", status: "banned" },
-  { id: 4, fullName: "Lê Thị D", email: "d@gmail.com", role: "member", status: "active" },
-  { id: 5, fullName: "Hoàng Văn E", email: "e@gmail.com", role: "member", status: "active" },
-  { id: 6, fullName: "Đỗ Thị F", email: "f@gmail.com", role: "staff", status: "active" },
-  { id: 7, fullName: "Vũ Văn G", email: "g@gmail.com", role: "member", status: "active" },
-  { id: 8, fullName: "Bùi Thị H", email: "h@gmail.com", role: "member", status: "banned" },
-  { id: 9, fullName: "Lý Văn I", email: "i@gmail.com", role: "member", status: "active" },
-  { id: 10, fullName: "Trịnh Thị K", email: "k@gmail.com", role: "member", status: "active" },
-];
-
-const mockTransactions: Transaction[] = [
-  { id: 1, walletId: 101, money: 500000, description: "Nạp ví Momo", type: "Deposit", status: "Pending", bankTransId: "TX1001", createdAt: "2025-11-10T10:00:00Z", wallet: { user: { fullName: "Nguyễn Văn A" } } },
-  { id: 2, walletId: 102, money: 300000, description: "Thanh toán Premium", type: "Withdraw", status: "Completed", bankTransId: "TX1002", createdAt: "2025-11-09T15:30:00Z", wallet: { user: { fullName: "Trần Thị B" } } },
-  { id: 3, walletId: 103, money: 100000, description: "Nạp VNPay", type: "Deposit", status: "Completed", bankTransId: "TX1003", createdAt: "2025-11-08T12:00:00Z", wallet: { user: { fullName: "Phạm Văn C" } } },
-  { id: 4, walletId: 104, money: 50000, description: "Mua lượt tải", type: "Withdraw", status: "Completed", bankTransId: "TX1004", createdAt: "2025-11-07T08:00:00Z", wallet: { user: { fullName: "Lê Thị D" } } },
-  { id: 5, walletId: 105, money: 200000, description: "Nạp ví Momo", type: "Deposit", status: "Failed", bankTransId: "TX1005", createdAt: "2025-11-06T14:20:00Z", wallet: { user: { fullName: "Hoàng Văn E" } } },
-  { id: 6, walletId: 106, money: 1000000, description: "Nạp ZaloPay", type: "Deposit", status: "Pending", bankTransId: "TX1006", createdAt: "2025-11-05T18:10:00Z", wallet: { user: { fullName: "Vũ Văn G" } } },
-  { id: 7, walletId: 107, money: 250000, description: "Thanh toán AI", type: "Withdraw", status: "Completed", bankTransId: "TX1007", createdAt: "2025-11-04T09:30:00Z", wallet: { user: { fullName: "Bùi Thị H" } } },
-  { id: 8, walletId: 108, money: 150000, description: "Nạp VNPay", type: "Deposit", status: "Completed", bankTransId: "TX1008", createdAt: "2025-10-20T11:00:00Z", wallet: { user: { fullName: "Lý Văn I" } } },
-  { id: 9, walletId: 109, money: 500000, description: "Nạp ví Momo", type: "Deposit", status: "Completed", bankTransId: "TX1009", createdAt: "2025-10-15T16:45:00Z", wallet: { user: { fullName: "Trịnh Thị K" } } },
-  { id: 10, walletId: 110, money: 300000, description: "Thanh toán Premium", type: "Withdraw", status: "Pending", bankTransId: "TX1010", createdAt: "2025-09-30T10:00:00Z", wallet: { user: { fullName: "Nguyễn Văn A" } } },
-  { id: 11, walletId: 111, money: 750000, description: "Nạp ZaloPay", type: "Deposit", status: "Completed", bankTransId: "TX1011", createdAt: "2025-09-15T13:00:00Z", wallet: { user: { fullName: "Trần Thị B" } } },
-  { id: 12, walletId: 112, money: 100000, description: "Mua lượt tải", type: "Withdraw", status: "Completed", bankTransId: "TX1012", createdAt: "2025-08-25T07:00:00Z", wallet: { user: { fullName: "Lê Thị D" } } },
-];
-
-const mockFunctionUsage: FunctionUsage[] = [
-  { id: 1, name: "Tải video (HD)", usageCount: 1234, uniqueUsers: 512, lastUsed: "2025-11-13T09:00:00Z" },
-  { id: 2, name: "Tạo ảnh AI (Nâng cao)", usageCount: 856, uniqueUsers: 421, lastUsed: "2025-11-12T13:20:00Z" },
-  { id: 3, name: "Dịch thuật (Văn bản)", usageCount: 450, uniqueUsers: 312, lastUsed: "2025-11-11T08:40:00Z" },
-  { id: 4, name: "Phân tích SEO (Từ khóa)", usageCount: 720, uniqueUsers: 250, lastUsed: "2025-11-13T01:15:00Z" },
-  { id: 5, name: "Kiểm tra Backlink", usageCount: 310, uniqueUsers: 180, lastUsed: "2025-11-12T05:00:00Z" },
-];
-
-// Dữ liệu cho Thẻ KPI Dashboard
-const kpiStats = {
-  totalRevenue: mockTransactions
-    .filter(tx => tx.status === "Completed" && tx.type === "Deposit")
-    .reduce((sum, tx) => sum + tx.money, 0),
-  totalUsers: mockUsers.length,
-  pendingTxs: mockTransactions.filter(tx => tx.status === "Pending").length,
-  newUsers: 2, // Dữ liệu giả định
+// ========================= 🧩 API CALLS =========================
+const fetchTransactions = async (): Promise<Transaction[]> => {
+  const res = await api.get('/api/Transactions'); 
+  return res.data || []; 
 };
 
-// Dữ liệu cho Biểu đồ Doanh thu Dashboard
-const mockRevenueByMonth = [
-  { name: "T8", "Doanh Thu": 600000 },
-  { name: "T9", "Doanh Thu": 1050000 },
-  { name: "T10", "Doanh Thu": 650000 },
-  { name: "T11", "Doanh Thu": 850000 },
-];
+const fetchUsers = async (): Promise<User[]> => {
+  const res = await api.get('/api/Users'); 
+  return res.data || [];
+};
 
-const COLORS = ["#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6"];
+const fetchFunctionUsage = async (): Promise<FunctionUsage[]> => {
+  const res = await api.get('/api/Statistics/FunctionUsage'); 
+  return res.data || [];
+};
 
-// ========================= 🧩 API FAKE FUNCTIONS =========================
-const fetchTransactions = async (): Promise<Transaction[]> => Promise.resolve(mockTransactions);
-const fetchUsers = async (): Promise<User[]> => Promise.resolve(mockUsers);
-const fetchFunctionUsage = async (): Promise<FunctionUsage[]> => Promise.resolve(mockFunctionUsage);
 const updateTransactionStatus = async ({ id, status }: { id: number; status: string }) => {
-  console.log(`(Giả lập) Cập nhật transaction ${id} -> ${status}`);
-  // Giả lập việc cập nhật
-  const index = mockTransactions.findIndex(tx => tx.id === id);
-  if (index !== -1) {
-    mockTransactions[index].status = status as "Completed" | "Failed";
-  }
-  return Promise.resolve({ success: true });
+  const res = await api.put(`/api/Transactions/${id}/status`, JSON.stringify(status), {
+    headers: { 'Content-Type': 'application/json' }
+  }); 
+  return res.data;
 };
 
 // ========================= 🧩 COMPONENT =========================
@@ -245,34 +129,20 @@ function AdminPage({ onLogout }: { onLogout: () => void }) {
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
-  const { data: transactions } = useQuery({ queryKey: ["adminTransactions"], queryFn: fetchTransactions });
-  const { data: users } = useQuery({ queryKey: ["adminUsers"], queryFn: fetchUsers });
-  const { data: functionUsage } = useQuery({ queryKey: ["adminFunctionUsage"], queryFn: fetchFunctionUsage });
+  // Lấy dữ liệu thật
+  const { data: transactions = [] } = useQuery({ queryKey: ["adminTransactions"], queryFn: fetchTransactions });
+  const { data: users = [] } = useQuery({ queryKey: ["adminUsers"], queryFn: fetchUsers });
+  const { data: functionUsage = [] } = useQuery({ queryKey: ["adminFunctionUsage"], queryFn: fetchFunctionUsage });
 
   const statusMutation = useMutation({
     mutationFn: updateTransactionStatus,
     onSuccess: () => {
-      toast({ title: "✅ Thành công", description: "Đã cập nhật trạng thái giao dịch." });
+      toast({ title: "✅ Thành công", description: "Đã cập nhật trạng thái." });
       queryClient.invalidateQueries({ queryKey: ["adminTransactions"] });
     },
-    // ✅ SỬA 2: Thay thế 'onError' bằng trình xử lý lỗi an toàn
     onError: (error) => {
-      let description = "Có lỗi không xác định xảy ra.";
-
-      if (isAxiosError(error)) {
-        // Ưu tiên lấy lỗi từ response của server (nếu backend trả về { message: "..." })
-        description = error.response?.data?.message || error.message;
-      } else if (error instanceof Error) {
-        description = error.message;
-      } else if (typeof error === 'string') {
-        description = error;
-      }
-
-      toast({
-        title: "❌ Lỗi",
-        description: description,
-        variant: "destructive",
-      });
+       console.error(error);
+       toast({ title: "❌ Lỗi", description: "Không thể cập nhật trạng thái", variant: "destructive" });
     },
   });
 
@@ -281,55 +151,59 @@ function AdminPage({ onLogout }: { onLogout: () => void }) {
   };
 
   const StatusBadge = ({ status }: { status: string }) => {
-    switch (status.toLowerCase()) {
-      case "completed":
-        return <Badge className="bg-green-500/80 hover:bg-green-600 text-white">Hoàn thành</Badge>;
-      case "failed":
-        return <Badge variant="destructive">Thất bại</Badge>;
-      default:
-        return <Badge className="bg-yellow-500/80 hover:bg-yellow-600 text-white">Đang chờ</Badge>;
+    switch (status?.toLowerCase()) {
+      case "completed": return <Badge className="bg-green-500/80 hover:bg-green-600 text-white">Hoàn thành</Badge>;
+      case "failed": return <Badge variant="destructive">Thất bại</Badge>;
+      default: return <Badge className="bg-yellow-500/80 hover:bg-yellow-600 text-white">Đang chờ</Badge>;
     }
   };
 
-  // ===== Scroll Refs =====
+  // Scroll Refs
   const dashboardRef = useRef<HTMLDivElement>(null);
   const usersRef = useRef<HTMLDivElement>(null);
   const walletRef = useRef<HTMLDivElement>(null);
   const functionRef = useRef<HTMLDivElement>(null);
-
-  const scrollTo = (ref: React.RefObject<HTMLDivElement>) =>
-    ref.current?.scrollIntoView({ behavior: "smooth" });
+  const scrollTo = (ref: React.RefObject<HTMLDivElement>) => ref.current?.scrollIntoView({ behavior: "smooth" });
 
   // ===========================================
-  // 🌟 DỮ LIỆU TÍNH TOÁN CHO BIỂU ĐỒ (useMemo) 🌟
+  // 🌟 TÍNH TOÁN DATA CHO BIỂU ĐỒ (REAL-TIME) 🌟
   // ===========================================
+  
+  // 1. KPI Stats
+  const kpiStats = useMemo(() => ({
+    totalRevenue: transactions
+      .filter(tx => tx.status === "Completed" && tx.type === "Deposit")
+      .reduce((sum, tx) => sum + tx.money, 0),
+    totalUsers: users.length,
+    pendingTxs: transactions.filter(tx => tx.status === "Pending").length,
+    newUsers: users.length, // Cần API trả về createdAt để lọc user mới chính xác
+  }), [transactions, users]);
 
-  // Tính toán dữ liệu cho biểu đồ tròn (PieChart) Tỷ lệ User
+  // 2. Biểu đồ tròn User Role
   const userRoleData = useMemo(() => {
-    if (!users) return [];
     const counts = users.reduce((acc, user) => {
-      acc[user.role] = (acc[user.role] || 0) + 1;
+      const r = user.role?.toLowerCase() || 'member';
+      acc[r] = (acc[r] || 0) + 1;
       return acc;
-    }, {} as Record<"member" | "staff", number>);
-    return Object.entries(counts).map(([name, value]) => ({ name: name === 'member' ? 'Member' : 'Staff', value }));
+    }, {} as Record<string, number>);
+    return Object.entries(counts).map(([name, value]) => ({ name: name==='member'?'Member':'Staff', value }));
   }, [users]);
 
-  // Tính toán dữ liệu cho biểu đồ Tỷ lệ Nạp/Rút
+  // 3. Biểu đồ tròn Transaction Type
   const transactionTypeData = useMemo(() => {
-    if (!transactions) return [];
     const counts = transactions.filter(tx => tx.status === 'Completed').reduce((acc, tx) => {
       acc[tx.type] = (acc[tx.type] || 0) + tx.money;
       return acc;
-    }, {} as Record<"Deposit" | "Withdraw", number>);
+    }, {} as Record<string, number>);
     return Object.entries(counts).map(([name, value]) => ({ name: name === 'Deposit' ? 'Nạp tiền' : 'Rút tiền', value }));
   }, [transactions]);
 
-  // Tính toán dữ liệu cho Biến động số dư
+  // 4. Biểu đồ Line Balance (Số dư theo thời gian)
   const balanceOverTimeData = useMemo(() => {
-    if (!transactions) return [];
     let balance = 0;
     return transactions
       .filter(tx => tx.status === 'Completed')
+      // Sắp xếp theo ngày
       .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
       .map(tx => {
         balance += (tx.type === 'Deposit' ? tx.money : -tx.money);
@@ -340,185 +214,107 @@ function AdminPage({ onLogout }: { onLogout: () => void }) {
       });
   }, [transactions]);
 
-  // Sắp xếp dữ liệu cho Biểu đồ Lượt sử dụng
+  // 5. Biểu đồ Top Function Usage
   const sortedFunctionUsage = useMemo(() => {
-    if (!functionUsage) return [];
     return [...functionUsage].sort((a, b) => a.usageCount - b.usageCount);
   }, [functionUsage]);
 
+  // 6. Biểu đồ Area Chart (Doanh thu theo tháng - Tính từ Data thật)
+  const revenueByMonthData = useMemo(() => {
+      const monthMap: Record<string, number> = {};
+      transactions
+        .filter(tx => tx.status === "Completed" && tx.type === "Deposit")
+        .forEach(tx => {
+           const date = new Date(tx.createdAt);
+           const key = `T${date.getMonth() + 1}`; // VD: T11
+           monthMap[key] = (monthMap[key] || 0) + tx.money;
+        });
+      
+      // Chuyển map thành array và sort theo tháng
+      return Object.keys(monthMap).map(key => ({
+          name: key,
+          "Doanh Thu": monthMap[key]
+      })).sort((a,b) => parseInt(a.name.substring(1)) - parseInt(b.name.substring(1)));
+  }, [transactions]);
+
+  const COLORS = ["#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6"];
+
   return (
     <div className="flex bg-gray-50 dark:bg-gray-900">
-      {/* ===== Sidebar ===== */}
+      {/* Sidebar */}
       <aside className="fixed left-0 top-0 h-full w-64 bg-gray-900 text-white p-6 shadow-lg flex flex-col">
         <div className="flex-grow">
-          <h2 className="text-2xl font-bold mb-4 flex items-center gap-2">
-            <Settings className="text-blue-400" />
-            Admin Panel
-          </h2>
+          <h2 className="text-2xl font-bold mb-4 flex items-center gap-2"><Settings className="text-blue-400" /> Admin Panel</h2>
           <nav className="flex flex-col space-y-3">
-            <Button variant="ghost" className="text-white/80 hover:text-white hover:bg-gray-700 justify-start gap-2" onClick={() => scrollTo(dashboardRef)}>
-              <LayoutDashboard size={18} /> Dashboard
-            </Button>
-            <Button variant="ghost" className="text-white/80 hover:text-white hover:bg-gray-700 justify-start gap-2" onClick={() => scrollTo(usersRef)}>
-              <Users size={18} /> Người dùng
-            </Button>
-            <Button variant="ghost" className="text-white/80 hover:text-white hover:bg-gray-700 justify-start gap-2" onClick={() => scrollTo(walletRef)}>
-              <Wallet size={18} /> Ví & Giao dịch
-            </Button>
-            <Button variant="ghost" className="text-white/80 hover:text-white hover:bg-gray-700 justify-start gap-2" onClick={() => scrollTo(functionRef)}>
-              <Settings size={18} /> Lượt sử dụng
-            </Button>
+            <Button variant="ghost" className="text-white justify-start gap-2" onClick={() => scrollTo(dashboardRef)}><LayoutDashboard size={18} /> Dashboard</Button>
+            <Button variant="ghost" className="text-white justify-start gap-2" onClick={() => scrollTo(usersRef)}><Users size={18} /> Người dùng</Button>
+            <Button variant="ghost" className="text-white justify-start gap-2" onClick={() => scrollTo(walletRef)}><Wallet size={18} /> Ví & Giao dịch</Button>
+            <Button variant="ghost" className="text-white justify-start gap-2" onClick={() => scrollTo(functionRef)}><Settings size={18} /> Lượt sử dụng</Button>
           </nav>
         </div>
-        {/* Nút Logout đã có ở đây */}
         <div className="mt-auto">
-          <Button 
-            variant="destructive" 
-            className="w-full justify-start gap-2 bg-red-600/80 hover:bg-red-600 text-white" 
-            onClick={onLogout}
-          >
-            <LogOut size={18} /> Đăng xuất
-          </Button>
+          <Button variant="destructive" className="w-full justify-start gap-2" onClick={onLogout}><LogOut size={18} /> Đăng xuất</Button>
         </div>
       </aside>
 
-      {/* ===== Main Content ===== */}
+      {/* Main Content */}
       <main className="ml-64 w-[calc(100%-16rem)] px-10 py-10 space-y-16 scroll-smooth min-h-screen">
-
-        {/* --- 1. Dashboard --- */}
+        
+        {/* --- Dashboard Section --- */}
         <section ref={dashboardRef}>
-          <h1 className="text-3xl font-bold mb-6 flex items-center gap-3">
-            <LayoutDashboard className="text-blue-600" />
-            Dashboard tổng quan
-          </h1>
-          
-          {/* === Thẻ KPI === */}
+          <h1 className="text-3xl font-bold mb-6 flex items-center gap-3"><LayoutDashboard className="text-blue-600" /> Dashboard tổng quan</h1>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            <Card className="shadow-md hover:shadow-lg transition-shadow">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Tổng Doanh Thu</CardTitle>
-                <DollarSign className="h-4 w-4 text-green-500" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{kpiStats.totalRevenue.toLocaleString("vi-VN")}₫</div>
-                <p className="text-xs text-gray-500">+10.2% so với tháng trước</p>
-              </CardContent>
-            </Card>
-            <Card className="shadow-md hover:shadow-lg transition-shadow">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Tổng Người Dùng</CardTitle>
-                <Users className="h-4 w-4 text-blue-500" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{kpiStats.totalUsers}</div>
-                <p className="text-xs text-gray-500">+2 người dùng mới tuần này</p>
-              </CardContent>
-            </Card>
-            <Card className="shadow-md hover:shadow-lg transition-shadow">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Giao dịch chờ</CardTitle>
-                <Clock className="h-4 w-4 text-yellow-500" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{kpiStats.pendingTxs}</div>
-                <p className="text-xs text-gray-500">Tổng {mockTransactions.filter(tx => tx.status === 'Pending').reduce((sum, tx) => sum + tx.money, 0).toLocaleString("vi-VN")}₫</p>
-              </CardContent>
-            </Card>
-            <Card className="shadow-md hover:shadow-lg transition-shadow">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Người dùng mới (W)</CardTitle>
-                <UserPlus className="h-4 w-4 text-indigo-500" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">+{kpiStats.newUsers}</div>
-                <p className="text-xs text-gray-500">Trong 7 ngày qua</p>
-              </CardContent>
-            </Card>
+            <Card><CardHeader><CardTitle className="text-sm">Tổng Doanh Thu</CardTitle><DollarSign className="h-4 w-4 text-green-500"/></CardHeader><CardContent><div className="text-2xl font-bold">{kpiStats.totalRevenue.toLocaleString("vi-VN")}₫</div></CardContent></Card>
+            <Card><CardHeader><CardTitle className="text-sm">Tổng Người Dùng</CardTitle><Users className="h-4 w-4 text-blue-500"/></CardHeader><CardContent><div className="text-2xl font-bold">{kpiStats.totalUsers}</div></CardContent></Card>
+            <Card><CardHeader><CardTitle className="text-sm">Giao dịch chờ</CardTitle><Clock className="h-4 w-4 text-yellow-500"/></CardHeader><CardContent><div className="text-2xl font-bold">{kpiStats.pendingTxs}</div></CardContent></Card>
+            <Card><CardHeader><CardTitle className="text-sm">User mới</CardTitle><UserPlus className="h-4 w-4 text-indigo-500"/></CardHeader><CardContent><div className="text-2xl font-bold">{kpiStats.newUsers}</div></CardContent></Card>
           </div>
-
-          {/* === Biểu đồ Doanh thu === */}
+          
+          {/* BIỂU ĐỒ DOANH THU THẬT */}
           <Card className="shadow-lg">
-            <CardHeader><CardTitle>Doanh thu theo tháng (2025)</CardTitle></CardHeader>
+            <CardHeader><CardTitle>Doanh thu theo tháng (Thực tế)</CardTitle></CardHeader>
             <CardContent className="h-80">
               <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={mockRevenueByMonth} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
-                  <defs>
-                    <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.8}/>
-                      <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e0e0e0" />
-                  <XAxis dataKey="name" />
-                  <YAxis tickFormatter={(value) => `${(value / 1000000).toLocaleString("vi-VN")}tr`} />
-                  <Tooltip formatter={(value: number) => `${value.toLocaleString("vi-VN")}₫`} />
-                  <Legend />
-                  <Area type="monotone" dataKey="Doanh Thu" stroke="#3b82f6" fillOpacity={1} fill="url(#colorRevenue)" />
+                <AreaChart data={revenueByMonthData.length > 0 ? revenueByMonthData : [{name: 'Chưa có GD', "Doanh Thu": 0}]} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+                  <defs><linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#3b82f6" stopOpacity={0.8}/><stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/></linearGradient></defs>
+                  <CartesianGrid strokeDasharray="3 3" /><XAxis dataKey="name" /><YAxis /><Tooltip formatter={(value:any)=>value.toLocaleString()+"₫"}/><Area type="monotone" dataKey="Doanh Thu" stroke="#3b82f6" fillOpacity={1} fill="url(#colorRevenue)" />
                 </AreaChart>
               </ResponsiveContainer>
             </CardContent>
           </Card>
         </section>
 
-        {/* --- 2. Quản lý người dùng --- */}
+        {/* --- Users Section --- */}
         <section ref={usersRef}>
-          <h1 className="text-3xl font-bold mb-6 flex items-center gap-3">
-            <Users className="text-blue-600" />
-            Quản lý người dùng ({users?.length || 0})
-          </h1>
+          <h1 className="text-3xl font-bold mb-6 flex items-center gap-3"><Users className="text-blue-600" /> Quản lý người dùng</h1>
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* === Bảng Người dùng === */}
             <Card className="lg:col-span-2 shadow-lg">
               <CardHeader><CardTitle>Danh sách người dùng</CardTitle></CardHeader>
               <CardContent>
                 <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Họ tên</TableHead>
-                      <TableHead>Email</TableHead>
-                      <TableHead>Role</TableHead>
-                      <TableHead>Trạng thái</TableHead>
-                    </TableRow>
-                  </TableHeader>
+                  <TableHeader><TableRow><TableHead>Họ tên</TableHead><TableHead>Email</TableHead><TableHead>Role</TableHead><TableHead>Trạng thái</TableHead></TableRow></TableHeader>
                   <TableBody>
-                    {users?.map((u) => (
+                    {users.slice(0, 10).map((u) => ( // Chỉ hiện 10 user đầu tiên để demo table
                       <TableRow key={u.id}>
-                        <TableCell>{u.fullName}</TableCell>
-                        <TableCell>{u.email}</TableCell>
-                        <TableCell>
-                          <Badge className={u.role === "staff" ? "bg-blue-500 text-white" : "bg-gray-400"}>
-                            {u.role}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <Badge
-                            variant={u.status === "active" ? "default" : "destructive"}
-                            className={u.status === "active" ? "bg-green-500 text-white" : "bg-red-500 text-white"}
-                          >
-                            {u.status}
-                          </Badge>
-                        </TableCell>
+                        <TableCell>{u.fullName}</TableCell><TableCell>{u.email}</TableCell>
+                        <TableCell><Badge className="bg-gray-500 text-white">{u.role}</Badge></TableCell>
+                        <TableCell><Badge variant={u.status==='active'?'default':'destructive'}>{u.status}</Badge></TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
                 </Table>
               </CardContent>
             </Card>
-
-            {/* === Biểu đồ Tỷ lệ User === */}
+            {/* BIỂU ĐỒ TRÒN USER */}
             <Card className="lg:col-span-1 shadow-lg">
               <CardHeader><CardTitle>Tỷ lệ Member / Staff</CardTitle></CardHeader>
               <CardContent className="h-64">
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
-                    <Pie data={userRoleData} dataKey="value" cx="50%" cy="50%" outerRadius={80} labelLine={false}
-                         label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}>
-                      {userRoleData.map((_, i) => (
-                        <Cell key={i} fill={COLORS[i % COLORS.length]} />
-                      ))}
+                    <Pie data={userRoleData} dataKey="value" cx="50%" cy="50%" outerRadius={80} label={({name, percent})=>`${name} ${(percent*100).toFixed(0)}%`}>
+                      {userRoleData.map((_,i)=><Cell key={i} fill={COLORS[i%COLORS.length]}/>)}
                     </Pie>
-                    <Tooltip formatter={(value: number) => `${value} người`} />
-                    <Legend />
+                    <Tooltip/><Legend/>
                   </PieChart>
                 </ResponsiveContainer>
               </CardContent>
@@ -526,53 +322,26 @@ function AdminPage({ onLogout }: { onLogout: () => void }) {
           </div>
         </section>
 
-        {/* --- 3. Quản lý ví & giao dịch --- */}
+        {/* --- Wallet Section --- */}
         <section ref={walletRef}>
-          <h1 className="text-3xl font-bold mb-6 flex items-center gap-3">
-            <Wallet className="text-blue-600" />
-            Ví & Giao dịch
-          </h1>
-          {/* === Bảng Giao dịch === */}
+          <h1 className="text-3xl font-bold mb-6 flex items-center gap-3"><Wallet className="text-blue-600" /> Ví & Giao dịch</h1>
           <Card className="mb-6 shadow-lg">
-            <CardHeader><CardTitle>Giao dịch gần đây</CardTitle></CardHeader>
+            <CardHeader><CardTitle>Giao dịch</CardTitle></CardHeader>
             <CardContent className="overflow-x-auto">
               <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Người dùng</TableHead>
-                    <TableHead>Nội dung</TableHead>
-                    <TableHead>Số tiền</TableHead>
-                    <TableHead>Loại</TableHead>
-                    <TableHead>Ngày tạo</TableHead>
-                    <TableHead>Trạng thái</TableHead>
-                    <TableHead>Hành động</TableHead>
-                  </TableRow>
-                </TableHeader>
+                <TableHeader><TableRow><TableHead>User</TableHead><TableHead>Nội dung</TableHead><TableHead>Số tiền</TableHead><TableHead>Trạng thái</TableHead><TableHead>Hành động</TableHead></TableRow></TableHeader>
                 <TableBody>
-                  {transactions?.map((tx) => (
+                  {transactions.map((tx) => (
                     <TableRow key={tx.id}>
-                      <TableCell>{tx.wallet?.user?.fullName}</TableCell>
+                      <TableCell>{tx.wallet?.user?.fullName || "N/A"}</TableCell>
                       <TableCell>{tx.description}</TableCell>
-                      <TableCell className={tx.type === 'Deposit' ? "text-green-600 font-medium" : "text-red-600 font-medium"}>
-                        {tx.type === 'Deposit' ? '+' : '-'}
-                        {tx.money.toLocaleString("vi-VN")}₫
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant={tx.type === 'Deposit' ? 'default' : 'secondary'} className={tx.type === 'Deposit' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}>
-                          {tx.type}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>{new Date(tx.createdAt).toLocaleString("vi-VN")}</TableCell>
+                      <TableCell>{tx.money.toLocaleString()}₫</TableCell>
                       <TableCell><StatusBadge status={tx.status} /></TableCell>
                       <TableCell>
                         {tx.status === "Pending" && (
                           <div className="flex gap-2">
-                            <Button size="sm" variant="outline" className="border-green-500 text-green-600" onClick={() => handleStatusUpdate(tx.id, "Completed")}>
-                              <CheckCircle className="h-4 w-4 mr-1" /> Duyệt
-                            </Button>
-                            <Button size="sm" variant="outline" className="border-red-500 text-red-600" onClick={() => handleStatusUpdate(tx.id, "Failed")}>
-                              <XCircle className="h-4 w-4 mr-1" /> Hủy
-                            </Button>
+                            <Button size="sm" variant="outline" className="text-green-600" onClick={()=>handleStatusUpdate(tx.id, "Completed")}><CheckCircle size={16}/></Button>
+                            <Button size="sm" variant="outline" className="text-red-600" onClick={()=>handleStatusUpdate(tx.id, "Failed")}><XCircle size={16}/></Button>
                           </div>
                         )}
                       </TableCell>
@@ -583,36 +352,28 @@ function AdminPage({ onLogout }: { onLogout: () => void }) {
             </CardContent>
           </Card>
 
-          {/* === Biểu đồ Ví & Giao dịch === */}
+          {/* BIỂU ĐỒ LINE VÀ PIE CỦA VÍ */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <Card className="shadow-lg">
-              <CardHeader><CardTitle>Biến động số dư (Giao dịch đã hoàn thành)</CardTitle></CardHeader>
+              <CardHeader><CardTitle>Biến động số dư</CardTitle></CardHeader>
               <CardContent className="h-64">
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart data={balanceOverTimeData}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="date" />
-                    <YAxis tickFormatter={(value) => `${(value / 1000).toLocaleString("vi-VN")}k`} />
-                    <Tooltip formatter={(value: number) => `${value.toLocaleString("vi-VN")}₫`} />
-                    <Legend />
+                    <CartesianGrid strokeDasharray="3 3" /><XAxis dataKey="date" /><YAxis /><Tooltip /><Legend />
                     <Line type="monotone" dataKey="Balance" stroke="#10b981" strokeWidth={2} dot={false} />
                   </LineChart>
                 </ResponsiveContainer>
               </CardContent>
             </Card>
             <Card className="shadow-lg">
-              <CardHeader><CardTitle>Tỷ lệ Nạp / Rút (Đã hoàn thành)</CardTitle></CardHeader>
+              <CardHeader><CardTitle>Tỷ lệ Nạp / Rút</CardTitle></CardHeader>
               <CardContent className="h-64">
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
-                    <Pie data={transactionTypeData} dataKey="value" cx="50%" cy="50%" outerRadius={80} labelLine={false}
-                         label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}>
-                      {transactionTypeData.map((entry, i) => (
-                        <Cell key={i} fill={entry.name === 'Nạp tiền' ? COLORS[1] : COLORS[3]} />
-                      ))}
+                    <Pie data={transactionTypeData} dataKey="value" cx="50%" cy="50%" outerRadius={80} label>
+                      {transactionTypeData.map((entry, i) => (<Cell key={i} fill={entry.name === 'Nạp tiền' ? COLORS[1] : COLORS[3]} />))}
                     </Pie>
-                    <Tooltip formatter={(value: number) => `${value.toLocaleString("vi-VN")}₫`} />
-                    <Legend />
+                    <Tooltip formatter={(val:number)=>val.toLocaleString()+"₫"} /><Legend />
                   </PieChart>
                 </ResponsiveContainer>
               </CardContent>
@@ -620,68 +381,39 @@ function AdminPage({ onLogout }: { onLogout: () => void }) {
           </div>
         </section>
 
-        {/* --- 4. Lượt sử dụng chức năng --- */}
+        {/* --- Function Usage Section --- */}
         <section ref={functionRef}>
-          <h1 className="text-3xl font-bold mb-6 flex items-center gap-3">
-            <Settings className="text-blue-600" />
-            Lượt sử dụng chức năng
-          </h1>
+          <h1 className="text-3xl font-bold mb-6 flex items-center gap-3"><Settings className="text-blue-600" /> Lượt sử dụng chức năng</h1>
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* === Bảng Chức năng === */}
-            <Card className="lg:col-span-2 shadow-lg">
-              <CardHeader><CardTitle>Thống kê chức năng</CardTitle></CardHeader>
-              <CardContent className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Chức năng</TableHead>
-                      <TableHead>Lượt sử dụng</TableHead>
-                      <TableHead>Người dùng duy nhất</TableHead>
-                      <TableHead>Lần gần nhất</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {functionUsage?.map((f) => (
-                      <TableRow key={f.id}>
-                        <TableCell className="font-medium">{f.name}</TableCell>
-                        <TableCell>{f.usageCount.toLocaleString("vi-VN")}</TableCell>
-                        <TableCell>{f.uniqueUsers.toLocaleString("vi-VN")}</TableCell>
-                        <TableCell>{new Date(f.lastUsed).toLocaleString("vi-VN")}</TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </CardContent>
-            </Card>
-
-            {/* === Biểu đồ Top Chức năng === */}
-            <Card className="lg:col-span-1 shadow-lg">
-              <CardHeader><CardTitle>Top chức năng (Lượt sử dụng)</CardTitle></CardHeader>
-              <CardContent className="h-64">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={sortedFunctionUsage} layout="vertical" margin={{ top: 5, right: 20, left: 60, bottom: 5 }}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis type="number" />
-                    <YAxis dataKey="name" type="category" scale="band" />
-                    <Tooltip formatter={(value: number) => `${value.toLocaleString("vi-VN")} lượt`} />
-                    <Legend />
-                    <Bar dataKey="usageCount" name="Lượt sử dụng" fill="#f59e0b" />
-                  </BarChart>
-                </ResponsiveContainer>
-              </CardContent>
-            </Card>
+             <Card className="lg:col-span-2 shadow-lg">
+                <CardHeader><CardTitle>Danh sách</CardTitle></CardHeader>
+                <CardContent>
+                   <Table>
+                      <TableHeader><TableRow><TableHead>Tên</TableHead><TableHead>Lượt dùng</TableHead><TableHead>User duy nhất</TableHead></TableRow></TableHeader>
+                      <TableBody>{functionUsage.map(f => (<TableRow key={f.id}><TableCell>{f.name}</TableCell><TableCell>{f.usageCount}</TableCell><TableCell>{f.uniqueUsers}</TableCell></TableRow>))}</TableBody>
+                   </Table>
+                </CardContent>
+             </Card>
+             {/* BIỂU ĐỒ BAR CHART FUNCTION */}
+             <Card className="lg:col-span-1 shadow-lg">
+                <CardHeader><CardTitle>Top chức năng</CardTitle></CardHeader>
+                <CardContent className="h-64">
+                   <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={sortedFunctionUsage} layout="vertical">
+                         <CartesianGrid strokeDasharray="3 3" /><XAxis type="number" /><YAxis dataKey="name" type="category" scale="band" width={100} />
+                         <Tooltip /><Bar dataKey="usageCount" fill="#f59e0b" />
+                      </BarChart>
+                   </ResponsiveContainer>
+                </CardContent>
+             </Card>
           </div>
         </section>
+
       </main>
     </div>
   );
 }
 
-// ✅ ĐÂY LÀ EXPORT DEFAULT DUY NHẤT: Bọc component trong QueryClientProvider
 export default function AdminPageWrapper({ onLogout }: { onLogout: () => void }) {
-  return (
-    <QueryClientProvider client={queryClient}>
-      <AdminPage onLogout={onLogout} />
-    </QueryClientProvider>
-  );
+  return <QueryClientProvider client={queryClient}><AdminPage onLogout={onLogout} /></QueryClientProvider>;
 }
