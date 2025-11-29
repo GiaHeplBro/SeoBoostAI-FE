@@ -5,6 +5,7 @@ import {
   FileSearch,
   Sparkles,
   Rocket,
+  History,
 } from "lucide-react";
 
 const menuItems = [
@@ -17,6 +18,12 @@ const menuItems = [
       { name: "Tối Ưu Hóa Nội Dung", icon: <Sparkles className="mr-3 h-5 w-5" />, path: "/content-optimization" },
     ],
   },
+  {
+    category: "Tài Khoản",
+    items: [
+      { name: "Lịch sử giao dịch", icon: <History className="mr-3 h-5 w-5" />, path: "/transaction-history" },
+    ],
+  },
 ];
 
 // SỬA Ở ĐÂY 1: Sidebar giờ sẽ nhận props để điều khiển trạng thái
@@ -27,9 +34,8 @@ export default function Sidebar({ sidebarOpen, setSidebarOpen }: { sidebarOpen: 
     <>
       {/* Lớp phủ cho di động, chỉ hiện khi sidebar mở */}
       <div
-        className={`fixed inset-0 z-40 bg-black bg-opacity-50 transition-opacity duration-300 md:hidden ${
-          sidebarOpen ? "opacity-100" : "opacity-0 pointer-events-none"
-        }`}
+        className={`fixed inset-0 z-40 bg-black bg-opacity-50 transition-opacity duration-300 md:hidden ${sidebarOpen ? "opacity-100" : "opacity-0 pointer-events-none"
+          }`}
         onClick={() => setSidebarOpen(false)}
       />
 
@@ -67,11 +73,10 @@ export default function Sidebar({ sidebarOpen, setSidebarOpen }: { sidebarOpen: 
                     key={i}
                     href={item.path}
                     onClick={() => setSidebarOpen(false)}
-                    className={`sidebar-menu-item flex items-center px-4 py-3 ${
-                      isActive
+                    className={`sidebar-menu-item flex items-center px-4 py-3 ${isActive
                         ? "text-white bg-blue-600 dark:bg-blue-500 font-medium"
                         : "text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-blue-600 dark:hover:text-blue-400"
-                    }`}
+                      }`}
                   >
                     {item.icon}
                     {item.name}

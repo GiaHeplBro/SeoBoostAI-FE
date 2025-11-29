@@ -21,6 +21,7 @@ import Header from "@/components/layout/header";
 import AdminPage from '@/pages/AdminPage';
 // Bạn có thể xóa dòng UsersPage nếu không dùng đến trang này nữa
 import UsersPage from '@/pages/UsersPage';
+import TransactionHistoryPage from '@/pages/TransactionHistoryPage';
 
 // Định nghĩa interface UserProfile
 interface UserProfile {
@@ -53,6 +54,7 @@ function MainAppLayout({ onLogout, user }: { onLogout: () => void; user: UserPro
             <Route path="/users" component={UsersPage} />
             <Route path="/profile" component={ProfilePage} />
             <Route path="/pricing" component={PricingPage} />
+            <Route path="/transaction-history" component={TransactionHistoryPage} />
 
             {/* Nếu người dùng đã đăng nhập mà vào trang gốc, tự động chuyển đến dashboard */}
             <Route path="/"><Redirect to="/dashboard" /></Route>
