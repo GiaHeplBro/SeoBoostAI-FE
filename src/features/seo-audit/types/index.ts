@@ -1,17 +1,17 @@
 // TypeScript interfaces for SEO Audit feature
 
 // Payload cho API 1 (Phân tích - POST)
+// userId được lấy từ token ở BE, không cần truyền nữa
 export interface PerformanceHistoryPayload {
-    userId: number;
     url: string;
     strategy: "desktop" | "mobile";
     featureId: number;
 }
 
 // Payload cho API Update (Phân tích lại - PUT)
+// userId được lấy từ token ở BE, không cần truyền nữa
 export interface UpdatePerformanceHistoryPayload {
     performanceHistoryId: number;
-    userId: number;
     featureId: number;
 }
 
@@ -55,29 +55,68 @@ export interface AnalysisResultResponse {
     };
 }
 
-// Dữ liệu cache (trong response API 1)
+// Element trong analysisCache
+export interface Element {
+    elementID: number;
+    analysisCacheID: number;
+    tagName: string;
+    innerText: string;
+    outerHTML: string;
+    important: boolean;
+    hasSuggestion: boolean;
+    aiRecommendation: string | null;
+    description: string | null;
+    createdAt: string;
+    updatedAt: string | null;
+    isDeleted: boolean;
+}
+
+// Dữ liệu cache (nested trong scanHistory)
 export interface AnalysisCache {
     analysisCacheID: number;
     url: string;
     normalizedUrl: string;
     strategy: string;
-    pageSpeedResponse: string; // Đây là JSON string
+    pageSpeedResponse: string; // JSON string
     generalAssessment: string;
     suggestion: string;
     lastAnalyzedAt: string;
-    elements: any[];
+    elements: Element[];
+    analysisSnapshots: any[];
+    performanceHistories: any[];
 }
 
-// Response từ API 1 & PUT
-export interface PerformanceHistoryResponse {
+// Response item từ API lịch sử
+export interface ScanHistoryItem {
     scanHistoryID: number;
     userID: number;
     analysisCacheID: number;
     scanTime: string;
     analysisCache: AnalysisCache;
+    user: null;
 }
 
-// Response từ API 2 (Chuyên sâu)
+// Response từ API GET /performance-histories (có pagination)
+export interface PerformanceHistoryListResponse {
+    success: boolean;
+    message: string;
+    data: {
+        totalItems: number;
+        totalPages: number;
+        currentPage: number;
+        pageSize: number;
+        items: ScanHistoryItem[];
+    };
+}
+
+// Response từ API POST /performance-histories (single item)
+export interface PerformanceHistoryResponse {
+    success: boolean;
+    message: string;
+    data: ScanHistoryItem;
+}
+
+// Response từ API 2 (Chuyên sâu) - Element data
 export interface ElementSuggestion {
     elementID: number;
     analysisCacheID: number;
@@ -89,15 +128,17 @@ export interface ElementSuggestion {
     aiRecommendation: string | null;
     description: string | null;
     createdAt: string;
+    updatedAt: string | null;
+    isDeleted: boolean;
+    analysisCache: AnalysisCache | null;
 }
 
-// Kiểu dữ liệu cho API Lịch sử (API 1 Response)
-export interface HistoryApiResponse {
-    totalItems: number;
-    totalPages: number;
-    pageSize: number;
-    items: PerformanceHistoryResponse[];
+// Response wrapper cho element APIs
+export interface ElementsResponse {
+    success: boolean;
+    message: string;
+    data: ElementSuggestion[];
 }
 
 // Kiểu dữ liệu cho một mục trong danh sách
-export type HistoryItem = PerformanceHistoryResponse;
+export type HistoryItem = ScanHistoryItem;

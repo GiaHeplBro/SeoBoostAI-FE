@@ -79,13 +79,6 @@ export default function Header({ onLogout, user, setSidebarOpen }: HeaderProps) 
         </div>
 
         <div className="flex items-center gap-2">
-          {/* ... các nút Bảng giá, Upgrade, Bell, Avatar giữ nguyên ... */}
-          <Link href="/feature-comparison">
-            <Button variant="outline" size="sm" className="hidden md:flex items-center gap-2">
-              <Tags className="h-4 w-4" />
-              <span>Bảng giá</span>
-            </Button>
-          </Link>
           <Link href="/pricing">
             <Button size="sm" className="hidden md:flex items-center gap-2 bg-primary text-primary-foreground hover:bg-primary/90">
               <Zap className="h-4 w-4" />

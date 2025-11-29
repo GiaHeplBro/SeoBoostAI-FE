@@ -1,365 +1,350 @@
-import { Search, Rocket, TrendingUp, BarChart2, Sparkles, Wand2, PlusCircle, RefreshCw } from "lucide-react";
+import { useState } from "react";
+import { ArrowUp, History, Plus, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useEffect, useState, useMemo } from "react";
-import api from "@/axiosInstance"; // Quan trọng: Mọi API call đều dùng instance này
-import { useMutation, useQueryClient, useInfiniteQuery } from "@tanstack/react-query";
-import { useToast } from "@/hooks/use-toast";
-import { jwtDecode } from 'jwt-decode';
 
-// --- Custom Hook Debounce ---
-function useDebounce(value: string, delay: number): string {
-    const [debouncedValue, setDebouncedValue] = useState(value);
-    useEffect(() => {
-        const handler = setTimeout(() => { setDebouncedValue(value); }, delay);
-        return () => { clearTimeout(handler); };
-    }, [value, delay]);
-    return debouncedValue;
-}
+// --- Types ---
+type ViewState = 'empty' | 'loading' | 'results';
 
-// --- Interfaces ---
-interface Keyword {
-    id: number;
-    keyword1: string;
+interface KeywordData {
+    keyword: string;
     searchVolume: number;
     difficulty: number;
     cpc: number;
     competition: string;
-    trend: string;
     intent: string;
-}
-interface RankTrackingItem { 
-    id: number; 
-    userId: number; 
-    keyword: string; 
-    rank: number; 
-}
-interface PaginatedResponse<T> {
-    items: T[];
-    totalPages: number;
-    totalItems: number;
-    currentPage: number;
+    trend: boolean;
 }
 
+interface AnalysisResult {
+    query: string;
+    aiResponse: string;
+    primaryData: KeywordData[];
+    secondaryData: KeywordData[];
+}
 
-// --- Các hàm gọi API ---
-// Tất cả các hàm này đều dùng 'api' instance đã được import, nên sẽ tự động có token
-const searchKeywordsApi = async ({ keyword, pageParam = 1 }: { keyword: string; pageParam?: number }): Promise<PaginatedResponse<Keyword>> => {
-    if (!keyword.trim()) {
-        return { items: [], totalPages: 0, totalItems: 0, currentPage: 1 };
-    }
-    const requestBody = {
-        pageIndex: pageParam,
-        pageSize: 10,
-        keyword: keyword,
-        competition: "",
-        intent: "",
-        trend: "",
-        sortBy: "",
-        sortOrder: ""
-    };
-    const { data } = await api.post(`/Keywords/search-keyword`, requestBody);
-    return data;
-};
+interface HistoryItem {
+    id: string;
+    query: string;
+    timestamp: Date;
+    result?: AnalysisResult;
+}
 
-const generateKeywordsApi = async (inputKeyword: string): Promise<any> => {
-    const { data } = await api.post("/Keywords/search", { input_keyword: inputKeyword });
-    return data;
-};
-
-const fetchRankTrackingsApi = async ({ userId, pageParam = 1 }: { userId: string | null; pageParam?: number }): Promise<PaginatedResponse<RankTrackingItem>> => {
-    if (!userId) return { items: [], totalPages: 0, totalItems: 0, currentPage: 1 };
-    const { data } = await api.get(`/RankTrackings/rank-tracking/${userId}/${pageParam}/10`);
-    return data;
-};
-
-const addRankTrackingApi = async ({ userId, keyword }: { userId: string, keyword: string }) => {
-    const { data } = await api.post('/RankTrackings/rank-tracking', {
-        input_keyword: keyword,
-        user_id: userId
-    });
-    return data;
-};
-
-const updateRankTrackingApi = async (userId: string) => {
-    const { data } = await api.post('/RankTrackings/update-rank-tracking', parseInt(userId, 10), {
-        headers: { 'Content-Type': 'application/json' }
-    });
-    return data;
+// --- Mock Data ---
+const MOCK_RESULT: AnalysisResult = {
+    query: "tai nghe bluetooth",
+    aiResponse: "Từ khóa 'tai nghe bluetooth' là một từ khóa rất có tiềm năng trong thị trường Việt Nam. Với lượng tìm kiếm hàng tháng ổn định và mức cạnh tranh trung bình, đây là cơ hội tốt để tối ưu hóa nội dung. Từ khóa này có ý định mua hàng cao, phù hợp cho các chiến dịch e-commerce. Xu hướng tìm kiếm đang tăng đặc biệt trong quý 4 hàng năm.",
+    primaryData: [
+        { keyword: "tai nghe bluetooth", searchVolume: 45000, difficulty: 55, cpc: 0.85, competition: "Medium", intent: "Commercial", trend: true },
+        { keyword: "tai nghe bluetooth không dây", searchVolume: 33000, difficulty: 48, cpc: 0.75, competition: "Medium", intent: "Commercial", trend: true },
+        { keyword: "tai nghe bluetooth giá rẻ", searchVolume: 27000, difficulty: 42, cpc: 0.65, competition: "Low", intent: "Transactional", trend: true },
+        { keyword: "tai nghe bluetooth chống ồn", searchVolume: 18000, difficulty: 58, cpc: 1.20, competition: "High", intent: "Commercial", trend: true },
+        { keyword: "tai nghe bluetooth sony", searchVolume: 15000, difficulty: 62, cpc: 1.50, competition: "High", intent: "Transactional", trend: false },
+        { keyword: "tai nghe bluetooth apple", searchVolume: 22000, difficulty: 68, cpc: 2.10, competition: "High", intent: "Transactional", trend: true },
+        { keyword: "tai nghe bluetooth samsung", searchVolume: 12000, difficulty: 54, cpc: 1.10, competition: "Medium", intent: "Transactional", trend: false },
+        { keyword: "tai nghe bluetooth jbl", searchVolume: 9000, difficulty: 51, cpc: 0.95, competition: "Medium", intent: "Transactional", trend: false },
+    ],
+    secondaryData: [
+        { keyword: "cách kết nối tai nghe bluetooth", searchVolume: 8000, difficulty: 28, cpc: 0.25, competition: "Low", intent: "Informational", trend: false },
+        { keyword: "tai nghe bluetooth bị hư", searchVolume: 5000, difficulty: 22, cpc: 0.15, competition: "Low", intent: "Informational", trend: false },
+        { keyword: "review tai nghe bluetooth", searchVolume: 11000, difficulty: 35, cpc: 0.45, competition: "Low", intent: "Informational", trend: true },
+        { keyword: "so sánh tai nghe bluetooth", searchVolume: 7000, difficulty: 32, cpc: 0.40, competition: "Low", intent: "Commercial", trend: false },
+        { keyword: "tai nghe bluetooth tốt nhất", searchVolume: 14000, difficulty: 45, cpc: 0.90, competition: "Medium", intent: "Commercial", trend: true },
+        { keyword: "tai nghe bluetooth pin trâu", searchVolume: 6000, difficulty: 38, cpc: 0.55, competition: "Low", intent: "Commercial", trend: false },
+    ]
 };
 
 export default function KeywordAnalysis() {
-    const [filterTerm, setFilterTerm] = useState("");
-    const [aiSeedKeyword, setAiSeedKeyword] = useState("");
-    const [newTrackingKeyword, setNewTrackingKeyword] = useState("");
-    const debouncedFilterTerm = useDebounce(filterTerm, 500);
-    const queryClient = useQueryClient();
-    const { toast } = useToast();
-    const userId = useMemo(() => {
-        try {
-            const encodedTokens = localStorage.getItem('tokens');
-            if (!encodedTokens) return null;
-            const { accessToken } = JSON.parse(atob(encodedTokens));
-            const decodedToken: { user_ID: string } = jwtDecode(accessToken);
-            return decodedToken.user_ID;
-        } catch { return null; }
-    }, []);
+    const [viewState, setViewState] = useState<ViewState>('empty');
+    const [searchQuery, setSearchQuery] = useState("");
+    const [history, setHistory] = useState<HistoryItem[]>([]);
+    const [activeHistoryId, setActiveHistoryId] = useState<string | null>(null);
+    const [currentResult, setCurrentResult] = useState<AnalysisResult | null>(null);
 
-    const {
-        data: searchedData,
-        fetchNextPage: fetchNextSearchPage,
-        hasNextPage: hasNextSearchPage,
-        isFetching: isSearching,
-    } = useInfiniteQuery({
-        queryKey: ['keywordsSearch', debouncedFilterTerm],
-        queryFn: ({ pageParam }) => searchKeywordsApi({ keyword: debouncedFilterTerm, pageParam }),
-        getNextPageParam: (lastPage) => lastPage.currentPage < lastPage.totalPages ? lastPage.currentPage + 1 : undefined,
-        initialPageParam: 1,
-    });
-    const searchedKeywords = searchedData?.pages.flatMap(page => page.items) || [];
+    // Handle search submission
+    const handleSearch = () => {
+        if (!searchQuery.trim()) return;
 
-    const {
-        data: rankTrackingData,
-        fetchNextPage: fetchNextRankPage,
-        hasNextPage: hasNextRankPage,
-        isLoading: isLoadingRankings,
-        isFetching: isFetchingRankings
-    } = useInfiniteQuery({
-        queryKey: ['rankTrackings', userId],
-        queryFn: ({ pageParam }) => fetchRankTrackingsApi({ userId, pageParam }),
-        getNextPageParam: (lastPage) => lastPage.currentPage < lastPage.totalPages ? lastPage.currentPage + 1 : undefined,
-        initialPageParam: 1,
-        enabled: !!userId,
-    });
-    const rankTrackings = rankTrackingData?.pages.flatMap(page => page.items) || [];
+        // Set loading state
+        setViewState('loading');
 
-    const generationMutation = useMutation({
-        mutationFn: generateKeywordsApi,
-        onSuccess: () => {
-            toast({ title: "Thành công!", description: "Đã tạo và thêm các từ khóa mới." });
-            queryClient.invalidateQueries({ queryKey: ['keywordsSearch', debouncedFilterTerm] });
-        },
-        onError: (error) => { toast({ title: "Thất bại", description: error.message, variant: "destructive" }); }
-    });
+        // Simulate API call (2-3 seconds for demo, will be 2-3 min in real)
+        setTimeout(() => {
+            const newResult = {
+                ...MOCK_RESULT,
+                query: searchQuery
+            };
 
-    const addTrackingMutation = useMutation({
-        mutationFn: addRankTrackingApi,
-        onSuccess: () => {
-            toast({ title: "Thành công!", description: "Đã thêm từ khóa vào danh sách theo dõi." });
-            queryClient.invalidateQueries({ queryKey: ['rankTrackings', userId] });
-            setNewTrackingKeyword("");
-        },
-        onError: (error) => toast({ title: "Thất bại", description: error.message, variant: 'destructive' })
-    });
+            const newHistoryItem: HistoryItem = {
+                id: Date.now().toString(),
+                query: searchQuery,
+                timestamp: new Date(),
+                result: newResult
+            };
 
-    const updateRankMutation = useMutation({
-        mutationFn: updateRankTrackingApi,
-        onSuccess: () => {
-            toast({ title: "Đang cập nhật", description: "Hệ thống đang cập nhật lại thứ hạng. Danh sách sẽ được làm mới sau giây lát." });
-            setTimeout(() => {
-                queryClient.invalidateQueries({ queryKey: ['rankTrackings', userId] });
-            }, 5000); 
-        },
-        onError: (error) => {
-            toast({ title: "Thất bại", description: error.message, variant: 'destructive' });
-        }
-    });
-
-    const handleGenerateClick = () => {
-        if (!aiSeedKeyword) {
-            toast({ title: "Lỗi", description: "Vui lòng nhập từ khóa gốc để tạo.", variant: "destructive" });
-            return;
-        }
-        generationMutation.mutate(aiSeedKeyword);
+            setHistory(prev => [newHistoryItem, ...prev]);
+            setCurrentResult(newResult);
+            setActiveHistoryId(newHistoryItem.id);
+            setViewState('results');
+            setSearchQuery("");
+        }, 3000); // 3 seconds for demo
     };
 
-    const handleAddTrackingClick = () => {
-        if (!newTrackingKeyword || !userId) return;
-        addTrackingMutation.mutate({ userId, keyword: newTrackingKeyword });
-    };
-    
-    const handleUpdateRankClick = () => {
-        if (!userId) {
-            toast({ title: "Lỗi", description: "Không thể xác thực người dùng.", variant: "destructive" });
-            return;
+    // Handle history item click
+    const handleHistoryClick = (item: HistoryItem) => {
+        if (item.result) {
+            setCurrentResult(item.result);
+            setActiveHistoryId(item.id);
+            setViewState('results');
         }
-        updateRankMutation.mutate(userId);
+    };
+
+    // Handle new chat
+    const handleNewChat = () => {
+        setViewState('empty');
+        setSearchQuery("");
+        setActiveHistoryId(null);
+        setCurrentResult(null);
     };
 
     return (
-        <div className="space-y-6">
-            <div className="flex flex-col gap-2">
-                <h1 className="text-3xl font-bold">Phân tích từ khóa</h1>
-                <p className="text-gray-500 dark:text-gray-400">
-                    Khám phá, tạo và theo dõi các từ khóa giá trị nhất của bạn.
-                </p>
-            </div>
+        <div className="flex h-[calc(100vh-4rem)] w-full">
+            {/* Sidebar */}
+            <aside className="w-64 border-r border-slate-200/10 bg-slate-900/30 p-4 flex flex-col">
+                <div className="flex flex-col h-full">
+                    {/* Header */}
+                    <div className="flex items-center gap-3 mb-6">
+                        <div className="bg-primary/20 rounded-full p-2">
+                            <History className="h-5 w-5 text-primary" />
+                        </div>
+                        <div className="flex flex-col">
+                            <h2 className="text-base font-medium text-white">Lịch sử tìm kiếm</h2>
+                        </div>
+                    </div>
 
-            <Tabs defaultValue="research">
-                <TabsList className="grid grid-cols-2 w-full md:w-[400px] mb-4">
-                    <TabsTrigger value="research">Nghiên cứu từ khóa</TabsTrigger>
-                    <TabsTrigger value="tracking">Theo dõi thứ hạng</TabsTrigger>
-                </TabsList>
-
-                <TabsContent value="research" className="space-y-4">
-                    <Card>
-                        <CardHeader>
-                            <CardTitle className="flex items-center"><Sparkles className="h-5 w-5 mr-2 text-purple-500" /> Tạo từ khóa AI</CardTitle>
-                            <CardDescription>Nhập một từ khóa tiềm năng và AI sẽ tạo ra danh sách các từ khóa liên quan.</CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="flex items-center space-x-2">
-                                <div className="relative flex-1">
-                                    <Wand2 className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                                    <Input className="pl-9" placeholder="e.g., 'digital marketing'" value={aiSeedKeyword} onChange={(e) => setAiSeedKeyword(e.target.value)} />
+                    {/* History List */}
+                    <ScrollArea className="flex-1">
+                        {history.length === 0 ? (
+                            <div className="flex flex-col items-center gap-4 rounded-lg border-2 border-dashed border-slate-700 px-4 py-12 text-center">
+                                <div className="flex flex-col items-center gap-2">
+                                    <p className="text-white text-sm font-semibold">Chưa có lịch sử</p>
+                                    <p className="text-slate-400 text-xs">Các tìm kiếm của bạn sẽ xuất hiện ở đây</p>
                                 </div>
-                                <Button onClick={handleGenerateClick} disabled={generationMutation.isPending}>
-                                    {generationMutation.isPending ? "Generating..." : <><Rocket className="h-4 w-4 mr-2" /><span>Generate</span></>}
-                                </Button>
                             </div>
-                        </CardContent>
-                    </Card>
-
-                    <Card>
-                        <CardHeader><CardTitle>Tìm kiếm từ khóa</CardTitle><CardDescription>Tìm kiếm trực tiếp các từ khóa trong cơ sở dữ liệu.</CardDescription></CardHeader>
-                        <CardContent>
-                            <div className="relative flex-1">
-                                <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                                <Input className="pl-9" placeholder="Nhập từ khóa để tìm kiếm..." value={filterTerm} onChange={(e) => setFilterTerm(e.target.value)} />
+                        ) : (
+                            <div className="flex flex-col gap-2">
+                                {history.map((item) => (
+                                    <button
+                                        key={item.id}
+                                        onClick={() => handleHistoryClick(item)}
+                                        className={`flex items-center gap-3 rounded-lg px-3 py-2 text-left transition-colors ${activeHistoryId === item.id
+                                            ? 'bg-primary/20 text-primary'
+                                            : 'text-slate-400 hover:bg-white/10 hover:text-white'
+                                            }`}
+                                    >
+                                        <History className="h-4 w-4 flex-shrink-0" />
+                                        <div className="flex-1 min-w-0">
+                                            <p className="text-sm font-medium truncate">{item.query}</p>
+                                            <p className="text-xs opacity-70">
+                                                {item.timestamp.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
+                                            </p>
+                                        </div>
+                                    </button>
+                                ))}
                             </div>
-                        </CardContent>
-                    </Card>
+                        )}
+                    </ScrollArea>
 
-                    <Card>
-                        <CardHeader className="pb-2">
-                            <CardTitle>Kết quả phân tích từ khóa</CardTitle>
-                            <CardDescription>
-                                {isSearching ? `Searching...` : 
-                                 debouncedFilterTerm ? `Found ${searchedData?.pages[0]?.totalItems || 0} results for "${debouncedFilterTerm}"` :
-                                 "Nhập từ khóa vào ô tìm kiếm để bắt đầu."}
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead className="w-[250px]">Từ khóa</TableHead>
-                                        <TableHead className="text-center">Lượng tìm kiếm</TableHead>
-                                        <TableHead className="text-center">Độ khó</TableHead>
-                                        <TableHead className="text-center">CPC ($)</TableHead>
-                                        <TableHead className="text-center">Mức cạnh tranh</TableHead>
-                                        <TableHead className="text-center">Mục đích</TableHead>
-                                        <TableHead className="text-center">Xu hướng</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {isSearching && searchedKeywords.length === 0 && debouncedFilterTerm ? (
-                                        <TableRow><TableCell colSpan={7} className="text-center py-8">Searching...</TableCell></TableRow>
-                                    ) : searchedKeywords.length > 0 ? (
-                                        searchedKeywords.map((item) => (
-                                            <TableRow key={item.id}>
-                                                <TableCell className="font-medium">{item.keyword1}</TableCell>
-                                                <TableCell className="text-center">{item.searchVolume.toLocaleString()}</TableCell>
-                                                <TableCell className="text-center">
-                                                    <div className="flex items-center justify-center">
-                                                        <div className="w-12 h-2 bg-gray-200 dark:bg-gray-700 rounded-full mr-2">
-                                                            <div className={`h-full rounded-full ${item.difficulty > 70 ? "bg-red-500" : item.difficulty > 50 ? "bg-yellow-500" : "bg-green-500"}`}
-                                                                style={{ width: `${item.difficulty}%` }} />
-                                                        </div>
-                                                        <span>{item.difficulty}</span>
-                                                    </div>
-                                                </TableCell>
-                                                <TableCell className="text-center">${item.cpc}</TableCell>
-                                                <TableCell className="text-center">
-                                                    <Badge variant={item.competition === "High" ? "destructive" : item.competition === "Medium" ? "secondary" : "outline"}>{item.competition}</Badge>
-                                                </TableCell>
-                                                <TableCell className="text-center"><Badge variant="outline">{item.intent}</Badge></TableCell>
-                                                <TableCell className="text-center">{item.trend === "True" ? <TrendingUp className="inline h-4 w-4 text-green-500" /> : <BarChart2 className="inline h-4 w-4 text-gray-500" />}</TableCell>
-                                            </TableRow>
-                                        ))
-                                    ) : (
-                                        <TableRow><TableCell colSpan={7} className="text-center py-8">{debouncedFilterTerm ? 'No results found.' : 'Enter a keyword to start searching.'}</TableCell></TableRow>
-                                    )}
-                                </TableBody>
-                            </Table>
-                            {hasNextSearchPage && (
-                                <div className="text-center mt-4">
-                                    <Button variant="outline" onClick={() => fetchNextSearchPage()} disabled={isSearching}>
-                                        {isSearching ? 'Loading...' : 'Load More'}
+                    {/* New Chat Button */}
+                    <Button
+                        onClick={handleNewChat}
+                        className="mt-4 w-full flex items-center justify-center gap-2"
+                        variant="default"
+                    >
+                        <Plus className="h-4 w-4" />
+                        <span>Tìm kiếm mới</span>
+                    </Button>
+                </div>
+            </aside>
+
+            {/* Main Content */}
+            <main className="flex-1 overflow-y-auto">
+                {viewState === 'empty' && (
+                    <div className="flex flex-1 flex-col justify-center items-center p-6 h-full">
+                        <div className="w-full max-w-2xl mx-auto flex flex-col items-center justify-center gap-8">
+                            <h1 className="text-white text-4xl font-bold text-center">
+                                Chào bạn, tôi có thể giúp gì cho bạn?
+                            </h1>
+
+                            <div className="w-full max-w-xl">
+                                <div className="relative flex items-center">
+                                    <Input
+                                        className="w-full h-16 pr-14 text-base bg-slate-900 border-slate-700 text-white placeholder:text-slate-500"
+                                        placeholder="Nhập từ khóa bạn muốn phân tích..."
+                                        value={searchQuery}
+                                        onChange={(e) => setSearchQuery(e.target.value)}
+                                        onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                                    />
+                                    <Button
+                                        size="icon"
+                                        className="absolute right-2 h-10 w-10 rounded-lg"
+                                        onClick={handleSearch}
+                                        disabled={!searchQuery.trim()}
+                                    >
+                                        <ArrowUp className="h-5 w-5" />
                                     </Button>
                                 </div>
-                            )}
-                        </CardContent>
-                    </Card>
-                </TabsContent>
+                            </div>
+                        </div>
+                    </div>
+                )}
 
-                <TabsContent value="tracking" className="space-y-4">
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Thêm từ khóa để theo dõi</CardTitle>
-                            <CardDescription>Nhập từ khóa bạn muốn theo dõi thứ hạng theo thời gian.</CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="flex items-center space-x-2">
-                                <div className="relative flex-1">
-                                    <Input placeholder="e.g., 'best seo tools'" value={newTrackingKeyword} onChange={(e) => setNewTrackingKeyword(e.target.value)} />
-                                </div>
-                                <Button onClick={handleAddTrackingClick} disabled={addTrackingMutation.isPending}>
-                                    {addTrackingMutation.isPending ? "Adding..." : <><PlusCircle className="h-4 w-4 mr-2" /><span>Thêm</span></>}
-                                </Button>
+                {viewState === 'loading' && (
+                    <div className="flex flex-1 flex-col items-center justify-center p-6 h-full gap-6">
+                        <Loader2 className="h-16 w-16 text-primary animate-spin" />
+                        <div className="text-center">
+                            <h2 className="text-2xl font-bold text-white mb-2">Đang phân tích từ khóa...</h2>
+                            <p className="text-slate-400">Quá trình này có thể mất 2-3 phút. Vui lòng chờ...</p>
+                        </div>
+                        <div className="w-full max-w-md space-y-2">
+                            <div className="h-2 bg-slate-800 rounded-full overflow-hidden">
+                                <div className="h-full bg-primary animate-pulse w-2/3"></div>
                             </div>
-                        </CardContent>
-                    </Card>
-                    <Card>
-                        <CardHeader>
-                            <div className="flex justify-between items-center">
-                                <div>
-                                    <CardTitle>Theo dõi thứ hạng từ khóa</CardTitle>
-                                    <CardDescription>Vị trí các từ khóa bạn đang theo dõi.</CardDescription>
-                                </div>
-                                <Button 
-                                    variant="outline" 
-                                    size="sm"
-                                    onClick={handleUpdateRankClick}
-                                    disabled={updateRankMutation.isPending}
-                                >
-                                    {updateRankMutation.isPending ? (
-                                        <RefreshCw className="h-4 w-4 animate-spin" />
-                                    ) : (
-                                        <RefreshCw className="h-4 w-4" />
-                                    )}
-                                    <span className="ml-2">Cập nhật</span>
-                                </Button>
-                            </div>
-                        </CardHeader>
-                        <CardContent>
-                            {isLoadingRankings ? <div className="text-center p-12">Loading...</div> :
-                                <Table>
-                                    <TableHeader>
-                                        <TableRow>
-                                            <TableHead>Từ khóa</TableHead>
-                                            <TableHead className="text-center">Thứ hạng hiện tại</TableHead>
-                                        </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                        {rankTrackings.map((item) => (
-                                            <TableRow key={item.id}>
-                                                <TableCell className="font-medium">{item.keyword}</TableCell>
-                                                <TableCell className="text-center"><Badge>{item.rank}</Badge></TableCell>
-                                            </TableRow>
-                                        ))}
-                                    </TableBody>
-                                </Table>
-                            }
-                            {hasNextRankPage && <div className="text-center mt-4"><Button variant="outline" onClick={() => fetchNextRankPage()} disabled={isFetchingRankings}>Load More</Button></div>}
-                        </CardContent>
-                    </Card>
-                </TabsContent>
-            </Tabs>
+                            <p className="text-xs text-slate-500 text-center">Đang thu thập dữ liệu...</p>
+                        </div>
+                    </div>
+                )}
+
+                {viewState === 'results' && currentResult && (
+                    <div className="p-6 md:p-8 lg:p-12">
+                        <div className="mx-auto max-w-4xl flex flex-col gap-6">
+                            {/* Page Heading */}
+                            <h1 className="text-4xl font-black text-white">{currentResult.query}</h1>
+
+                            {/* Card 1: User Question */}
+                            <Card className="border-slate-200/10 bg-white/5">
+                                <CardHeader>
+                                    <CardTitle className="text-primary">Câu hỏi của bạn</CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    <p className="text-slate-300">
+                                        Phân tích từ khóa: <span className="font-semibold text-white">{currentResult.query}</span>
+                                    </p>
+                                </CardContent>
+                            </Card>
+
+                            {/* Card 2: AI Response */}
+                            <Card className="border-slate-200/10 bg-white/5">
+                                <CardHeader>
+                                    <CardTitle className="text-primary">Phân tích từ AI</CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    <p className="text-slate-300 leading-relaxed">{currentResult.aiResponse}</p>
+                                </CardContent>
+                            </Card>
+
+                            {/* Card 3: Primary Data Table */}
+                            <Card className="border-slate-200/10 bg-white/5">
+                                <CardHeader>
+                                    <CardTitle className="text-primary">Từ khóa chính</CardTitle>
+                                    <CardDescription className="text-slate-400">
+                                        Các từ khóa có liên quan trực tiếp với mục đích thương mại
+                                    </CardDescription>
+                                </CardHeader>
+                                <CardContent>
+                                    <ScrollArea className="h-[400px] w-full rounded-md border border-slate-700 p-4">
+                                        <div className="space-y-4">
+                                            {currentResult.primaryData.map((item, idx) => (
+                                                <div key={idx} className="border-b border-slate-700 pb-4 last:border-0">
+                                                    <div className="flex items-start justify-between mb-2">
+                                                        <h4 className="font-semibold text-white">{item.keyword}</h4>
+                                                        {item.trend && <Badge variant="outline" className="text-green-500">Trending</Badge>}
+                                                    </div>
+                                                    <div className="grid grid-cols-2 gap-2 text-sm">
+                                                        <div>
+                                                            <span className="text-slate-400">Search Volume:</span>
+                                                            <span className="ml-2 text-white font-medium">{item.searchVolume.toLocaleString()}</span>
+                                                        </div>
+                                                        <div>
+                                                            <span className="text-slate-400">Difficulty:</span>
+                                                            <span className="ml-2 text-white font-medium">{item.difficulty}</span>
+                                                        </div>
+                                                        <div>
+                                                            <span className="text-slate-400">CPC:</span>
+                                                            <span className="ml-2 text-white font-medium">${item.cpc}</span>
+                                                        </div>
+                                                        <div>
+                                                            <span className="text-slate-400">Competition:</span>
+                                                            <Badge variant={item.competition === "High" ? "destructive" : item.competition === "Medium" ? "secondary" : "outline"} className="ml-2">
+                                                                {item.competition}
+                                                            </Badge>
+                                                        </div>
+                                                        <div className="col-span-2">
+                                                            <span className="text-slate-400">Intent:</span>
+                                                            <Badge variant="outline" className="ml-2">{item.intent}</Badge>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </ScrollArea>
+                                </CardContent>
+                            </Card>
+
+                            {/* Card 4: Secondary Data Table */}
+                            <Card className="border-slate-200/10 bg-white/5">
+                                <CardHeader>
+                                    <CardTitle className="text-primary">Từ khóa bổ sung</CardTitle>
+                                    <CardDescription className="text-slate-400">
+                                        Các từ khóa liên quan với mục đích thông tin và nghiên cứu
+                                    </CardDescription>
+                                </CardHeader>
+                                <CardContent>
+                                    <ScrollArea className="h-[400px] w-full rounded-md border border-slate-700 p-4">
+                                        <div className="space-y-4">
+                                            {currentResult.secondaryData.map((item, idx) => (
+                                                <div key={idx} className="border-b border-slate-700 pb-4 last:border-0">
+                                                    <div className="flex items-start justify-between mb-2">
+                                                        <h4 className="font-semibold text-white">{item.keyword}</h4>
+                                                        {item.trend && <Badge variant="outline" className="text-green-500">Trending</Badge>}
+                                                    </div>
+                                                    <div className="grid grid-cols-2 gap-2 text-sm">
+                                                        <div>
+                                                            <span className="text-slate-400">Search Volume:</span>
+                                                            <span className="ml-2 text-white font-medium">{item.searchVolume.toLocaleString()}</span>
+                                                        </div>
+                                                        <div>
+                                                            <span className="text-slate-400">Difficulty:</span>
+                                                            <span className="ml-2 text-white font-medium">{item.difficulty}</span>
+                                                        </div>
+                                                        <div>
+                                                            <span className="text-slate-400">CPC:</span>
+                                                            <span className="ml-2 text-white font-medium">${item.cpc}</span>
+                                                        </div>
+                                                        <div>
+                                                            <span className="text-slate-400">Competition:</span>
+                                                            <Badge variant={item.competition === "High" ? "destructive" : item.competition === "Medium" ? "secondary" : "outline"} className="ml-2">
+                                                                {item.competition}
+                                                            </Badge>
+                                                        </div>
+                                                        <div className="col-span-2">
+                                                            <span className="text-slate-400">Intent:</span>
+                                                            <Badge variant="outline" className="ml-2">{item.intent}</Badge>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </ScrollArea>
+                                </CardContent>
+                            </Card>
+                        </div>
+                    </div>
+                )}
+            </main>
         </div>
     );
 }

@@ -11,7 +11,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 // SỬA Ở ĐÂY 1: Import instance axios trung tâm
-import api from '@/axiosInstance'; 
+import api from '@/axiosInstance';
 
 // Định nghĩa kiểu dữ liệu UserProfile
 interface UserProfile {
@@ -34,32 +34,34 @@ const Auth: React.FC<{ onLoginSuccess: (user: UserProfile) => void }> = ({ onLog
       return;
     }
 
+    console.log("Credential nhận được:", credentialResponse.credential);
+
     try {
       // Bây giờ 'api' đã là instance có sẵn interceptor để tự động thêm token
       const response = await api.post(
-        '/Authens/login-member',
+        '/authen/login-member',
         JSON.stringify(credentialResponse.credential),
         { headers: { 'Content-Type': 'application/json' } }
       );
-      
+
       if (response.data && response.data.success && response.data.accessToken) {
-        
+
         const { accessToken, refreshToken } = response.data;
         const decodedUser: UserProfile = jwtDecode(accessToken);
-        
+
         const userToStore = {
-            ...decodedUser,
-            fullName: decodedUser.fullname 
+          ...decodedUser,
+          fullName: decodedUser.fullname
         };
 
         // Mã hóa và lưu vào localStorage
         localStorage.setItem('user', btoa(encodeURIComponent(JSON.stringify(userToStore))));
 
-    // SỬA LUÔN DÒNG NÀY CHO AN TOÀN:
-    // localStorage.setItem('tokens', btoa(JSON.stringify({ accessToken, refreshToken })));
-         localStorage.setItem('tokens', btoa(encodeURIComponent(JSON.stringify({ accessToken, refreshToken }))));
+        // SỬA LUÔN DÒNG NÀY CHO AN TOÀN:
+        // localStorage.setItem('tokens', btoa(JSON.stringify({ accessToken, refreshToken })));
+        localStorage.setItem('tokens', btoa(encodeURIComponent(JSON.stringify({ accessToken, refreshToken }))));
 
-    onLoginSuccess(userToStore);
+        onLoginSuccess(userToStore);
 
       } else {
         console.error("Lỗi: Dữ liệu trả về từ API không đúng định dạng.", response.data);
@@ -78,7 +80,7 @@ const Auth: React.FC<{ onLoginSuccess: (user: UserProfile) => void }> = ({ onLog
   };
 
   return (
-    <div 
+    <div
       className="flex min-h-screen w-full items-center justify-center bg-cover bg-center p-4"
       style={{
         backgroundImage: `url('https://firebasestorage.googleapis.com/v0/b/imageuploadv3.appspot.com/o/TestFile%2F3d-network-communications-background-with-flowing-floating-particles.jpg?alt=media&token=dd55b96f-4e4f-454b-869a-ef54b22241c5')`,
