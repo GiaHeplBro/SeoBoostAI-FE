@@ -1,14 +1,15 @@
 // TypeScript interfaces for Content Optimization feature
 
 // Request payload for creating content optimization
+// userId is obtained from JWT token on backend
 export interface ContentOptimizationPayload {
-    UserId: number;
-    Keyword: string;
-    Content: string;
-    ContentLength: string;
-    OptimizationLevel: number;
-    ReadabilityLevel: string;
-    IncludeCitation: boolean;
+    keyword: string;
+    content: string;
+    contentLength: string;
+    optimizationLevel: number;
+    readabilityLevel: string;
+    includeCitation: boolean;
+    featureId: number; // Feature ID for Content Optimization
 }
 
 // Score data with justification
@@ -43,13 +44,12 @@ export interface ContentOptimizationResponse {
     createdAt: string;
 }
 
-// Search/history parameters
+// Search/history parameters - userId from token
 export interface SearchHistoryParams {
-    Keyword?: string;
-    CreatedAt?: string;
-    UserId: number;
-    CurrentPage: number;
-    PageSize: number;
+    keyword?: string;
+    createdAt?: string;
+    currentPage: number;
+    pageSize: number;
 }
 
 // Search/history response
@@ -63,11 +63,11 @@ export interface SearchHistoryResponse {
 
 // Parsed user request (from userRequest JSON string)
 export interface ParsedUserRequest {
-    UserId: number;
     Keyword: string;
     Content: string;
     ContentLength: string;
     OptimizationLevel: number;
     ReadabilityLevel: string;
     IncludeCitation: boolean;
+    FeatureId: number;
 }

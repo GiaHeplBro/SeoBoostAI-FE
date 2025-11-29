@@ -1,7 +1,6 @@
-import { useState, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useToast } from "@/hooks/use-toast";
-import { jwtDecode } from 'jwt-decode';
 
 // Import icons and UI components
 import { Sparkles, Search, Wand2, History, ChevronDown } from "lucide-react";
@@ -49,34 +48,35 @@ export default function ContentOptimization() {
   // Current optimization result
   const [currentResult, setCurrentResult] = useState<ContentOptimizationResponse | null>(null);
 
+  // Search and pagination states
+  const [searchKeyword, setSearchKeyword] = useState("");
+  const [debouncedKeyword, setDebouncedKeyword] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // Get userId from JWT token
-  const userId = useMemo(() => {
-    try {
-      const encodedTokens = localStorage.getItem('tokens');
-      if (!encodedTokens) return null;
+  // Debounce search keyword
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedKeyword(searchKeyword);
+      setCurrentPage(1); // Reset to page 1 when searching
+    }, 500);
 
-      const decodedString = decodeURIComponent(atob(encodedTokens));
-      const { accessToken } = JSON.parse(decodedString);
-      const decodedToken: { user_ID: string } = jwtDecode(accessToken);
-      return decodedToken.user_ID;
-    } catch (e) {
-      console.error("Lỗi giải mã token:", e);
-      return null;
-    }
-  }, []);
+    return () => clearTimeout(timer);
+  }, [searchKeyword]);
 
-  // Fetch optimization history
+
+
+  // Fetch optimization history - userId obtained from JWT token in backend
   const { data: historyData, isLoading: isLoadingHistory } = useQuery({
-    queryKey: ['optimizationHistory', userId],
+    queryKey: ['optimizationHistory', debouncedKeyword, currentPage],
     queryFn: () => searchOptimizationHistory({
-      UserId: parseInt(userId || '0', 10),
-      CurrentPage: 1,
-      PageSize: DEFAULT_PAGE_SIZE
+      keyword: debouncedKeyword || undefined,
+      currentPage: currentPage,
+      pageSize: DEFAULT_PAGE_SIZE
     }),
-    enabled: !!userId,
+    enabled: true,
   });
 
   // Create optimization mutation
@@ -88,7 +88,7 @@ export default function ContentOptimization() {
         description: "Nội dung của bạn đã được tối ưu hóa."
       });
       setCurrentResult(data);
-      queryClient.invalidateQueries({ queryKey: ['optimizationHistory', userId] });
+      queryClient.invalidateQueries({ queryKey: ['optimizationHistory'] });
     },
     onError: (error: any) => {
       toast({
@@ -101,38 +101,28 @@ export default function ContentOptimization() {
 
   // Handle optimization request
   const handleOptimize = () => {
-    // Debug logging
-    console.log('Validation check:', {
-      content: !!content,
-      targetKeyword: !!targetKeyword,
-      userId: !!userId,
-      contentValue: content?.substring(0, 50),
-      keywordValue: targetKeyword,
-      userIdValue: userId
-    });
 
-    if (!content || !targetKeyword || !userId) {
+    if (!content || !targetKeyword) {
       const missing = [];
       if (!content) missing.push('nội dung');
       if (!targetKeyword) missing.push('từ khóa');
-      if (!userId) missing.push('thông tin đăng nhập');
 
       toast({
         title: "Lỗi",
-        description: `Thiếu: ${missing.join(', ')}. ${!userId ? 'Vui lòng đăng nhập lại.' : ''}`,
+        description: `Thiếu: ${missing.join(', ')}.`,
         variant: "destructive"
       });
       return;
     }
 
     const payload: ContentOptimizationPayload = {
-      UserId: parseInt(userId, 10),
-      Keyword: targetKeyword,
-      Content: content,
-      OptimizationLevel: optimizationLevel[0],
-      ReadabilityLevel: READABILITY_LEVELS[readabilityPreference[0]],
-      IncludeCitation: includeCitation,
-      ContentLength: CONTENT_LENGTH_OPTIONS[contentLengthPreference[0]],
+      keyword: targetKeyword,
+      content: content,
+      optimizationLevel: optimizationLevel[0],
+      readabilityLevel: READABILITY_LEVELS[readabilityPreference[0]],
+      includeCitation: includeCitation,
+      contentLength: CONTENT_LENGTH_OPTIONS[contentLengthPreference[0]],
+      featureId: 1 // Feature ID for Content Optimization
     };
 
     mutation.mutate(payload);
@@ -145,8 +135,11 @@ export default function ContentOptimization() {
     // Parse and populate form if possible
     const parsedRequest = parseUserRequest(item.userRequest);
     if (parsedRequest) {
-      setTargetKeyword(parsedRequest.Keyword);
-      setContent(parsedRequest.Content);
+      // Support both PascalCase and camelCase from backend
+      const keyword = (parsedRequest as any).Keyword || (parsedRequest as any).keyword || '';
+      const contentText = (parsedRequest as any).Content || (parsedRequest as any).content || '';
+      setTargetKeyword(keyword);
+      setContent(contentText);
     }
 
     // Scroll to results
@@ -194,7 +187,7 @@ export default function ContentOptimization() {
               <div className="space-y-2">
                 <div className="flex justify-between">
                   <Label htmlFor="content">Nội dung của bạn</Label>
-                  <span className="text-xs text-muted-foreground">{content.length} ký tự</span>
+                  <span className="text-xs text-muted-foreground">{content?.length || 0} ký tự</span>
                 </div>
                 <Textarea
                   id="content"
@@ -336,9 +329,21 @@ export default function ContentOptimization() {
               <CardTitle className="flex items-center">
                 <History className="mr-2 h-5 w-5" /> Lịch sử tối ưu
               </CardTitle>
+              {/* Search input */}
+              <div className="mt-2">
+                <div className="relative">
+                  <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Tìm kiếm theo từ khóa..."
+                    value={searchKeyword}
+                    onChange={(e) => setSearchKeyword(e.target.value)}
+                    className="pl-9"
+                  />
+                </div>
+              </div>
             </CardHeader>
             <CardContent>
-              <ScrollArea className="h-[600px]">
+              <ScrollArea className="h-[500px]">
                 {isLoadingHistory ? (
                   <p className="text-sm text-muted-foreground text-center py-4">Đang tải lịch sử...</p>
                 ) : historyData && historyData.items.length > 0 ? (
@@ -349,7 +354,9 @@ export default function ContentOptimization() {
                         <AccordionItem value={`item-${item.contentOptimizationID}`} key={item.contentOptimizationID}>
                           <AccordionTrigger>
                             <div className="text-left">
-                              <p className="font-semibold truncate">{parsedRequest?.Keyword || 'N/A'}</p>
+                              <p className="font-semibold truncate">
+                                {(parsedRequest as any)?.Keyword || (parsedRequest as any)?.keyword || 'N/A'}
+                              </p>
                               <p className="text-xs text-muted-foreground">
                                 {new Date(item.createdAt).toLocaleString('vi-VN')}
                               </p>
@@ -395,9 +402,38 @@ export default function ContentOptimization() {
                     })}
                   </Accordion>
                 ) : (
-                  <p className="text-sm text-muted-foreground text-center py-4">Không có lịch sử.</p>
+                  <p className="text-sm text-muted-foreground text-center py-4">
+                    {searchKeyword ? 'Không tìm thấy kết quả.' : 'Chưa có lịch sử.'}
+                  </p>
                 )}
               </ScrollArea>
+
+              {/* Pagination Controls */}
+              {historyData && historyData.totalPages > 1 && (
+                <div className="flex items-center justify-between mt-4 pt-4 border-t">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                    disabled={currentPage === 1}
+                  >
+                    Trước
+                  </Button>
+
+                  <span className="text-sm text-muted-foreground">
+                    Trang {currentPage} / {historyData.totalPages}
+                  </span>
+
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(p => Math.min(historyData.totalPages, p + 1))}
+                    disabled={currentPage === historyData.totalPages}
+                  >
+                    Sau
+                  </Button>
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>

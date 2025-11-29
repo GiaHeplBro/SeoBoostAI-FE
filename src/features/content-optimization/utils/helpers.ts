@@ -37,12 +37,35 @@ export const formatScoreDelta = (delta: number): string => {
 
 /**
  * Parse userRequest JSON string
+ * Handles escaped unicode characters for Vietnamese text
+ * Also handles cases where backend returns object instead of string
  */
-export const parseUserRequest = (jsonString: string): ParsedUserRequest | null => {
-    try {
-        return JSON.parse(jsonString);
-    } catch (e) {
-        console.error('Failed to parse userRequest:', e);
+export const parseUserRequest = (jsonString: string | ParsedUserRequest): ParsedUserRequest | null => {
+    if (!jsonString) return null;
+
+    // If already an object, return it directly
+    if (typeof jsonString === 'object') {
+        return jsonString as ParsedUserRequest;
+    }
+
+    // If not a string, return null
+    if (typeof jsonString !== 'string') {
+        console.error('userRequest is not a string or object:', typeof jsonString);
         return null;
+    }
+
+    try {
+        // Try direct parse first
+        return JSON.parse(jsonString);
+    } catch (e1) {
+        try {
+            // Try decoding URI components for escaped unicode
+            const decodedString = decodeURIComponent(jsonString);
+            return JSON.parse(decodedString);
+        } catch (e2) {
+            console.error('Failed to parse userRequest after decode attempt:', e2);
+            console.error('Original string (first 100 chars):', jsonString.substring(0, 100));
+            return null;
+        }
     }
 };

@@ -10,7 +10,8 @@ import type {
 
 /**
  * Create new content optimization
- * POST /content-optimizations
+ * POST /api/content-optimizations
+ * userId is obtained from JWT token in backend
  */
 export const createContentOptimization = async (
     payload: ContentOptimizationPayload
@@ -21,11 +22,19 @@ export const createContentOptimization = async (
 
 /**
  * Search optimization history with pagination
- * GET /content-optimizations/Search
+ * GET /api/content-optimizations/Search
+ * userId is obtained from JWT token in backend
  */
 export const searchOptimizationHistory = async (
     params: SearchHistoryParams
 ): Promise<SearchHistoryResponse> => {
-    const { data } = await api.get('/content-optimizations/Search', { params });
+    const { data } = await api.get('/content-optimizations/Search', {
+        params: {
+            Keyword: params.keyword,
+            CreatedAt: params.createdAt,
+            CurrentPage: params.currentPage,
+            PageSize: params.pageSize
+        }
+    });
     return data;
 };
