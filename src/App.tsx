@@ -18,8 +18,9 @@ import LandingPage from '@/pages/LandingPage';
 import Auth from '@/components/loginGoogle/Auth';
 import Sidebar from "@/components/layout/sidebar";
 import Header from "@/components/layout/header";
-import AdminPage from '@/pages/AdminPage';
-// Bạn có thể xóa dòng UsersPage nếu không dùng đến trang này nữa
+import FeatureComparisonPage from '@/pages/FeatureComparisonPage';
+import AdminPageNew from '@/pages/AdminPageNew';
+import StaffPageNew from '@/pages/StaffPageNew';
 import UsersPage from '@/pages/UsersPage';
 import TransactionHistoryPage from '@/pages/TransactionHistoryPage';
 
@@ -28,6 +29,7 @@ interface UserProfile {
   fullName?: string;
   email?: string;
   picture?: string;
+  role?: string; // 'Member', 'Staff', 'Admin'
 }
 
 // --- Component Layout chính của ứng dụng cho người dùng đã đăng nhập ---
@@ -54,6 +56,7 @@ function MainAppLayout({ onLogout, user }: { onLogout: () => void; user: UserPro
             <Route path="/users" component={UsersPage} />
             <Route path="/profile" component={ProfilePage} />
             <Route path="/pricing" component={PricingPage} />
+            <Route path="/feature-comparison" component={FeatureComparisonPage} />
             <Route path="/transaction-history" component={TransactionHistoryPage} />
 
             {/* Nếu người dùng đã đăng nhập mà vào trang gốc, tự động chuyển đến dashboard */}
@@ -90,7 +93,14 @@ function App() {
     // Clear old cache and refetch for new user
     queryClient.invalidateQueries();
     // Logic lưu vào localStorage đã được xử lý trong Auth.tsx
-    navigate('/dashboard');
+    // Redirect dựa trên role
+    if (loggedInUser.role === 'Admin') {
+      navigate('/admin');
+    } else if (loggedInUser.role === 'Staff') {
+      navigate('/staff');
+    } else {
+      navigate('/dashboard');
+    }
   };
 
   const handleLogout = () => {
@@ -105,27 +115,51 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <Switch>
-        {/* Route /admin sẽ luôn được kiểm tra trước và luôn truy cập được */}
-        <Route path="/admin" component={AdminPage} />
-
-        {/* Đối với tất cả các route còn lại, ta mới kiểm tra trạng thái đăng nhập */}
-        <Route>
-          {user ? (
-            // NẾU ĐÃ ĐĂNG NHẬP: Hiển thị giao diện ứng dụng chính
-            <MainAppLayout onLogout={handleLogout} user={user} />
+        {/* Admin Route - Chỉ Admin mới được vào */}
+        <Route path="/admin">
+          {user && user.role === 'Admin' ? (
+            <AdminPageNew onLogout={handleLogout} />
+          ) : user ? (
+            <Redirect to="/dashboard" />
           ) : (
-            // NẾU CHƯA ĐĂNG NHẬP: Hiển thị các trang public
-            <Switch>
-              <Route path="/" component={LandingPage} />
-              <Route path="/login">
-                <Auth onLoginSuccess={handleLoginSuccess} />
-              </Route>
-              <Route path="/pricing" component={PricingPage} />
-              {/* Nếu người dùng chưa đăng nhập mà cố vào một trang khác, đưa về trang chủ */}
-              <Route>
-                <Redirect to="/" />
-              </Route>
-            </Switch>
+            <Redirect to="/login" />
+          )}
+        </Route>
+
+        {/* Staff Route - Chỉ Staff mới được vào */}
+        <Route path="/staff">
+          {user && user.role === 'Staff' ? (
+            <StaffPageNew onLogout={handleLogout} />
+          ) : user ? (
+            <Redirect to="/dashboard" />
+          ) : (
+            <Redirect to="/login" />
+          )}
+        </Route>
+
+        {/* Public routes */}
+        <Route path="/" component={LandingPage} />
+        <Route path="/login">
+          {user ? (
+            user.role === 'Admin' ? <Redirect to="/admin" /> :
+              user.role === 'Staff' ? <Redirect to="/staff" /> :
+                <Redirect to="/dashboard" />
+          ) : (
+            <Auth onLoginSuccess={handleLoginSuccess} />
+          )}
+        </Route>
+        <Route path="/pricing" component={PricingPage} />
+
+        {/* Member routes - Cần đăng nhập */}
+        <Route>
+          {user && user.role === 'Member' ? (
+            <MainAppLayout onLogout={handleLogout} user={user} />
+          ) : user ? (
+            // Nếu là Admin/Staff mà vào member routes -> redirect về trang của họ
+            user.role === 'Admin' ? <Redirect to="/admin" /> : <Redirect to="/staff" />
+          ) : (
+            // Chưa đăng nhập -> về login
+            <Redirect to="/login" />
           )}
         </Route>
       </Switch>

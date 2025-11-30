@@ -11,7 +11,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-// SỬA Ở ĐÂY 1: Import instance axios trung tâm
+// Đảm bảo bạn đã import đúng instance axios của bạn
 import api from '@/axiosInstance';
 
 interface UserProfile {
@@ -25,15 +25,13 @@ interface UserProfile {
 
 const Auth: React.FC<{ onLoginSuccess: (user: UserProfile) => void }> = ({ onLoginSuccess }) => {
   const [, setLocation] = useLocation();
-  
+
   // State quan trọng: Kiểm tra xem đang ở chế độ Member hay Admin/Staff
   const [isAdminMode, setIsAdminMode] = useState(false);
 
   // --- 1. LOGIC CHO MEMBER (GIỮ NGUYÊN) ---
   const handleMemberLoginSuccess = async (credentialResponse: CredentialResponse) => {
     if (!credentialResponse.credential) return;
-
-    console.log("Credential nhận được:", credentialResponse.credential);
 
     try {
       const response = await api.post(
@@ -43,55 +41,66 @@ const Auth: React.FC<{ onLoginSuccess: (user: UserProfile) => void }> = ({ onLog
       );
 
       if (response.data && response.data.success && response.data.accessToken) {
+        // Member login thành công -> gọi callback để App.tsx xử lý điều hướng
+        saveUserAndNotify(response.data, 'Member');
+      } else {
+        alert("Lỗi đăng nhập Member: " + (response.data?.message || "Unknown error"));
+      }
+    } catch (error: any) {
+      console.error('Member Login failed:', error);
+      alert(error.response?.data?.message || 'Đăng nhập Member thất bại.');
+    }
+  };
 
-        const { accessToken, refreshToken } = response.data;
-        const decodedUser: UserProfile = jwtDecode(accessToken);
+  // --- 2. LOGIC CHO ADMIN VÀ STAFF (MỚI) ---
+  const handleAdminStaffLoginSuccess = async (credentialResponse: CredentialResponse) => {
+    if (!credentialResponse.credential) return;
+    const credential = credentialResponse.credential;
+    const headers = { headers: { 'Content-Type': 'application/json' } };
 
-        const userToStore = {
-          ...decodedUser,
-          fullName: decodedUser.fullname
-        };
-
-        // Mã hóa và lưu vào localStorage
-        localStorage.setItem('user', btoa(encodeURIComponent(JSON.stringify(userToStore))));
-
-        // SỬA LUÔN DÒNG NÀY CHO AN TOÀN:
-        // localStorage.setItem('tokens', btoa(JSON.stringify({ accessToken, refreshToken })));
-        localStorage.setItem('tokens', btoa(encodeURIComponent(JSON.stringify({ accessToken, refreshToken }))));
-
-        onLoginSuccess(userToStore);
-
-        // BƯỚC 2: Nếu không phải Admin, thử cổng STAFF
-        try {
-            const staffRes = await api.post('/Authens/login-staff', JSON.stringify(credential), headers);
-            if (staffRes.data && staffRes.data.success) {
-                saveUserAndNotify(staffRes.data, 'Staff');
-                return;
-            }
-        } catch (error) {
-            // Cả 2 đều lỗi
-            alert("Tài khoản này không có quyền truy cập Admin hoặc Staff.");
+    try {
+      // BƯỚC 1: Thử đăng nhập vào cổng ADMIN
+      try {
+        const adminRes = await api.post('/authen/login-admin', JSON.stringify(credential), headers);
+        if (adminRes.data && adminRes.data.success) {
+          saveUserAndNotify(adminRes.data, 'Admin');
+          return;
         }
+      } catch (error) {
+        // Lờ đi lỗi này để thử tiếp Staff
+      }
+
+      // BƯỚC 2: Nếu không phải Admin, thử cổng STAFF
+      try {
+        const staffRes = await api.post('/authen/login-staff', JSON.stringify(credential), headers);
+        if (staffRes.data && staffRes.data.success) {
+          saveUserAndNotify(staffRes.data, 'Staff');
+          return;
+        }
+      } catch (error) {
+        // Cả 2 đều lỗi
+        alert("Tài khoản này không có quyền truy cập Admin hoặc Staff.");
+      }
 
     } catch (error) {
-        console.error('System Error:', error);
-        alert('Lỗi hệ thống.');
+      console.error('System Error:', error);
+      alert('Lỗi hệ thống.');
     }
   };
 
   // Hàm chung để lưu token và thông báo cho App.tsx
   const saveUserAndNotify = (data: any, role: string) => {
-      const { accessToken, refreshToken } = data;
-      const decodedUser: UserProfile = jwtDecode(accessToken);
-      const userToStore = { ...decodedUser, role: role, fullName: decodedUser.fullname };
+    const { accessToken, refreshToken } = data;
+    const decodedUser: UserProfile = jwtDecode(accessToken);
+    const userToStore = { ...decodedUser, role: role, fullName: decodedUser.fullname };
 
-      // Lưu vào localStorage
-      localStorage.setItem('user', btoa(encodeURIComponent(JSON.stringify(userToStore))));
-      localStorage.setItem('tokens', btoa(encodeURIComponent(JSON.stringify({ accessToken, refreshToken }))));
+    // Lưu vào localStorage
+    localStorage.setItem('user', btoa(encodeURIComponent(JSON.stringify(userToStore))));
+    localStorage.setItem('tokens', btoa(encodeURIComponent(JSON.stringify({ accessToken, refreshToken }))));
 
-      // Gọi hàm onLoginSuccess được truyền từ App.tsx
-      // App.tsx sẽ lo việc điều hướng (navigate) dựa trên role
-      onLoginSuccess(userToStore);
+    // Gọi hàm onLoginSuccess được truyền từ App.tsx
+    // App.tsx sẽ lo việc điều hướng (navigate) dựa trên role
+    onLoginSuccess(userToStore);
   };
 
   return (
@@ -103,16 +112,16 @@ const Auth: React.FC<{ onLoginSuccess: (user: UserProfile) => void }> = ({ onLog
     >
       <div className="absolute inset-0 bg-black/40" />
       <Card className="relative z-10 w-full max-w-md bg-black/30 backdrop-blur-lg border-white/20 text-white animate-in fade-in-50 slide-in-from-bottom-10 duration-500 shadow-2xl">
-        
+
         <CardHeader className="text-center">
           <div className="flex items-center justify-center gap-2 mb-4">
             {/* Đổi Icon tùy theo chế độ */}
             {isAdminMode ? (
-                <Shield className="h-8 w-8 text-red-400 drop-shadow-[0_0_8px_rgba(248,113,113,0.8)]" />
+              <Shield className="h-8 w-8 text-red-400 drop-shadow-[0_0_8px_rgba(248,113,113,0.8)]" />
             ) : (
-                <Sparkles className="h-8 w-8 text-purple-400 drop-shadow-[0_0_8px_rgba(192,132,252,0.8)]" />
+              <Sparkles className="h-8 w-8 text-purple-400 drop-shadow-[0_0_8px_rgba(192,132,252,0.8)]" />
             )}
-            
+
             <CardTitle className="text-3xl font-bold tracking-wider drop-shadow-md">
               {isAdminMode ? "Admin Portal" : "SEO-Boost AI"}
             </CardTitle>
@@ -138,37 +147,36 @@ const Auth: React.FC<{ onLoginSuccess: (user: UserProfile) => void }> = ({ onLog
         </CardContent>
 
         <CardFooter className="flex flex-col items-center justify-center gap-5 pt-2 pb-8">
-            <div className="relative w-full flex justify-center">
-                <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-white/10"></div></div>
-                <div className="relative flex justify-center"><span className="bg-transparent px-2 text-xs text-gray-400 uppercase">Or</span></div>
-            </div>
-            
-            {/* Nút bấm chuyển đổi chế độ - Đã sửa onClick */}
-            <button 
-                type="button"
-                onClick={() => setIsAdminMode(!isAdminMode)}
-                className={`relative z-10 flex items-center gap-2 px-6 py-2.5 rounded-full border text-white transition-all duration-300 cursor-pointer group ${
-                    isAdminMode 
-                    ? "bg-white/10 border-white/20 hover:bg-white/20" 
-                    : "bg-white/10 border-white/20 hover:bg-purple-600/80 hover:border-purple-400 hover:shadow-[0_0_15px_rgba(168,85,247,0.5)]"
-                }`}
-            >
-                {isAdminMode ? (
-                    <>
-                        <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
-                        <span className="text-sm font-medium">Back to Member Login</span>
-                    </>
-                ) : (
-                    <>
-                        <Shield className="w-4 h-4 group-hover:text-purple-200 transition-colors" />
-                        <span className="text-sm font-medium">Login as Admin / Staff</span>
-                    </>
-                )}
-            </button>
-            
-            <p className="text-center text-[10px] text-gray-400 opacity-70">
-                By continuing, you agree to our Terms & Policy.
-            </p>
+          <div className="relative w-full flex justify-center">
+            <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-white/10"></div></div>
+            <div className="relative flex justify-center"><span className="bg-transparent px-2 text-xs text-gray-400 uppercase">Or</span></div>
+          </div>
+
+          {/* Nút bấm chuyển đổi chế độ - Đã sửa onClick */}
+          <button
+            type="button"
+            onClick={() => setIsAdminMode(!isAdminMode)}
+            className={`relative z-10 flex items-center gap-2 px-6 py-2.5 rounded-full border text-white transition-all duration-300 cursor-pointer group ${isAdminMode
+              ? "bg-white/10 border-white/20 hover:bg-white/20"
+              : "bg-white/10 border-white/20 hover:bg-purple-600/80 hover:border-purple-400 hover:shadow-[0_0_15px_rgba(168,85,247,0.5)]"
+              }`}
+          >
+            {isAdminMode ? (
+              <>
+                <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
+                <span className="text-sm font-medium">Back to Member Login</span>
+              </>
+            ) : (
+              <>
+                <Shield className="w-4 h-4 group-hover:text-purple-200 transition-colors" />
+                <span className="text-sm font-medium">Login as Admin / Staff</span>
+              </>
+            )}
+          </button>
+
+          <p className="text-center text-[10px] text-gray-400 opacity-70">
+            By continuing, you agree to our Terms & Policy.
+          </p>
         </CardFooter>
       </Card>
     </div>
