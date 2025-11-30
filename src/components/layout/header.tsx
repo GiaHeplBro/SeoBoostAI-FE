@@ -58,11 +58,11 @@ export default function Header({ onLogout, user, setSidebarOpen }: HeaderProps) 
   const [notificationCount] = useState(2);
 
   return (
-    <header className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 shadow-sm">
+    <header className="border-b shadow-sm" style={{ backgroundColor: '#1F1F1F', borderColor: '#333333' }}>
       <div className="flex justify-between items-center px-4 py-3">
         {/* SỬA Ở ĐÂY 2: Giao diện Header cho di động */}
         <div className="flex items-center md:hidden">
-          <Button variant="ghost" size="icon" onClick={() => setSidebarOpen(true)} className="mr-2">
+          <Button variant="ghost" size="icon" onClick={() => setSidebarOpen(true)} className="mr-2 text-white hover:bg-gray-700">
             <Menu className="h-6 w-6" />
           </Button>
           <Link href="/dashboard">
@@ -74,16 +74,16 @@ export default function Header({ onLogout, user, setSidebarOpen }: HeaderProps) 
 
         {/* Giao diện Header cho desktop */}
         <div className="md:flex md:flex-col md:gap-1 hidden">
-          <h2 className="text-2xl font-semibold text-gray-800 dark:text-gray-100 flex items-center">
+          <h2 className="text-2xl font-semibold text-white flex items-center">
             {pathToTitle[location] || "Dashboard"}
             {location === '/content-optimization' && <Sparkles className="ml-2 h-5 w-5 text-yellow-500" />}
           </h2>
-          <p className="text-gray-500 dark:text-gray-400">{pathToDescription[location] || ""}</p>
+          <p className="text-slate-400">{pathToDescription[location] || ""}</p>
         </div>
 
         <div className="flex items-center gap-2">
           <Link href="/pricing">
-            <Button size="sm" className="hidden md:flex items-center gap-2 bg-primary text-primary-foreground hover:bg-primary/90">
+            <Button size="sm" className="hidden md:flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white">
               <Zap className="h-4 w-4" />
               <span>Upgrade</span>
             </Button>
@@ -91,7 +91,7 @@ export default function Header({ onLogout, user, setSidebarOpen }: HeaderProps) 
           {/* Wallet Balance */}
           <WalletBalance />
           <div className="relative">
-            <button className="relative p-1 text-gray-500 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 focus:outline-none">
+            <button className="relative p-1 text-slate-400 hover:text-blue-400 focus:outline-none">
               <Bell className="h-5 w-5" />
               {notificationCount > 0 && (
                 <Badge className="absolute -top-1 -right-1 w-4 h-4 p-0 flex items-center justify-center bg-blue-600">
@@ -108,8 +108,8 @@ export default function Header({ onLogout, user, setSidebarOpen }: HeaderProps) 
                   <AvatarFallback>{getAvatarFallback(user.fullName)}</AvatarFallback>
                 </Avatar>
                 <div className="ml-2 hidden md:block text-left">
-                  <p className="text-sm font-medium">{user.fullName || "User"}</p>
-                  <div className="flex items-center text-xs text-blue-600">
+                  <p className="text-sm font-medium text-white">{user.fullName || "User"}</p>
+                  <div className="flex items-center text-xs text-blue-400">
                     <Zap className="mr-1 h-3 w-3" />
                     <span>Pro Plan</span>
                   </div>

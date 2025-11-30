@@ -1,9 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useToast } from "@/hooks/use-toast";
 
 // Import icons and UI components
-import { Sparkles, Search, Wand2, History, ChevronDown } from "lucide-react";
+import { Sparkles, Search, Wand2, History, ChevronDown, HelpCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -142,18 +142,23 @@ export default function ContentOptimization() {
       setContent(contentText);
     }
 
-    // Scroll to results
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    // Scroll to results - wait for DOM update
+    setTimeout(() => {
+      const resultsElement = document.getElementById('comparison-scores-section');
+      if (resultsElement) {
+        resultsElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }, 100);
   };
 
   return (
-    <div className="space-y-6">
+    <div className="min-h-screen bg-slate-950 p-6">
       {/* Header */}
-      <div className="flex flex-col gap-2">
-        <h1 className="text-3xl font-bold flex items-center">
+      <div className="flex flex-col gap-2 mb-6">
+        <h1 className="text-3xl font-bold flex items-center text-white">
           Tối ưu nội dung <Sparkles className="ml-2 h-6 w-6 text-yellow-500" />
         </h1>
-        <p className="text-gray-500 dark:text-gray-400">
+        <p className="text-slate-400">
           Nâng cao nội dung bằng AI để cải thiện xếp hạng tìm kiếm và mức độ tương tác
         </p>
       </div>
@@ -162,23 +167,23 @@ export default function ContentOptimization() {
         {/* Left Column: Input Form */}
         <div className="lg:col-span-2 space-y-6">
           {/* Input Card */}
-          <Card>
+          <Card className="bg-slate-900 border-slate-800">
             <CardHeader>
-              <CardTitle>Nhập nội dung</CardTitle>
-              <CardDescription>Nhập nội dung để tối ưu cho SEO và khả năng đọc</CardDescription>
+              <CardTitle className="text-white">Nhập nội dung</CardTitle>
+              <CardDescription className="text-slate-400">Nhập nội dung để tối ưu cho SEO và khả năng đọc</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               {/* Keyword Input */}
               <div className="space-y-2">
-                <Label htmlFor="target-keyword">Từ khóa hoặc chủ đề</Label>
+                <Label htmlFor="target-keyword" className="text-slate-300">Từ khóa hoặc chủ đề</Label>
                 <div className="relative">
-                  <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                  <Search className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
                   <Input
                     id="target-keyword"
                     placeholder="Ví dụ: tai nghe gaming"
                     value={targetKeyword}
                     onChange={(e) => setTargetKeyword(e.target.value)}
-                    className="pl-9"
+                    className="pl-9 bg-slate-800 border-slate-700 text-white placeholder:text-slate-500"
                   />
                 </div>
               </div>
@@ -186,31 +191,31 @@ export default function ContentOptimization() {
               {/* Content Textarea */}
               <div className="space-y-2">
                 <div className="flex justify-between">
-                  <Label htmlFor="content">Nội dung của bạn</Label>
-                  <span className="text-xs text-muted-foreground">{content?.length || 0} ký tự</span>
+                  <Label htmlFor="content" className="text-slate-300">Nội dung của bạn</Label>
+                  <span className="text-xs text-slate-400">{content?.length || 0} ký tự</span>
                 </div>
                 <Textarea
                   id="content"
                   placeholder="Dán nội dung vào đây..."
                   value={content}
                   onChange={(e) => setContent(e.target.value)}
-                  className="min-h-[200px]"
+                  className="min-h-[200px] bg-slate-800 border-slate-700 text-white placeholder:text-slate-500"
                 />
               </div>
             </CardContent>
           </Card>
 
           {/* Settings Card */}
-          <Card>
+          <Card className="bg-slate-900 border-slate-800">
             <CardHeader>
-              <CardTitle>Cài đặt tối ưu</CardTitle>
+              <CardTitle className="text-white">Cài đặt tối ưu</CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
               {/* Content Length */}
               <div className="space-y-3">
                 <div className="flex justify-between items-center">
-                  <Label>Độ dài nội dung</Label>
-                  <span className="text-sm font-medium">{CONTENT_LENGTH_OPTIONS[contentLengthPreference[0]]}</span>
+                  <Label className="text-slate-300">Độ dài nội dung</Label>
+                  <span className="text-sm font-medium text-white">{CONTENT_LENGTH_OPTIONS[contentLengthPreference[0]]}</span>
                 </div>
                 <Slider
                   min={0}
@@ -224,8 +229,8 @@ export default function ContentOptimization() {
               {/* Optimization Level */}
               <div className="space-y-3">
                 <div className="flex justify-between items-center">
-                  <Label>Mức tối ưu</Label>
-                  <span className="text-sm font-medium">Level {optimizationLevel[0]}</span>
+                  <Label className="text-slate-300">Mức tối ưu</Label>
+                  <span className="text-sm font-medium text-white">Level {optimizationLevel[0]}</span>
                 </div>
                 <Slider
                   min={1}
@@ -239,8 +244,8 @@ export default function ContentOptimization() {
               {/* Readability Level */}
               <div className="space-y-3">
                 <div className="flex justify-between items-center">
-                  <Label>Mức độ dễ đọc</Label>
-                  <span className="text-sm font-medium">{READABILITY_LEVELS[readabilityPreference[0]]}</span>
+                  <Label className="text-slate-300">Mức độ dễ đọc</Label>
+                  <span className="text-sm font-medium text-white">{READABILITY_LEVELS[readabilityPreference[0]]}</span>
                 </div>
                 <Slider
                   min={0}
@@ -253,7 +258,7 @@ export default function ContentOptimization() {
 
               {/* Include Citation */}
               <div className="flex items-center justify-between">
-                <Label htmlFor="citation">Bao gồm trích dẫn</Label>
+                <Label htmlFor="citation" className="text-slate-300">Bao gồm trích dẫn</Label>
                 <Switch
                   id="citation"
                   checked={includeCitation}
@@ -263,7 +268,7 @@ export default function ContentOptimization() {
 
               {/* Optimize Button */}
               <Button
-                className="w-full flex items-center justify-center gap-2"
+                className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white"
                 onClick={handleOptimize}
                 disabled={mutation.isPending || !content || !targetKeyword}
                 size="lg"
@@ -282,12 +287,25 @@ export default function ContentOptimization() {
 
           {/* Results Display */}
           {currentResult && (
-            <div className="space-y-6">
+            <div className="space-y-6" id="comparison-scores-section">
               {/* Comparison Scores */}
-              <Card>
+              <Card className="bg-slate-900 border-slate-800">
                 <CardHeader>
-                  <CardTitle>So sánh điểm số</CardTitle>
-                  <CardDescription>Cải thiện của nội dung sau khi tối ưu</CardDescription>
+                  <div className="flex items-center justify-between">
+                    <div className="flex-1">
+                      <CardTitle className="text-white">So sánh điểm số</CardTitle>
+                      <CardDescription className="text-slate-400">Cải thiện của nội dung sau khi tối ưu</CardDescription>
+                    </div>
+                    <a
+                      href="https://docs.google.com/document/d/your-doc-id"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-slate-400 hover:text-blue-400 transition-colors"
+                      title="Tìm hiểu về các chỉ số"
+                    >
+                      <HelpCircle className="h-5 w-5" />
+                    </a>
+                  </div>
                 </CardHeader>
                 <CardContent>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -324,20 +342,20 @@ export default function ContentOptimization() {
 
         {/* Right Column: History */}
         <div className="lg:col-span-1">
-          <Card>
+          <Card className="bg-slate-900 border-slate-800 sticky top-6">
             <CardHeader>
-              <CardTitle className="flex items-center">
+              <CardTitle className="flex items-center text-white">
                 <History className="mr-2 h-5 w-5" /> Lịch sử tối ưu
               </CardTitle>
               {/* Search input */}
               <div className="mt-2">
                 <div className="relative">
-                  <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                  <Search className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
                   <Input
                     placeholder="Tìm kiếm theo từ khóa..."
                     value={searchKeyword}
                     onChange={(e) => setSearchKeyword(e.target.value)}
-                    className="pl-9"
+                    className="pl-9 bg-slate-800 border-slate-700 text-white placeholder:text-slate-500"
                   />
                 </div>
               </div>
@@ -345,19 +363,19 @@ export default function ContentOptimization() {
             <CardContent>
               <ScrollArea className="h-[500px]">
                 {isLoadingHistory ? (
-                  <p className="text-sm text-muted-foreground text-center py-4">Đang tải lịch sử...</p>
+                  <p className="text-sm text-slate-400 text-center py-4">Đang tải lịch sử...</p>
                 ) : historyData && historyData.items.length > 0 ? (
                   <Accordion type="single" collapsible className="w-full">
                     {historyData.items.map(item => {
                       const parsedRequest = parseUserRequest(item.userRequest);
                       return (
                         <AccordionItem value={`item-${item.contentOptimizationID}`} key={item.contentOptimizationID}>
-                          <AccordionTrigger>
+                          <AccordionTrigger className="hover:no-underline">
                             <div className="text-left">
-                              <p className="font-semibold truncate">
+                              <p className="font-semibold truncate text-white">
                                 {(parsedRequest as any)?.Keyword || (parsedRequest as any)?.keyword || 'N/A'}
                               </p>
-                              <p className="text-xs text-muted-foreground">
+                              <p className="text-xs text-slate-400">
                                 {new Date(item.createdAt).toLocaleString('vi-VN')}
                               </p>
                             </div>
@@ -367,20 +385,20 @@ export default function ContentOptimization() {
                               {/* Scores */}
                               <div className="grid grid-cols-3 gap-2 text-center text-xs">
                                 <div>
-                                  <p className="text-muted-foreground">SEO</p>
-                                  <p className="font-bold">
+                                  <p className="text-slate-400">SEO</p>
+                                  <p className="font-bold text-white">
                                     {item.aiData.comparison.original.seo_score} → {item.aiData.comparison.optimized.seo_score}
                                   </p>
                                 </div>
                                 <div>
-                                  <p className="text-muted-foreground">Read</p>
-                                  <p className="font-bold">
+                                  <p className="text-slate-400">Read</p>
+                                  <p className="font-bold text-white">
                                     {item.aiData.comparison.original.readability_score} → {item.aiData.comparison.optimized.readability_score}
                                   </p>
                                 </div>
                                 <div>
-                                  <p className="text-muted-foreground">Eng</p>
-                                  <p className="font-bold">
+                                  <p className="text-slate-400">Eng</p>
+                                  <p className="font-bold text-white">
                                     {item.aiData.comparison.original.engagement_score} → {item.aiData.comparison.optimized.engagement_score}
                                   </p>
                                 </div>
@@ -390,7 +408,7 @@ export default function ContentOptimization() {
                               <Button
                                 variant="outline"
                                 size="sm"
-                                className="w-full"
+                                className="w-full bg-slate-800 border-slate-700 text-white hover:bg-slate-700"
                                 onClick={() => handleLoadHistoryItem(item)}
                               >
                                 Xem chi tiết
@@ -402,7 +420,7 @@ export default function ContentOptimization() {
                     })}
                   </Accordion>
                 ) : (
-                  <p className="text-sm text-muted-foreground text-center py-4">
+                  <p className="text-sm text-slate-400 text-center py-4">
                     {searchKeyword ? 'Không tìm thấy kết quả.' : 'Chưa có lịch sử.'}
                   </p>
                 )}
@@ -410,23 +428,25 @@ export default function ContentOptimization() {
 
               {/* Pagination Controls */}
               {historyData && historyData.totalPages > 1 && (
-                <div className="flex items-center justify-between mt-4 pt-4 border-t">
+                <div className="flex items-center justify-between mt-4 pt-4 border-t border-slate-800">
                   <Button
                     variant="outline"
                     size="sm"
+                    className="bg-slate-800 border-slate-700 text-white hover:bg-slate-700"
                     onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
                     disabled={currentPage === 1}
                   >
                     Trước
                   </Button>
 
-                  <span className="text-sm text-muted-foreground">
+                  <span className="text-sm text-slate-400">
                     Trang {currentPage} / {historyData.totalPages}
                   </span>
 
                   <Button
                     variant="outline"
                     size="sm"
+                    className="bg-slate-800 border-slate-700 text-white hover:bg-slate-700"
                     onClick={() => setCurrentPage(p => Math.min(historyData.totalPages, p + 1))}
                     disabled={currentPage === historyData.totalPages}
                   >

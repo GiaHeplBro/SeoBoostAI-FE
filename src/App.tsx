@@ -42,7 +42,7 @@ function MainAppLayout({ onLogout, user }: { onLogout: () => void; user: UserPro
       {showSidebar && <Sidebar sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />}
       <div className="flex-1 flex flex-col overflow-hidden">
         <Header onLogout={onLogout} user={user} setSidebarOpen={setSidebarOpen} />
-        <main className="flex-1 overflow-y-auto bg-background p-4">
+        <main className="flex-1 overflow-y-auto" style={{ padding: '0.22rem', backgroundColor: '#353535' }}>
           <Switch>
             {/* SỬA Ở ĐÂY: Đảm bảo chứa tất cả các route của bạn */}
             <Route path="/dashboard" component={Dashboard} />

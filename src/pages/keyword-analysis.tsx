@@ -1,105 +1,98 @@
 import { useState } from "react";
-import { ArrowUp, History, Plus, Loader2 } from "lucide-react";
+import { useMutation, useQuery } from '@tanstack/react-query';
+import { ArrowUp, History, Plus, Loader2, Sparkles, Filter } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import ReactMarkdown from 'react-markdown';
+import { useToast } from "@/hooks/use-toast";
 
-// --- Types ---
+import { analyzeTrend, fetchKeywords, fetchQueryHistory } from "@/features/trends/api";
+import type { AnalysisResponse } from "@/features/trends/types";
+
 type ViewState = 'empty' | 'loading' | 'results';
-
-interface KeywordData {
-    keyword: string;
-    searchVolume: number;
-    difficulty: number;
-    cpc: number;
-    competition: string;
-    intent: string;
-    trend: boolean;
-}
-
-interface AnalysisResult {
-    query: string;
-    aiResponse: string;
-    primaryData: KeywordData[];
-    secondaryData: KeywordData[];
-}
-
-interface HistoryItem {
-    id: string;
-    query: string;
-    timestamp: Date;
-    result?: AnalysisResult;
-}
-
-// --- Mock Data ---
-const MOCK_RESULT: AnalysisResult = {
-    query: "tai nghe bluetooth",
-    aiResponse: "Từ khóa 'tai nghe bluetooth' là một từ khóa rất có tiềm năng trong thị trường Việt Nam. Với lượng tìm kiếm hàng tháng ổn định và mức cạnh tranh trung bình, đây là cơ hội tốt để tối ưu hóa nội dung. Từ khóa này có ý định mua hàng cao, phù hợp cho các chiến dịch e-commerce. Xu hướng tìm kiếm đang tăng đặc biệt trong quý 4 hàng năm.",
-    primaryData: [
-        { keyword: "tai nghe bluetooth", searchVolume: 45000, difficulty: 55, cpc: 0.85, competition: "Medium", intent: "Commercial", trend: true },
-        { keyword: "tai nghe bluetooth không dây", searchVolume: 33000, difficulty: 48, cpc: 0.75, competition: "Medium", intent: "Commercial", trend: true },
-        { keyword: "tai nghe bluetooth giá rẻ", searchVolume: 27000, difficulty: 42, cpc: 0.65, competition: "Low", intent: "Transactional", trend: true },
-        { keyword: "tai nghe bluetooth chống ồn", searchVolume: 18000, difficulty: 58, cpc: 1.20, competition: "High", intent: "Commercial", trend: true },
-        { keyword: "tai nghe bluetooth sony", searchVolume: 15000, difficulty: 62, cpc: 1.50, competition: "High", intent: "Transactional", trend: false },
-        { keyword: "tai nghe bluetooth apple", searchVolume: 22000, difficulty: 68, cpc: 2.10, competition: "High", intent: "Transactional", trend: true },
-        { keyword: "tai nghe bluetooth samsung", searchVolume: 12000, difficulty: 54, cpc: 1.10, competition: "Medium", intent: "Transactional", trend: false },
-        { keyword: "tai nghe bluetooth jbl", searchVolume: 9000, difficulty: 51, cpc: 0.95, competition: "Medium", intent: "Transactional", trend: false },
-    ],
-    secondaryData: [
-        { keyword: "cách kết nối tai nghe bluetooth", searchVolume: 8000, difficulty: 28, cpc: 0.25, competition: "Low", intent: "Informational", trend: false },
-        { keyword: "tai nghe bluetooth bị hư", searchVolume: 5000, difficulty: 22, cpc: 0.15, competition: "Low", intent: "Informational", trend: false },
-        { keyword: "review tai nghe bluetooth", searchVolume: 11000, difficulty: 35, cpc: 0.45, competition: "Low", intent: "Informational", trend: true },
-        { keyword: "so sánh tai nghe bluetooth", searchVolume: 7000, difficulty: 32, cpc: 0.40, competition: "Low", intent: "Commercial", trend: false },
-        { keyword: "tai nghe bluetooth tốt nhất", searchVolume: 14000, difficulty: 45, cpc: 0.90, competition: "Medium", intent: "Commercial", trend: true },
-        { keyword: "tai nghe bluetooth pin trâu", searchVolume: 6000, difficulty: 38, cpc: 0.55, competition: "Low", intent: "Commercial", trend: false },
-    ]
-};
 
 export default function KeywordAnalysis() {
     const [viewState, setViewState] = useState<ViewState>('empty');
     const [searchQuery, setSearchQuery] = useState("");
-    const [history, setHistory] = useState<HistoryItem[]>([]);
-    const [activeHistoryId, setActiveHistoryId] = useState<string | null>(null);
-    const [currentResult, setCurrentResult] = useState<AnalysisResult | null>(null);
+    const [activeHistoryId, setActiveHistoryId] = useState<number | null>(null);
+    const [currentAnalysis, setCurrentAnalysis] = useState<AnalysisResponse | null>(null);
+    const [showOnlySuggestions, setShowOnlySuggestions] = useState(false);
+
+    const { toast } = useToast();
+
+    // Mutation for analysis (1-4 min)
+    const analysisMutation = useMutation({
+        mutationFn: analyzeTrend,
+        onSuccess: (data) => {
+            setCurrentAnalysis(data);
+            setActiveHistoryId(data.id);
+            setViewState('results');
+            setSearchQuery("");
+            // Refetch history to include new item
+            historyQuery.refetch();
+            toast({
+                title: "Phân tích hoàn tất!",
+                description: "Kết quả phân tích xu hướng đã sẵn sàng.",
+            });
+        },
+        onError: (error: any) => {
+            console.error("Analysis error:", error);
+            setViewState('empty');
+            toast({
+                title: "Lỗi phân tích",
+                description: error?.message || "Không thể phân tích xu hướng. Vui lòng thử lại.",
+                variant: "destructive",
+            });
+        }
+    });
+
+    // Query for keywords (auto-fetch after analysis)
+    const { data: keywords, isLoading: isLoadingKeywords } = useQuery({
+        queryKey: ['keywords', currentAnalysis?.id, showOnlySuggestions],
+        queryFn: () => fetchKeywords(currentAnalysis!.id, showOnlySuggestions),
+        enabled: !!currentAnalysis?.id,
+    });
+
+    // Query for history
+    const historyQuery = useQuery({
+        queryKey: ['queryHistory', 1],
+        queryFn: () => fetchQueryHistory(1, 20),
+    });
 
     // Handle search submission
     const handleSearch = () => {
-        if (!searchQuery.trim()) return;
+        if (!searchQuery.trim()) {
+            toast({
+                title: "Thiếu thông tin",
+                description: "Vui lòng nhập câu hỏi của bạn.",
+                variant: "destructive",
+            });
+            return;
+        }
 
-        // Set loading state
         setViewState('loading');
-
-        // Simulate API call (2-3 seconds for demo, will be 2-3 min in real)
-        setTimeout(() => {
-            const newResult = {
-                ...MOCK_RESULT,
-                query: searchQuery
-            };
-
-            const newHistoryItem: HistoryItem = {
-                id: Date.now().toString(),
-                query: searchQuery,
-                timestamp: new Date(),
-                result: newResult
-            };
-
-            setHistory(prev => [newHistoryItem, ...prev]);
-            setCurrentResult(newResult);
-            setActiveHistoryId(newHistoryItem.id);
-            setViewState('results');
-            setSearchQuery("");
-        }, 3000); // 3 seconds for demo
+        analysisMutation.mutate({
+            question: searchQuery.trim(),
+            featureID: 2
+        });
     };
 
     // Handle history item click
-    const handleHistoryClick = (item: HistoryItem) => {
-        if (item.result) {
-            setCurrentResult(item.result);
-            setActiveHistoryId(item.id);
-            setViewState('results');
-        }
+    const handleHistoryClick = (item: any) => {
+        setCurrentAnalysis({
+            id: item.id,
+            originalQuestion: item.originalQuestion,
+            finalAiResponse: item.finalAiResponse,
+            createdAt: item.createdAt
+        });
+        setActiveHistoryId(item.id);
+        setViewState('results');
     };
 
     // Handle new chat
@@ -107,18 +100,29 @@ export default function KeywordAnalysis() {
         setViewState('empty');
         setSearchQuery("");
         setActiveHistoryId(null);
-        setCurrentResult(null);
+        setCurrentAnalysis(null);
+        setShowOnlySuggestions(false);
+    };
+
+    // Get competition badge color
+    const getCompetitionColor = (competition: string) => {
+        switch (competition.toLowerCase()) {
+            case 'thấp': return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200';
+            case 'vừa': return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200';
+            case 'cao': return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200';
+            default: return 'bg-gray-100 text-gray-800';
+        }
     };
 
     return (
-        <div className="flex h-[calc(100vh-4rem)] w-full">
+        <div className="flex h-[calc(100vh-4rem)] w-full bg-[#212121]">
             {/* Sidebar */}
-            <aside className="w-64 border-r border-slate-200/10 bg-slate-900/30 p-4 flex flex-col">
+            <aside className="w-64 border-r border-[#212121] bg-[#181818] p-4 flex flex-col">
                 <div className="flex flex-col h-full">
                     {/* Header */}
                     <div className="flex items-center gap-3 mb-6">
-                        <div className="bg-primary/20 rounded-full p-2">
-                            <History className="h-5 w-5 text-primary" />
+                        <div className="bg-[#212121] rounded-full p-2">
+                            <History className="h-5 w-5 text-white" />
                         </div>
                         <div className="flex flex-col">
                             <h2 className="text-base font-medium text-white">Lịch sử tìm kiếm</h2>
@@ -127,33 +131,37 @@ export default function KeywordAnalysis() {
 
                     {/* History List */}
                     <ScrollArea className="flex-1">
-                        {history.length === 0 ? (
-                            <div className="flex flex-col items-center gap-4 rounded-lg border-2 border-dashed border-slate-700 px-4 py-12 text-center">
-                                <div className="flex flex-col items-center gap-2">
-                                    <p className="text-white text-sm font-semibold">Chưa có lịch sử</p>
-                                    <p className="text-slate-400 text-xs">Các tìm kiếm của bạn sẽ xuất hiện ở đây</p>
-                                </div>
+                        {historyQuery.isLoading ? (
+                            <div className="flex justify-center py-8">
+                                <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
                             </div>
-                        ) : (
+                        ) : historyQuery.data?.items && historyQuery.data.items.length > 0 ? (
                             <div className="flex flex-col gap-2">
-                                {history.map((item) => (
+                                {historyQuery.data.items.map((item) => (
                                     <button
                                         key={item.id}
                                         onClick={() => handleHistoryClick(item)}
                                         className={`flex items-center gap-3 rounded-lg px-3 py-2 text-left transition-colors ${activeHistoryId === item.id
-                                            ? 'bg-primary/20 text-primary'
-                                            : 'text-slate-400 hover:bg-white/10 hover:text-white'
+                                            ? 'bg-[#212121] text-white'
+                                            : 'text-white/70 hover:bg-[#212121]'
                                             }`}
                                     >
                                         <History className="h-4 w-4 flex-shrink-0" />
                                         <div className="flex-1 min-w-0">
-                                            <p className="text-sm font-medium truncate">{item.query}</p>
-                                            <p className="text-xs opacity-70">
-                                                {item.timestamp.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
+                                            <p className="text-xs font-medium truncate">{item.originalQuestion}</p>
+                                            <p className="text-[10px] opacity-70">
+                                                {new Date(item.createdAt).toLocaleDateString('vi-VN')}
                                             </p>
                                         </div>
                                     </button>
                                 ))}
+                            </div>
+                        ) : (
+                            <div className="flex flex-col items-center gap-4 rounded-lg border-2 border-dashed border-[#212121] px-4 py-12 text-center">
+                                <div className="flex flex-col items-center gap-2">
+                                    <p className="text-sm font-semibold text-white">Chưa có lịch sử</p>
+                                    <p className="text-xs text-white/50">Các tìm kiếm của bạn sẽ xuất hiện ở đây</p>
+                                </div>
                             </div>
                         )}
                     </ScrollArea>
@@ -161,8 +169,7 @@ export default function KeywordAnalysis() {
                     {/* New Chat Button */}
                     <Button
                         onClick={handleNewChat}
-                        className="mt-4 w-full flex items-center justify-center gap-2"
-                        variant="default"
+                        className="mt-4 w-full flex items-center justify-center gap-2 bg-[#212121] hover:bg-[#212121]/80 text-white border-none"
                     >
                         <Plus className="h-4 w-4" />
                         <span>Tìm kiếm mới</span>
@@ -171,26 +178,26 @@ export default function KeywordAnalysis() {
             </aside>
 
             {/* Main Content */}
-            <main className="flex-1 overflow-y-auto">
+            <main className="flex-1 overflow-y-auto bg-[#212121]">
                 {viewState === 'empty' && (
                     <div className="flex flex-1 flex-col justify-center items-center p-6 h-full">
                         <div className="w-full max-w-2xl mx-auto flex flex-col items-center justify-center gap-8">
-                            <h1 className="text-white text-4xl font-bold text-center">
+                            <h1 className="text-4xl font-bold text-center text-white">
                                 Chào bạn, tôi có thể giúp gì cho bạn?
                             </h1>
 
                             <div className="w-full max-w-xl">
                                 <div className="relative flex items-center">
                                     <Input
-                                        className="w-full h-16 pr-14 text-base bg-slate-900 border-slate-700 text-white placeholder:text-slate-500"
-                                        placeholder="Nhập từ khóa bạn muốn phân tích..."
+                                        className="w-full h-16 pr-14 text-base bg-[#181818] border-[#181818] text-white placeholder:text-white/50"
+                                        placeholder="Nhập câu hỏi về xu hướng từ khóa..."
                                         value={searchQuery}
                                         onChange={(e) => setSearchQuery(e.target.value)}
                                         onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
                                     />
                                     <Button
                                         size="icon"
-                                        className="absolute right-2 h-10 w-10 rounded-lg"
+                                        className="absolute right-2 h-10 w-10 rounded-lg bg-white hover:bg-white/90 text-[#181818]"
                                         onClick={handleSearch}
                                         disabled={!searchQuery.trim()}
                                     >
@@ -206,139 +213,128 @@ export default function KeywordAnalysis() {
                     <div className="flex flex-1 flex-col items-center justify-center p-6 h-full gap-6">
                         <Loader2 className="h-16 w-16 text-primary animate-spin" />
                         <div className="text-center">
-                            <h2 className="text-2xl font-bold text-white mb-2">Đang phân tích từ khóa...</h2>
-                            <p className="text-slate-400">Quá trình này có thể mất 2-3 phút. Vui lòng chờ...</p>
+                            <h2 className="text-2xl font-bold mb-2 text-white">Đang phân tích xu hướng...</h2>
+                            <p className="text-white/70">Quá trình này có thể mất 1-4 phút. Vui lòng chờ...</p>
                         </div>
                         <div className="w-full max-w-md space-y-2">
-                            <div className="h-2 bg-slate-800 rounded-full overflow-hidden">
-                                <div className="h-full bg-primary animate-pulse w-2/3"></div>
+                            <div className="h-2 bg-[#181818] rounded-full overflow-hidden">
+                                <div className="h-full bg-white animate-pulse w-2/3"></div>
                             </div>
-                            <p className="text-xs text-slate-500 text-center">Đang thu thập dữ liệu...</p>
+                            <p className="text-xs text-white/50 text-center">💡 AI đang phân tích dữ liệu từ nhiều nguồn...</p>
                         </div>
                     </div>
                 )}
 
-                {viewState === 'results' && currentResult && (
+                {viewState === 'results' && currentAnalysis && (
                     <div className="p-6 md:p-8 lg:p-12">
                         <div className="mx-auto max-w-4xl flex flex-col gap-6">
                             {/* Page Heading */}
-                            <h1 className="text-4xl font-black text-white">{currentResult.query}</h1>
+                            <h1 className="text-4xl font-black text-white">{currentAnalysis.originalQuestion}</h1>
 
-                            {/* Card 1: User Question */}
-                            <Card className="border-slate-200/10 bg-white/5">
+                            {/* Card 1: AI Response */}
+                            <Card className="bg-[#181818] border-[#181818]">
                                 <CardHeader>
-                                    <CardTitle className="text-primary">Câu hỏi của bạn</CardTitle>
+                                    <CardTitle className="flex items-center text-white">
+                                        <Sparkles className="mr-2 h-5 w-5" />
+                                        Phân tích từ AI
+                                    </CardTitle>
                                 </CardHeader>
                                 <CardContent>
-                                    <p className="text-slate-300">
-                                        Phân tích từ khóa: <span className="font-semibold text-white">{currentResult.query}</span>
-                                    </p>
+                                    <div className="prose prose-invert max-w-none">
+                                        <ReactMarkdown>{currentAnalysis.finalAiResponse}</ReactMarkdown>
+                                    </div>
                                 </CardContent>
                             </Card>
 
-                            {/* Card 2: AI Response */}
-                            <Card className="border-slate-200/10 bg-white/5">
+                            {/* Card 2: Keywords Table */}
+                            <Card className="bg-[#181818] border-[#181818]">
                                 <CardHeader>
-                                    <CardTitle className="text-primary">Phân tích từ AI</CardTitle>
-                                </CardHeader>
-                                <CardContent>
-                                    <p className="text-slate-300 leading-relaxed">{currentResult.aiResponse}</p>
-                                </CardContent>
-                            </Card>
-
-                            {/* Card 3: Primary Data Table */}
-                            <Card className="border-slate-200/10 bg-white/5">
-                                <CardHeader>
-                                    <CardTitle className="text-primary">Từ khóa chính</CardTitle>
-                                    <CardDescription className="text-slate-400">
-                                        Các từ khóa có liên quan trực tiếp với mục đích thương mại
-                                    </CardDescription>
-                                </CardHeader>
-                                <CardContent>
-                                    <ScrollArea className="h-[400px] w-full rounded-md border border-slate-700 p-4">
-                                        <div className="space-y-4">
-                                            {currentResult.primaryData.map((item, idx) => (
-                                                <div key={idx} className="border-b border-slate-700 pb-4 last:border-0">
-                                                    <div className="flex items-start justify-between mb-2">
-                                                        <h4 className="font-semibold text-white">{item.keyword}</h4>
-                                                        {item.trend && <Badge variant="outline" className="text-green-500">Trending</Badge>}
-                                                    </div>
-                                                    <div className="grid grid-cols-2 gap-2 text-sm">
-                                                        <div>
-                                                            <span className="text-slate-400">Search Volume:</span>
-                                                            <span className="ml-2 text-white font-medium">{item.searchVolume.toLocaleString()}</span>
-                                                        </div>
-                                                        <div>
-                                                            <span className="text-slate-400">Difficulty:</span>
-                                                            <span className="ml-2 text-white font-medium">{item.difficulty}</span>
-                                                        </div>
-                                                        <div>
-                                                            <span className="text-slate-400">CPC:</span>
-                                                            <span className="ml-2 text-white font-medium">${item.cpc}</span>
-                                                        </div>
-                                                        <div>
-                                                            <span className="text-slate-400">Competition:</span>
-                                                            <Badge variant={item.competition === "High" ? "destructive" : item.competition === "Medium" ? "secondary" : "outline"} className="ml-2">
-                                                                {item.competition}
-                                                            </Badge>
-                                                        </div>
-                                                        <div className="col-span-2">
-                                                            <span className="text-slate-400">Intent:</span>
-                                                            <Badge variant="outline" className="ml-2">{item.intent}</Badge>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            ))}
+                                    <div className="flex items-center justify-between">
+                                        <div>
+                                            <CardTitle className="flex items-center text-white">
+                                                <Filter className="mr-2 h-5 w-5" />
+                                                Từ Khóa Đề Xuất
+                                            </CardTitle>
+                                            <CardDescription className="text-white/70">
+                                                {keywords?.length || 0} từ khóa được tìm thấy
+                                            </CardDescription>
                                         </div>
-                                    </ScrollArea>
-                                </CardContent>
-                            </Card>
-
-                            {/* Card 4: Secondary Data Table */}
-                            <Card className="border-slate-200/10 bg-white/5">
-                                <CardHeader>
-                                    <CardTitle className="text-primary">Từ khóa bổ sung</CardTitle>
-                                    <CardDescription className="text-slate-400">
-                                        Các từ khóa liên quan với mục đích thông tin và nghiên cứu
-                                    </CardDescription>
+                                        <div className="flex items-center space-x-2">
+                                            <Switch
+                                                id="filter-suggestions"
+                                                checked={showOnlySuggestions}
+                                                onCheckedChange={setShowOnlySuggestions}
+                                            />
+                                            <Label htmlFor="filter-suggestions" className="cursor-pointer text-white">
+                                                Chỉ AI đề xuất
+                                            </Label>
+                                        </div>
+                                    </div>
                                 </CardHeader>
                                 <CardContent>
-                                    <ScrollArea className="h-[400px] w-full rounded-md border border-slate-700 p-4">
-                                        <div className="space-y-4">
-                                            {currentResult.secondaryData.map((item, idx) => (
-                                                <div key={idx} className="border-b border-slate-700 pb-4 last:border-0">
-                                                    <div className="flex items-start justify-between mb-2">
-                                                        <h4 className="font-semibold text-white">{item.keyword}</h4>
-                                                        {item.trend && <Badge variant="outline" className="text-green-500">Trending</Badge>}
-                                                    </div>
-                                                    <div className="grid grid-cols-2 gap-2 text-sm">
-                                                        <div>
-                                                            <span className="text-slate-400">Search Volume:</span>
-                                                            <span className="ml-2 text-white font-medium">{item.searchVolume.toLocaleString()}</span>
-                                                        </div>
-                                                        <div>
-                                                            <span className="text-slate-400">Difficulty:</span>
-                                                            <span className="ml-2 text-white font-medium">{item.difficulty}</span>
-                                                        </div>
-                                                        <div>
-                                                            <span className="text-slate-400">CPC:</span>
-                                                            <span className="ml-2 text-white font-medium">${item.cpc}</span>
-                                                        </div>
-                                                        <div>
-                                                            <span className="text-slate-400">Competition:</span>
-                                                            <Badge variant={item.competition === "High" ? "destructive" : item.competition === "Medium" ? "secondary" : "outline"} className="ml-2">
-                                                                {item.competition}
-                                                            </Badge>
-                                                        </div>
-                                                        <div className="col-span-2">
-                                                            <span className="text-slate-400">Intent:</span>
-                                                            <Badge variant="outline" className="ml-2">{item.intent}</Badge>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            ))}
+                                    {isLoadingKeywords ? (
+                                        <div className="flex justify-center py-8">
+                                            <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
                                         </div>
-                                    </ScrollArea>
+                                    ) : keywords && keywords.length > 0 ? (
+                                        <ScrollArea className="h-[500px] w-full rounded-md border">
+                                            <Table>
+                                                <TableHeader>
+                                                    <TableRow>
+                                                        <TableHead className="w-[250px] text-white">Từ khóa</TableHead>
+                                                        <TableHead className="text-white">Lượt tìm kiếm</TableHead>
+                                                        <TableHead className="text-white">Cạnh tranh</TableHead>
+                                                        <TableHead className="text-white">Giá thầu</TableHead>
+                                                        <TableHead className="w-[300px] text-white">Đề xuất AI</TableHead>
+                                                    </TableRow>
+                                                </TableHeader>
+                                                <TableBody>
+                                                    {keywords.map((keyword, index) => (
+                                                        <TableRow key={index}>
+                                                            <TableCell className="font-medium text-white">
+                                                                {keyword.Keyword}
+                                                                {keyword.AiSuggestion && (
+                                                                    <Badge className="ml-2 bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
+                                                                        <Sparkles className="h-3 w-3 mr-1" />
+                                                                        AI
+                                                                    </Badge>
+                                                                )}
+                                                            </TableCell>
+                                                            <TableCell className="text-white">{keyword.Avg_Search_Volume}</TableCell>
+                                                            <TableCell>
+                                                                <Badge className={getCompetitionColor(keyword.Competition)}>
+                                                                    {keyword.Competition}
+                                                                </Badge>
+                                                            </TableCell>
+                                                            <TableCell className="text-sm text-white">
+                                                                {keyword.Low_Bid !== "—" && keyword.High_Bid !== "—" ? (
+                                                                    <>{keyword.Low_Bid} - {keyword.High_Bid}</>
+                                                                ) : (
+                                                                    <span className="text-gray-400">—</span>
+                                                                )}
+                                                            </TableCell>
+                                                            <TableCell className="text-white">
+                                                                {keyword.AiMessage ? (
+                                                                    <span className="text-sm text-white/70">
+                                                                        {keyword.AiMessage}
+                                                                    </span>
+                                                                ) : (
+                                                                    <span className="text-sm text-white/30">—</span>
+                                                                )}
+                                                            </TableCell>
+                                                        </TableRow>
+                                                    ))}
+                                                </TableBody>
+                                            </Table>
+                                        </ScrollArea>
+                                    ) : (
+                                        <div className="text-center py-12">
+                                            <Filter className="h-16 w-16 text-gray-300 dark:text-gray-600 mx-auto mb-4" />
+                                            <p className="text-gray-500 dark:text-gray-400">
+                                                {showOnlySuggestions ? 'Không có từ khóa được AI đề xuất' : 'Không tìm thấy từ khóa nào'}
+                                            </p>
+                                        </div>
+                                    )}
                                 </CardContent>
                             </Card>
                         </div>
