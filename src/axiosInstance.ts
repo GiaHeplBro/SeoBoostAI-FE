@@ -40,4 +40,23 @@ api.interceptors.request.use(
   }
 );
 
+// 3. Thêm response interceptor để xử lý lỗi 401 (Unauthorized)
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    // Nếu gặp lỗi 401, tức là token hết hạn hoặc không hợp lệ
+    if (error.response?.status === 401) {
+      console.error("Token không hợp lệ hoặc đã hết hạn. Đang logout...");
+      // Xóa token và user khỏi localStorage
+      localStorage.removeItem('tokens');
+      localStorage.removeItem('user');
+      // Redirect về trang login (có thể dùng window.location hoặc router)
+      if (!window.location.pathname.includes('/login')) {
+        window.location.href = '/login';
+      }
+    }
+    return Promise.reject(error);
+  }
+);
+
 export default api;
