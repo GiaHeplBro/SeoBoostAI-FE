@@ -41,12 +41,13 @@ export default function Sidebar({ sidebarOpen, setSidebarOpen }: { sidebarOpen: 
 
       {/* SỬA Ở ĐÂY 2: Cập nhật lại class để có hiệu ứng trượt */}
       <aside
-        className={`bg-white dark:bg-gray-900 w-64 h-full shadow-md fixed md:relative z-50
+        className={`w-64 h-full shadow-md fixed md:relative z-50
                    transform transition-transform duration-300 ease-in-out
                    ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}
                    md:translate-x-0 overflow-y-auto`}
+        style={{ backgroundColor: '#1F1F1F' }}
       >
-        <div className="p-4 border-b border-neutral-200 dark:border-gray-700">
+        <div className="p-4 border-b" style={{ borderColor: '#333333' }}>
           {/* Bọc logo trong Link và thêm onClick để đóng sidebar */}
           <Link href="/dashboard" onClick={() => setSidebarOpen(false)}>
             <h1 className="text-xl font-bold bg-gradient-to-r from-blue-500 to-purple-600 bg-clip-text text-transparent flex items-center cursor-pointer">
@@ -54,7 +55,7 @@ export default function Sidebar({ sidebarOpen, setSidebarOpen }: { sidebarOpen: 
               SEOBoostAI
             </h1>
           </Link>
-          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+          <p className="text-xs text-slate-400 mt-1">
             AI-powered SEO Platform
           </p>
         </div>
@@ -62,7 +63,7 @@ export default function Sidebar({ sidebarOpen, setSidebarOpen }: { sidebarOpen: 
         <div className="py-2">
           {menuItems.map((category, idx) => (
             <div key={idx}>
-              <p className="px-4 py-2 text-xs uppercase text-muted-foreground font-medium mt-2">
+              <p className="px-4 py-2 text-xs uppercase text-slate-400 font-medium mt-2">
                 {category.category}
               </p>
               {category.items.map((item, i) => {
@@ -73,13 +74,18 @@ export default function Sidebar({ sidebarOpen, setSidebarOpen }: { sidebarOpen: 
                     key={i}
                     href={item.path}
                     onClick={() => setSidebarOpen(false)}
-                    className={`sidebar-menu-item flex items-center px-4 py-3 ${isActive
-                        ? "text-white bg-blue-600 dark:bg-blue-500 font-medium"
-                        : "text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-blue-600 dark:hover:text-blue-400"
-                      }`}
                   >
-                    {item.icon}
-                    {item.name}
+                    <div
+                      className={`sidebar-menu-item flex items-center px-4 py-3 transition-colors ${isActive ? "" : "hover:bg-gray-700"
+                        }`}
+                      style={{
+                        backgroundColor: isActive ? '#333333' : 'transparent',
+                        color: isActive ? '#FFFFFF' : '#D1D5DB'
+                      }}
+                    >
+                      {item.icon}
+                      {item.name}
+                    </div>
                   </Link>
                 );
               })}

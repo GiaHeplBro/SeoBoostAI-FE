@@ -405,440 +405,382 @@ export default function ContentOptimization() {
 
   // --- JSX (Render UI) ---
   return (
-    <div className="container mx-auto p-4 space-y-6">
-      <h1 className="text-3xl font-bold">Tối ưu hóa Website</h1>
-      <p className="text-muted-foreground">
-        Phân tích toàn diện tình trạng SEO và hiệu suất website của bạn
-      </p>
+    <div className="min-h-screen bg-slate-950">
+      {/* Hero Section */}
+      <div className="bg-gradient-to-br from-slate-900 via-slate-950 to-black py-16 px-4">
+        <div className="container mx-auto max-w-4xl text-center space-y-6">
+          <h1 className="text-4xl md:text-5xl font-bold text-white">
+            Mở Khóa Tiềm Năng Website Của Bạn
+          </h1>
+          <p className="text-lg text-slate-300">
+            Nhập URL để nhận phân tích SEO toàn diện với khuyến nghị được hỗ trợ bởi AI
+          </p>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* URL Input */}
+          <div className="flex flex-col sm:flex-row gap-3 max-w-2xl mx-auto mt-8">
+            <div className="relative flex-1">
+              <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-slate-400" />
+              <Input
+                id="url-input"
+                placeholder="Nhập địa chỉ website của bạn"
+                value={url}
+                onChange={(e) => setUrl(e.target.value)}
+                className="pl-12 h-12 bg-slate-900 border-slate-700 text-white placeholder:text-slate-500 focus:border-blue-500"
+              />
+            </div>
+            <Button
+              onClick={handleAnalyze}
+              disabled={analysisMutation.isPending}
+              className="h-12 px-8 bg-blue-600 hover:bg-blue-700 text-white font-semibold"
+            >
+              {analysisMutation.isPending ? "Đang phân tích..." : "Phân Tích Website"}
+            </Button>
+          </div>
 
-        {/* --- CỘT TRÁI: NHẬP LIỆU VÀ LỊCH SỬ --- */}
-        <div className="lg:col-span-1 space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Phân tích Website</CardTitle>
-              <CardDescription>Nhập URL để bắt đầu</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="relative">
-                <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                <Input
-                  id="url-input"
-                  placeholder="https://example.com"
-                  value={url}
-                  onChange={(e) => setUrl(e.target.value)}
-                  className="pl-9"
-                />
-              </div>
-              <Select value={strategy} onValueChange={(value: "desktop" | "mobile") => setStrategy(value)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Chọn thiết bị" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="desktop">
-                    <div className="flex items-center gap-2">
-                      <Laptop className="h-4 w-4" /> Desktop (Mặc định)
-                    </div>
-                  </SelectItem>
-                  <SelectItem value="mobile">
-                    <div className="flex items-center gap-2">
-                      <Smartphone className="h-4 w-4" /> Mobile
-                    </div>
-                  </SelectItem>
-                </SelectContent>
-              </Select>
-            </CardContent>
-            <CardFooter>
-              <Button
-                className="w-full"
-                onClick={handleAnalyze}
-                disabled={analysisMutation.isPending}
-              >
-                {analysisMutation.isPending ? "Đang phân tích..." : "Phân tích"}
-              </Button>
-            </CardFooter>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <History className="h-5 w-5" /> Lịch sử báo cáo
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ScrollArea className="h-[300px] pr-4">
-                {historyQuery.isLoading && <p>Đang tải lịch sử...</p>}
-                {historyQuery.data && historyQuery.data.data && historyQuery.data.data.items.length > 0 ? (
-                  <Accordion type="single" collapsible className="w-full">
-                    {historyQuery.data.data.items.map((item: HistoryItem) => (
-                      <AccordionItem value={`item-${item.scanHistoryID}`} key={item.scanHistoryID}>
-                        <AccordionTrigger>
-                          <div className="text-left truncate">
-                            <p className="font-semibold truncate pr-4">{item.analysisCache.normalizedUrl}</p>
-                            <p className="text-xs text-muted-foreground">{new Date(item.scanTime).toLocaleString('vi-VN')}</p>
-                          </div>
-                        </AccordionTrigger>
-                        <AccordionContent>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleLoadFromHistory(item.scanHistoryID)}
-                            disabled={singleReportMutation.isPending && singleReportMutation.variables === item.scanHistoryID}
-                          >
-                            {(singleReportMutation.isPending && singleReportMutation.variables === item.scanHistoryID) ? "Đang tải..." : "Xem lại chi tiết"}
-                          </Button>
-                        </AccordionContent>
-                      </AccordionItem>
-                    ))}
-                  </Accordion>
-                ) : (
-                  !historyQuery.isLoading && <p className="text-sm text-muted-foreground text-center py-4">Không có lịch sử.</p>
-                )}
-              </ScrollArea>
-            </CardContent>
-          </Card>
-
-        </div>
-
-        {/* --- CỘT PHẢI: KẾT QUẢ --- */}
-        <div className="lg:col-span-2 space-y-6">
-          {!currentAnalysis && !analysisMutation.isPending && (
-            <Card className="flex items-center justify-center min-h-[500px]">
-              <p className="text-muted-foreground">
-                Nhập một URL để bắt đầu phân tích<br />
-                hoặc chọn một báo cáo từ lịch sử để xem chi tiết.
-              </p>
-            </Card>
-          )}
-
-          {(analysisMutation.isPending || updateAnalysisMutation.isPending) && (
-            <Card className="min-h-[500px] p-6 space-y-4">
-              <Skeleton className="h-8 w-1/2" />
-              <div className="flex justify-around pt-4">
-                <Skeleton className="h-28 w-20 rounded-full" />
-                <Skeleton className="h-28 w-20 rounded-full" />
-                <Skeleton className="h-28 w-20 rounded-full" />
-                <Skeleton className="h-28 w-20 rounded-full" />
-              </div>
-              <Skeleton className="h-24 w-full" />
-            </Card>
-          )}
-
-          {currentAnalysis && scores && !analysisMutation.isPending && !updateAnalysisMutation.isPending && (
-            <>
-              {/* --- METRICS GRID CARDS --- */}
-              <Card>
-                <CardHeader>
-                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                    <div>
-                      <CardTitle>Điểm hiệu suất (Core Web Vitals)</CardTitle>
-                      <CardDescription>
-                        Điểm số dựa trên phân tích của Google PageSpeed Insights cho <strong>{currentAnalysis.analysisCache.strategy}</strong>
-                      </CardDescription>
-                    </div>
-
-                    {/* Nút Update */}
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="flex items-center gap-2 text-xs h-8"
-                      onClick={handleUpdateAnalysis}
-                      disabled={updateAnalysisMutation.isPending}
-                    >
-                      <RefreshCcw className={`h-3 w-3 ${updateAnalysisMutation.isPending ? 'animate-spin' : ''}`} />
-                      {updateAnalysisMutation.isPending ? "Đang cập nhật..." : "Cập nhật kết quả"}
-                    </Button>
+          {/* Device Strategy Selector */}
+          <div className="flex items-center gap-3 justify-center mt-4">
+            <span className="text-sm text-slate-400">Thiết bị:</span>
+            <Select value={strategy} onValueChange={(value: "desktop" | "mobile") => setStrategy(value)}>
+              <SelectTrigger className="w-[180px] bg-slate-900 border-slate-700 text-white">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent className="bg-slate-900 border-slate-700">
+                <SelectItem value="desktop" className="text-white">
+                  <div className="flex items-center gap-2">
+                    <Laptop className="h-4 w-4" /> Desktop
                   </div>
+                </SelectItem>
+                <SelectItem value="mobile" className="text-white">
+                  <div className="flex items-center gap-2">
+                    <Smartphone className="h-4 w-4" /> Mobile
+                  </div>
+                </SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+      </div>
+
+      {/* Results Section */}
+      <div className="container mx-auto p-6">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+
+          {/* Left Column: Performance Score Circle */}
+          {currentAnalysis && scores && !analysisMutation.isPending && !updateAnalysisMutation.isPending && (
+            <div className="lg:col-span-1">
+              <Card className="bg-slate-900 border-slate-800 sticky top-6">
+                <CardHeader>
+                  <CardTitle className="text-white text-center">Điểm Tổng Thể</CardTitle>
                 </CardHeader>
-                <CardContent>
-                  {/* Debug: Show comparison data status */}
-                  {comparisonData && (
-                    <div className="mb-4 p-2 bg-blue-50 dark:bg-blue-900/20 rounded text-xs">
-                      <p className="text-blue-600 dark:text-blue-400">✓ Dữ liệu so sánh đã tải</p>
+                <CardContent className="flex flex-col items-center">
+                  <div className="relative w-40 h-40 flex items-center justify-center">
+                    <svg className="w-full h-full transform -rotate-90">
+                      <circle
+                        cx="80"
+                        cy="80"
+                        r="70"
+                        stroke="currentColor"
+                        strokeWidth="8"
+                        fill="none"
+                        className="text-slate-700"
+                      />
+                      <circle
+                        cx="80"
+                        cy="80"
+                        r="70"
+                        stroke="currentColor"
+                        strokeWidth="8"
+                        fill="none"
+                        strokeDasharray={`${2 * Math.PI * 70}`}
+                        strokeDashoffset={`${2 * Math.PI * 70 * (1 - scores.PerformanceScore / 100)}`}
+                        className={getScoreColor('PerformanceScore', scores.PerformanceScore)}
+                        strokeLinecap="round"
+                      />
+                    </svg>
+                    <div className="absolute inset-0 flex flex-col items-center justify-center">
+                      <span className={`text-5xl font-bold ${getScoreColor('PerformanceScore', scores.PerformanceScore)}`}>
+                        {Math.round(scores.PerformanceScore)}
+                      </span>
+                      <span className="text-xs text-slate-400 mt-1">/ 100</span>
+                    </div>
+                  </div>
+                  <p className="text-sm text-slate-300 mt-4 text-center">Điểm Hiệu Suất</p>
+                  {comparisonData?.scoreChange !== undefined && comparisonData.scoreChange !== 0 && (
+                    <div className={`flex items-center gap-1 mt-2 ${comparisonData.scoreChange > 0 ? 'text-green-500' : 'text-red-500'}`}>
+                      {comparisonData.scoreChange > 0 ? (
+                        <TrendingUp className="h-4 w-4" />
+                      ) : (
+                        <TrendingDown className="h-4 w-4" />
+                      )}
+                      <span className="text-sm font-medium">
+                        {comparisonData.scoreChange > 0 ? '+' : ''}{comparisonData.scoreChange.toFixed(0)} so với lần trước
+                      </span>
                     </div>
                   )}
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {/* Performance Score Card */}
-                    <div className="flex flex-col gap-2 rounded-xl p-6 border border-border bg-card">
-                      <div className="flex items-center gap-2">
-                        <div className={`w-2 h-2 rounded-full ${getScoreColor('PerformanceScore', scores.PerformanceScore).replace('text-', 'bg-')}`}></div>
-                        <p className="text-sm font-medium text-muted-foreground">Performance Score</p>
-                      </div>
-                      <p className="text-4xl font-bold">{Math.round(scores.PerformanceScore)}</p>
-                      {comparisonData?.scoreChange !== undefined && comparisonData.scoreChange !== 0 && (
-                        <div className="flex items-center gap-1">
-                          {comparisonData.scoreChange > 0 ? (
-                            <>
-                              <TrendingUp className="h-4 w-4 text-green-500" />
-                              <p className="text-sm font-medium text-green-500">
-                                +{comparisonData.scoreChange.toFixed(0)} điểm so với lần trước
-                              </p>
-                            </>
-                          ) : (
-                            <>
-                              <TrendingDown className="h-4 w-4 text-red-500" />
-                              <p className="text-sm font-medium text-red-500">
-                                {comparisonData.scoreChange.toFixed(0)} điểm so với lần trước
-                              </p>
-                            </>
-                          )}
-                        </div>
-                      )}
-                    </div>
-
-                    {/* LCP Card */}
-                    <div className="flex flex-col gap-2 rounded-xl p-6 border border-border bg-card">
-                      <div className="flex items-center gap-2">
-                        <div className={`w-2 h-2 rounded-full ${getScoreColor('LCP', scores.LCP).replace('text-', 'bg-')}`}></div>
-                        <p className="text-sm font-medium text-muted-foreground">LCP (Largest Contentful Paint)</p>
-                      </div>
-                      <p className="text-4xl font-bold">{Math.round(scores.LCP)}<span className="text-lg text-muted-foreground ml-1">ms</span></p>
-                      {comparisonData?.lcpChange !== undefined && comparisonData.lcpChange !== 0 && (
-                        <div className="flex items-center gap-1">
-                          {comparisonData.lcpChange < 0 ? (
-                            <>
-                              <TrendingDown className="h-4 w-4 text-green-500" />
-                              <p className="text-sm font-medium text-green-500">
-                                {Math.abs(comparisonData.lcpChange).toFixed(0)}ms nhanh hơn
-                              </p>
-                            </>
-                          ) : (
-                            <>
-                              <TrendingUp className="h-4 w-4 text-red-500" />
-                              <p className="text-sm font-medium text-red-500">
-                                +{comparisonData.lcpChange.toFixed(0)}ms chậm hơn
-                              </p>
-                            </>
-                          )}
-                        </div>
-                      )}
-                    </div>
-
-                    {/* FCP Card */}
-                    <div className="flex flex-col gap-2 rounded-xl p-6 border border-border bg-card">
-                      <div className="flex items-center gap-2">
-                        <div className={`w-2 h-2 rounded-full ${getScoreColor('FCP', scores.FCP).replace('text-', 'bg-')}`}></div>
-                        <p className="text-sm font-medium text-muted-foreground">FCP (First Contentful Paint)</p>
-                      </div>
-                      <p className="text-4xl font-bold">{Math.round(scores.FCP)}<span className="text-lg text-muted-foreground ml-1">ms</span></p>
-                      {comparisonData?.fcpChange !== undefined && comparisonData.fcpChange !== 0 && (
-                        <div className="flex items-center gap-1">
-                          {comparisonData.fcpChange < 0 ? (
-                            <>
-                              <TrendingDown className="h-4 w-4 text-green-500" />
-                              <p className="text-sm font-medium text-green-500">
-                                {Math.abs(comparisonData.fcpChange).toFixed(0)}ms nhanh hơn
-                              </p>
-                            </>
-                          ) : (
-                            <>
-                              <TrendingUp className="h-4 w-4 text-red-500" />
-                              <p className="text-sm font-medium text-red-500">
-                                +{comparisonData.fcpChange.toFixed(0)}ms chậm hơn
-                              </p>
-                            </>
-                          )}
-                        </div>
-                      )}
-                    </div>
-
-                    {/* CLS Card */}
-                    <div className="flex flex-col gap-2 rounded-xl p-6 border border-border bg-card">
-                      <div className="flex items-center gap-2">
-                        <div className={`w-2 h-2 rounded-full ${getScoreColor('CLS', scores.CLS).replace('text-', 'bg-')}`}></div>
-                        <p className="text-sm font-medium text-muted-foreground">CLS (Cumulative Layout Shift)</p>
-                      </div>
-                      <p className="text-4xl font-bold">{scores.CLS.toFixed(3)}</p>
-                      {comparisonData?.clsChange !== undefined && comparisonData.clsChange !== 0 && (
-                        <div className="flex items-center gap-1">
-                          {comparisonData.clsChange < 0 ? (
-                            <>
-                              <TrendingDown className="h-4 w-4 text-green-500" />
-                              <p className="text-sm font-medium text-green-500">
-                                {Math.abs(comparisonData.clsChange).toFixed(3)} ổn định hơn
-                              </p>
-                            </>
-                          ) : (
-                            <>
-                              <TrendingUp className="h-4 w-4 text-red-500" />
-                              <p className="text-sm font-medium text-red-500">
-                                +{comparisonData.clsChange.toFixed(3)} kém ổn định hơn
-                              </p>
-                            </>
-                          )}
-                        </div>
-                      )}
-                    </div>
-
-                    {/* TBT Card */}
-                    <div className="flex flex-col gap-2 rounded-xl p-6 border border-border bg-card">
-                      <div className="flex items-center gap-2">
-                        <div className={`w-2 h-2 rounded-full ${getScoreColor('TBT', scores.TBT).replace('text-', 'bg-')}`}></div>
-                        <p className="text-sm font-medium text-muted-foreground">TBT (Total Blocking Time)</p>
-                      </div>
-                      <p className="text-4xl font-bold">{Math.round(scores.TBT)}<span className="text-lg text-muted-foreground ml-1">ms</span></p>
-                      {comparisonData?.tbtChange !== undefined && comparisonData.tbtChange !== 0 && (
-                        <div className="flex items-center gap-1">
-                          {comparisonData.tbtChange < 0 ? (
-                            <>
-                              <TrendingDown className="h-4 w-4 text-green-500" />
-                              <p className="text-sm font-medium text-green-500">
-                                {Math.abs(comparisonData.tbtChange).toFixed(0)}ms ít hơn
-                              </p>
-                            </>
-                          ) : (
-                            <>
-                              <TrendingUp className="h-4 w-4 text-red-500" />
-                              <p className="text-sm font-medium text-red-500">
-                                +{comparisonData.tbtChange.toFixed(0)}ms nhiều hơn
-                              </p>
-                            </>
-                          )}
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Speed Index Card */}
-                    <div className="flex flex-col gap-2 rounded-xl p-6 border border-border bg-card">
-                      <div className="flex items-center gap-2">
-                        <div className={`w-2 h-2 rounded-full ${getScoreColor('SI', scores.SpeedIndex).replace('text-', 'bg-')}`}></div>
-                        <p className="text-sm font-medium text-muted-foreground">SI (Speed Index)</p>
-                      </div>
-                      <p className="text-4xl font-bold">{Math.round(scores.SpeedIndex)}<span className="text-lg text-muted-foreground ml-1">ms</span></p>
-                      {comparisonData?.siChange !== undefined && comparisonData.siChange !== 0 && (
-                        <div className="flex items-center gap-1">
-                          {comparisonData.siChange < 0 ? (
-                            <>
-                              <TrendingDown className="h-4 w-4 text-green-500" />
-                              <p className="text-sm font-medium text-green-500">
-                                {Math.abs(comparisonData.siChange).toFixed(0)}ms nhanh hơn
-                              </p>
-                            </>
-                          ) : (
-                            <>
-                              <TrendingUp className="h-4 w-4 text-red-500" />
-                              <p className="text-sm font-medium text-red-500">
-                                +{comparisonData.siChange.toFixed(0)}ms chậm hơn
-                              </p>
-                            </>
-                          )}
-                        </div>
-                      )}
-                    </div>
-
-                    {/* TTI Card */}
-                    <div className="flex flex-col gap-2 rounded-xl p-6 border border-border bg-card">
-                      <div className="flex items-center gap-2">
-                        <div className={`w-2 h-2 rounded-full ${getScoreColor('TTI', scores.TimeToInteractive).replace('text-', 'bg-')}`}></div>
-                        <p className="text-sm font-medium text-muted-foreground">TTI (Time to Interactive)</p>
-                      </div>
-                      <p className="text-4xl font-bold">{Math.round(scores.TimeToInteractive)}<span className="text-lg text-muted-foreground ml-1">ms</span></p>
-                      {comparisonData?.ttiChange !== undefined && comparisonData.ttiChange !== 0 && (
-                        <div className="flex items-center gap-1">
-                          {comparisonData.ttiChange < 0 ? (
-                            <>
-                              <TrendingDown className="h-4 w-4 text-green-500" />
-                              <p className="text-sm font-medium text-green-500">
-                                {Math.abs(comparisonData.ttiChange).toFixed(0)}ms nhanh hơn
-                              </p>
-                            </>
-                          ) : (
-                            <>
-                              <TrendingUp className="h-4 w-4 text-red-500" />
-                              <p className="text-sm font-medium text-red-500">
-                                +{comparisonData.ttiChange.toFixed(0)}ms chậm hơn
-                              </p>
-                            </>
-                          )}
-                        </div>
-                      )}
-                    </div>
+                  <div className="mt-4 text-center text-xs text-slate-400">
+                    {new Date(currentAnalysis.scanTime).toLocaleString('vi-VN')}
                   </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="mt-4 w-full bg-slate-800 border-slate-700 text-white hover:bg-slate-700"
+                    onClick={handleUpdateAnalysis}
+                    disabled={updateAnalysisMutation.isPending}
+                  >
+                    <RefreshCcw className={`h-3 w-3 mr-2 ${updateAnalysisMutation.isPending ? 'animate-spin' : ''}`} />
+                    {updateAnalysisMutation.isPending ? "Đang cập nhật..." : "Cập Nhật Kết Quả"}
+                  </Button>
                 </CardContent>
               </Card>
+            </div>
+          )}
 
-              {/* --- BẢNG THÔNG TIN 1 --- */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>Bảng thông tin 1: Đánh giá chung (AI)</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div>
-                    <h4 className="font-semibold">Đánh giá chung</h4>
-                    <p className="text-sm text-muted-foreground bg-secondary p-3 rounded-md mt-1">
-                      {currentAnalysis.analysisCache.generalAssessment}
-                    </p>
-                  </div>
-                  <div>
-                    <h4 className="font-semibold">Đề xuất</h4>
-                    <p className="text-sm text-muted-foreground bg-secondary p-3 rounded-md mt-1">
-                      {currentAnalysis.analysisCache.suggestion}
-                    </p>
-                  </div>
-                </CardContent>
-                {/* SỬA: Nút chỉ hiển thị nếu showDeepDive = false */}
-                {!showDeepDive && (
-                  <CardFooter>
-                    <Button
-                      className="ml-auto"
-                      onClick={handleGenerateDeepDive}
-                      disabled={generateDeepDiveMutation.isPending}
-                    >
-                      {generateDeepDiveMutation.isPending ? "Đang tải..." : "Phân tích chuyên sâu"}
-                    </Button>
-                  </CardFooter>
-                )}
+          {/* Center Column: Metrics and Analysis */}
+          <div className={currentAnalysis && scores ? "lg:col-span-2 space-y-6" : "lg:col-span-3 space-y-6"}>
+            {!currentAnalysis && !analysisMutation.isPending && (
+              <Card className="bg-slate-900 border-slate-800 flex items-center justify-center min-h-[400px]">
+                <p className="text-slate-400 text-center">
+                  👆 Nhập URL ở trên để phân tích website của bạn<br />
+                  hoặc chọn một báo cáo từ lịch sử →
+                </p>
               </Card>
+            )}
 
-              {/* --- BẢNG THÔNG TIN 2 (ẨN/HIỆN) --- */}
-              {(fetchDeepDiveMutation.isPending || generateDeepDiveMutation.isPending || (showDeepDive && deepDiveAnalysis)) && (
-                <Card>
+            {(analysisMutation.isPending || updateAnalysisMutation.isPending) && (
+              <Card className="bg-slate-900 border-slate-800 min-h-[400px] p-6 space-y-4">
+                <Skeleton className="h-8 w-1/2 bg-slate-800" />
+                <div className="grid grid-cols-2 gap-4 pt-4">
+                  <Skeleton className="h-32 bg-slate-800" />
+                  <Skeleton className="h-32 bg-slate-800" />
+                  <Skeleton className="h-32 bg-slate-800" />
+                  <Skeleton className="h-32 bg-slate-800" />
+                </div>
+              </Card>
+            )}
+
+            {currentAnalysis && scores && !analysisMutation.isPending && !updateAnalysisMutation.isPending && (
+              <>
+                {/* Metrics Grid */}
+                <Card className="bg-slate-900 border-slate-800">
                   <CardHeader>
-                    <CardTitle>Bảng thông tin 2: Phân tích chuyên sâu (Elements)</CardTitle>
+                    <CardTitle className="text-white">Chỉ Số Web Cốt Lõi</CardTitle>
+                    <CardDescription className="text-slate-400">
+                      6 chỉ số quan trọng cho <strong>{currentAnalysis.analysisCache.strategy}</strong>
+                    </CardDescription>
                   </CardHeader>
                   <CardContent>
-                    {(fetchDeepDiveMutation.isPending || generateDeepDiveMutation.isPending) && <p>Đang tải dữ liệu chuyên sâu...</p>}
+                    <div className="grid grid-cols-2 gap-4">
+                      {/* LCP */}
+                      <div className="flex flex-col gap-2 rounded-lg p-4 bg-slate-800 border border-slate-700">
+                        <div className="flex items-center gap-2">
+                          <div className={`w-2 h-2 rounded-full ${getScoreColor('LCP', scores.LCP).replace('text-', 'bg-')}`}></div>
+                          <p className="text-xs font-medium text-slate-400">LCP</p>
+                        </div>
+                        <p className="text-2xl font-bold text-white">{Math.round(scores.LCP)}<span className="text-sm text-slate-400 ml-1">ms</span></p>
+                        {comparisonData?.lcpChange !== undefined && comparisonData.lcpChange !== 0 && (
+                          <div className={`flex items-center gap-1 text-xs ${comparisonData.lcpChange < 0 ? 'text-green-500' : 'text-red-500'}`}>
+                            {comparisonData.lcpChange < 0 ? <TrendingDown className="h-3 w-3" /> : <TrendingUp className="h-3 w-3" />}
+                            <span>{Math.abs(comparisonData.lcpChange).toFixed(0)}ms</span>
+                          </div>
+                        )}
+                      </div>
 
-                    {deepDiveAnalysis && deepDiveAnalysis.length > 0 && (
-                      <ScrollArea className="max-h-[600px] overflow-auto border rounded-md">
-                        <Table>
-                          <TableHeader>
-                            <TableRow>
-                              <TableHead>TagName</TableHead>
-                              <TableHead>OuterHTML</TableHead>
-                              <TableHead>Mô tả</TableHead>
-                              <TableHead>Khuyến nghị (AI)</TableHead>
-                            </TableRow>
-                          </TableHeader>
-                          <TableBody>
-                            {deepDiveAnalysis.map(item => (
-                              <TableRow key={item.elementID}>
-                                <TableCell><code className="text-xs">{item.tagName}</code></TableCell>
-                                <TableCell><pre className="text-xs bg-muted p-1 rounded max-w-xs overflow-x-auto"><code>{item.outerHTML}</code></pre></TableCell>
-                                <TableCell className="text-xs">
-                                  {typeof item.description === 'string' ? item.description : (item.description ? "Có vấn đề" : "Đã tối ưu")}
-                                </TableCell>
-                                <TableCell className="text-xs font-medium text-blue-600">
-                                  {typeof item.aiRecommendation === 'string' ? item.aiRecommendation : "Đã phân tích, không cần điều chỉnh"}
-                                </TableCell>
-                              </TableRow>
-                            ))}
-                          </TableBody>
-                        </Table>
-                      </ScrollArea>
-                    )}
-                    {deepDiveAnalysis && deepDiveAnalysis.length === 0 && !fetchDeepDiveMutation.isPending && (
-                      <p className="text-sm text-muted-foreground">Không tìm thấy chi tiết element nào.</p>
-                    )}
+                      {/* FCP */}
+                      <div className="flex flex-col gap-2 rounded-lg p-4 bg-slate-800 border border-slate-700">
+                        <div className="flex items-center gap-2">
+                          <div className={`w-2 h-2 rounded-full ${getScoreColor('FCP', scores.FCP).replace('text-', 'bg-')}`}></div>
+                          <p className="text-xs font-medium text-slate-400">FCP</p>
+                        </div>
+                        <p className="text-2xl font-bold text-white">{Math.round(scores.FCP)}<span className="text-sm text-slate-400 ml-1">ms</span></p>
+                        {comparisonData?.fcpChange !== undefined && comparisonData.fcpChange !== 0 && (
+                          <div className={`flex items-center gap-1 text-xs ${comparisonData.fcpChange < 0 ? 'text-green-500' : 'text-red-500'}`}>
+                            {comparisonData.fcpChange < 0 ? <TrendingDown className="h-3 w-3" /> : <TrendingUp className="h-3 w-3" />}
+                            <span>{Math.abs(comparisonData.fcpChange).toFixed(0)}ms</span>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* CLS */}
+                      <div className="flex flex-col gap-2 rounded-lg p-4 bg-slate-800 border border-slate-700">
+                        <div className="flex items-center gap-2">
+                          <div className={`w-2 h-2 rounded-full ${getScoreColor('CLS', scores.CLS).replace('text-', 'bg-')}`}></div>
+                          <p className="text-xs font-medium text-slate-400">CLS</p>
+                        </div>
+                        <p className="text-2xl font-bold text-white">{scores.CLS.toFixed(3)}</p>
+                        {comparisonData?.clsChange !== undefined && comparisonData.clsChange !== 0 && (
+                          <div className={`flex items-center gap-1 text-xs ${comparisonData.clsChange < 0 ? 'text-green-500' : 'text-red-500'}`}>
+                            {comparisonData.clsChange < 0 ? <TrendingDown className="h-3 w-3" /> : <TrendingUp className="h-3 w-3" />}
+                            <span>{Math.abs(comparisonData.clsChange).toFixed(3)}</span>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* TBT */}
+                      <div className="flex flex-col gap-2 rounded-lg p-4 bg-slate-800 border border-slate-700">
+                        <div className="flex items-center gap-2">
+                          <div className={`w-2 h-2 rounded-full ${getScoreColor('TBT', scores.TBT).replace('text-', 'bg-')}`}></div>
+                          <p className="text-xs font-medium text-slate-400">TBT</p>
+                        </div>
+                        <p className="text-2xl font-bold text-white">{Math.round(scores.TBT)}<span className="text-sm text-slate-400 ml-1">ms</span></p>
+                        {comparisonData?.tbtChange !== undefined && comparisonData.tbtChange !== 0 && (
+                          <div className={`flex items-center gap-1 text-xs ${comparisonData.tbtChange < 0 ? 'text-green-500' : 'text-red-500'}`}>
+                            {comparisonData.tbtChange < 0 ? <TrendingDown className="h-3 w-3" /> : <TrendingUp className="h-3 w-3" />}
+                            <span>{Math.abs(comparisonData.tbtChange).toFixed(0)}ms</span>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* SI */}
+                      <div className="flex flex-col gap-2 rounded-lg p-4 bg-slate-800 border border-slate-700">
+                        <div className="flex items-center gap-2">
+                          <div className={`w-2 h-2 rounded-full ${getScoreColor('SI', scores.SpeedIndex).replace('text-', 'bg-')}`}></div>
+                          <p className="text-xs font-medium text-slate-400">Speed Index</p>
+                        </div>
+                        <p className="text-2xl font-bold text-white">{Math.round(scores.SpeedIndex)}<span className="text-sm text-slate-400 ml-1">ms</span></p>
+                        {comparisonData?.siChange !== undefined && comparisonData.siChange !== 0 && (
+                          <div className={`flex items-center gap-1 text-xs ${comparisonData.siChange < 0 ? 'text-green-500' : 'text-red-500'}`}>
+                            {comparisonData.siChange < 0 ? <TrendingDown className="h-3 w-3" /> : <TrendingUp className="h-3 w-3" />}
+                            <span>{Math.abs(comparisonData.siChange).toFixed(0)}ms</span>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* TTI */}
+                      <div className="flex flex-col gap-2 rounded-lg p-4 bg-slate-800 border border-slate-700">
+                        <div className="flex items-center gap-2">
+                          <div className={`w-2 h-2 rounded-full ${getScoreColor('TTI', scores.TimeToInteractive).replace('text-', 'bg-')}`}></div>
+                          <p className="text-xs font-medium text-slate-400">TTI</p>
+                        </div>
+                        <p className="text-2xl font-bold text-white">{Math.round(scores.TimeToInteractive)}<span className="text-sm text-slate-400 ml-1">ms</span></p>
+                        {comparisonData?.ttiChange !== undefined && comparisonData.ttiChange !== 0 && (
+                          <div className={`flex items-center gap-1 text-xs ${comparisonData.ttiChange < 0 ? 'text-green-500' : 'text-red-500'}`}>
+                            {comparisonData.ttiChange < 0 ? <TrendingDown className="h-3 w-3" /> : <TrendingUp className="h-3 w-3" />}
+                            <span>{Math.abs(comparisonData.ttiChange).toFixed(0)}ms</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
                   </CardContent>
                 </Card>
-              )}
-            </>
-          )}
+
+                {/* AI Assessment */}
+                <Card className="bg-slate-900 border-slate-800">
+                  <CardHeader>
+                    <CardTitle className="text-white">Nhận Xét Từ AI</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div>
+                      <h4 className="font-semibold text-white mb-2">Đánh Giá Chung</h4>
+                      <p className="text-sm text-slate-300 bg-slate-800 p-3 rounded-md">
+                        {currentAnalysis.analysisCache.generalAssessment}
+                      </p>
+                    </div>
+                    <div>
+                      <h4 className="font-semibold text-white mb-2">Khuyến Nghị</h4>
+                      <p className="text-sm text-slate-300 bg-slate-800 p-3 rounded-md">
+                        {currentAnalysis.analysisCache.suggestion}
+                      </p>
+                    </div>
+                  </CardContent>
+                  {!showDeepDive && (
+                    <CardFooter className="border-t border-slate-800">
+                      <Button
+                        className="ml-auto bg-blue-600 hover:bg-blue-700 text-white"
+                        onClick={handleGenerateDeepDive}
+                        disabled={generateDeepDiveMutation.isPending}
+                      >
+                        {generateDeepDiveMutation.isPending ? "Đang phân tích..." : "Phân Tích Chuyên Sâu"}
+                      </Button>
+                    </CardFooter>
+                  )}
+                </Card>
+
+                {/* Deep Dive Analysis */}
+                {(fetchDeepDiveMutation.isPending || generateDeepDiveMutation.isPending || (showDeepDive && deepDiveAnalysis)) && (
+                  <Card className="bg-slate-900 border-slate-800">
+                    <CardHeader>
+                      <CardTitle className="text-white">Phân Tích Chi Tiết Các Phần Tử</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      {(fetchDeepDiveMutation.isPending || generateDeepDiveMutation.isPending) && (
+                        <p className="text-slate-400">Đang phân tích các phần tử trang...</p>
+                      )}
+
+                      {deepDiveAnalysis && deepDiveAnalysis.length > 0 && (
+                        <ScrollArea className="max-h-[500px]">
+                          <Table>
+                            <TableHeader>
+                              <TableRow className="border-slate-800">
+                                <TableHead className="text-slate-300 w-20">Tag</TableHead>
+                                <TableHead className="text-slate-300 w-32">HTML</TableHead>
+                                <TableHead className="text-slate-300 w-48">Mô Tả</TableHead>
+                                <TableHead className="text-slate-300">Khuyến Nghị AI</TableHead>
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                              {deepDiveAnalysis.map(item => (
+                                <TableRow key={item.elementID} className="border-slate-800">
+                                  <TableCell className="w-20"><code className="text-xs text-blue-400">{item.tagName}</code></TableCell>
+                                  <TableCell className="w-32"><pre className="text-xs bg-slate-800 p-1 rounded max-w-[8rem] overflow-x-auto text-slate-300"><code>{item.outerHTML}</code></pre></TableCell>
+                                  <TableCell className="text-xs text-slate-300 w-48">
+                                    {typeof item.description === 'string' ? item.description : (item.description ? "Có vấn đề" : "Đã tối ưu")}
+                                  </TableCell>
+                                  <TableCell className="text-xs font-medium text-blue-400">
+                                    {typeof item.aiRecommendation === 'string' ? item.aiRecommendation : "Không cần điều chỉnh"}
+                                  </TableCell>
+                                </TableRow>
+                              ))}
+                            </TableBody>
+                          </Table>
+                        </ScrollArea>
+                      )}
+                      {deepDiveAnalysis && deepDiveAnalysis.length === 0 && !fetchDeepDiveMutation.isPending && (
+                        <p className="text-sm text-slate-400">Không tìm thấy chi tiết phần tử nào.</p>
+                      )}
+                    </CardContent>
+                  </Card>
+                )}
+              </>
+            )}
+          </div>
+
+          {/* Right Column: History Sidebar */}
+          <div className="lg:col-span-1">
+            <Card className="bg-slate-900 border-slate-800 sticky top-6">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-white">
+                  <History className="h-5 w-5" /> Lịch Sử
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ScrollArea className="h-[600px]">
+                  {historyQuery.isLoading && <p className="text-slate-400">Đang tải lịch sử...</p>}
+                  {historyQuery.data && historyQuery.data.data && historyQuery.data.data.items.length > 0 ? (
+                    <div className="space-y-2">
+                      {historyQuery.data.data.items.map((item: HistoryItem) => (
+                        <div
+                          key={item.scanHistoryID}
+                          className="p-3 rounded-lg bg-slate-800 border border-slate-700 hover:border-blue-500 cursor-pointer transition-colors"
+                          onClick={() => handleLoadFromHistory(item.scanHistoryID)}
+                        >
+                          <p className="font-semibold text-sm text-white truncate">{item.analysisCache.normalizedUrl}</p>
+                          <p className="text-xs text-slate-400 mt-1">{new Date(item.scanTime).toLocaleString('vi-VN')}</p>
+                          {singleReportMutation.isPending && singleReportMutation.variables === item.scanHistoryID && (
+                            <p className="text-xs text-blue-400 mt-1">Đang tải...</p>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    !historyQuery.isLoading && <p className="text-sm text-slate-400 text-center py-4">Chưa có lịch sử</p>
+                  )}
+                </ScrollArea>
+              </CardContent>
+            </Card>
+          </div>
         </div>
       </div>
     </div>
   );
 }
+
