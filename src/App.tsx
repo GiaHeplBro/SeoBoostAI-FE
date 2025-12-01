@@ -123,7 +123,8 @@ function App() {
           {user && user.role === 'Admin' ? (
             <AdminPageNew onLogout={handleLogout} />
           ) : user ? (
-            <Redirect to="/dashboard" />
+            // Có login nhưng không phải Admin -> về trang của họ
+            user.role === 'Staff' ? <Redirect to="/staff" /> : <Redirect to="/dashboard" />
           ) : (
             <Redirect to="/login" />
           )}
@@ -134,7 +135,8 @@ function App() {
           {user && user.role === 'Staff' ? (
             <StaffPageNew onLogout={handleLogout} />
           ) : user ? (
-            <Redirect to="/dashboard" />
+            // Có login nhưng không phải Staff -> về trang của họ
+            user.role === 'Admin' ? <Redirect to="/admin" /> : <Redirect to="/dashboard" />
           ) : (
             <Redirect to="/login" />
           )}
@@ -151,13 +153,21 @@ function App() {
             <Auth onLoginSuccess={handleLoginSuccess} />
           )}
         </Route>
-        {/* Member routes - Cần đăng nhập */}
+
+        {/* Member routes - CHỈ MEMBER MỚI ĐƯỢC VÀO */}
         <Route>
-          {user && user.role === 'Member' ? (
-            <MainAppLayout onLogout={handleLogout} user={user} />
-          ) : user ? (
-            // Nếu là Admin/Staff mà vào member routes -> redirect về trang của họ
-            user.role === 'Admin' ? <Redirect to="/admin" /> : <Redirect to="/staff" />
+          {user ? (
+            // ✅ FIX: Kiểm tra CHÍNH XÁC role
+            user.role === 'Member' ? (
+              <MainAppLayout onLogout={handleLogout} user={user} />
+            ) : user.role === 'Admin' ? (
+              <Redirect to="/admin" />
+            ) : user.role === 'Staff' ? (
+              <Redirect to="/staff" />
+            ) : (
+              // Role không hợp lệ -> logout
+              <Redirect to="/login" />
+            )
           ) : (
             // Chưa đăng nhập -> về login
             <Redirect to="/login" />
