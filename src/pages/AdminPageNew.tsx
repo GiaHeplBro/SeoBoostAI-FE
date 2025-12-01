@@ -89,9 +89,9 @@ interface User {
 }
 
 // =====================================================
-// 🧩 STAFF PAGE COMPONENT
+// 🧩 ADMIN PAGE COMPONENT
 // =====================================================
-function StaffPage({ onLogout }: { onLogout: () => void }) {
+function AdminPage({ onLogout }: { onLogout: () => void }) {
     const queryClient = useQueryClient();
     const { toast } = useToast();
 
@@ -118,7 +118,7 @@ function StaffPage({ onLogout }: { onLogout: () => void }) {
 
     // ==================== QUERIES ====================
     const { data: usersData, isLoading: loadingUsers } = useQuery({
-        queryKey: ["staffUsers"],
+        queryKey: ["adminUsers"],
         queryFn: () => staffApi.getAllUsers(),
     });
 
@@ -145,7 +145,7 @@ function StaffPage({ onLogout }: { onLogout: () => void }) {
 
     // Feedbacks query
     const { data: feedbacksData, isLoading: loadingFeedbacks } = useQuery<FeedbackWithMessages[]>({
-        queryKey: ["staffFeedbacks", feedbackStatusFilter, feedbackEmailFilter, feedbackTimeSort],
+        queryKey: ["adminFeedbacks", feedbackStatusFilter, feedbackEmailFilter, feedbackTimeSort],
         queryFn: () => staffApi.getFeedbacksWithFilters({
             status: feedbackStatusFilter === "Both" ? undefined : feedbackStatusFilter,
             email: feedbackEmailFilter || undefined,
@@ -161,7 +161,7 @@ function StaffPage({ onLogout }: { onLogout: () => void }) {
             staffApi.banUser(userId, { isBanned, reason }),
         onSuccess: () => {
             toast({ title: "✅ Thành công", description: "Đã cập nhật trạng thái ban" });
-            queryClient.invalidateQueries({ queryKey: ["staffUsers"] });
+            queryClient.invalidateQueries({ queryKey: ["adminUsers"] });
         },
         onError: () => toast({ title: "❌ Lỗi", description: "Không thể ban/unban user" }),
     });
@@ -173,9 +173,9 @@ function StaffPage({ onLogout }: { onLogout: () => void }) {
             toast({ title: "✅ Thành công", description: "Đã gửi reply" });
             setReplyContent("");
             // Refetch feedbacks để lấy data mới
-            await queryClient.invalidateQueries({ queryKey: ["staffFeedbacks"] });
+            await queryClient.invalidateQueries({ queryKey: ["adminFeedbacks"] });
             // Tìm feedback vừa reply và update selectedFeedback
-            const updatedFeedbacks = queryClient.getQueryData<any[]>(["staffFeedbacks"]);
+            const updatedFeedbacks = queryClient.getQueryData<any[]>(["adminFeedbacks"]);
             if (updatedFeedbacks) {
                 const updatedFeedback = updatedFeedbacks.find(f => f.feedbackID === variables.feedbackId);
                 if (updatedFeedback) {
@@ -192,14 +192,14 @@ function StaffPage({ onLogout }: { onLogout: () => void }) {
             staffApi.updateFeedbackStatus(feedbackId, { status }),
         onSuccess: () => {
             toast({ title: "✅ Thành công", description: "Đã cập nhật status" });
-            queryClient.invalidateQueries({ queryKey: ["staffFeedbacks"] });
+            queryClient.invalidateQueries({ queryKey: ["adminFeedbacks"] });
         },
         onError: () => toast({ title: "❌ Lỗi", description: "Không thể cập nhật status" }),
     });
 
     // ==================== HANDLERS ====================
     const handleBan = (userId: number, isBanned: boolean) => {
-        const reason = isBanned ? prompt("Lý do ban user:") : undefined;
+        const reason = isBanned ? prompt("Lý do ban user:") ?? undefined : undefined;
         if (isBanned && !reason) return;
         banMutation.mutate({ userId, isBanned, reason });
     };
@@ -238,7 +238,7 @@ function StaffPage({ onLogout }: { onLogout: () => void }) {
             <aside className="fixed left-0 top-0 h-full w-64 bg-gray-900 text-white p-6 shadow-lg flex flex-col">
                 <div className="flex-grow">
                     <h2 className="text-2xl font-bold mb-8 flex items-center gap-2">
-                        <Users className="text-blue-400" /> Staff Panel
+                        <Users className="text-blue-400" /> Admin Panel
                     </h2>
                     <nav className="flex flex-col space-y-2">
                         <Button variant="ghost" className="text-white justify-start gap-2" onClick={() => scrollTo(usersRef)}>
@@ -746,10 +746,11 @@ function StaffPage({ onLogout }: { onLogout: () => void }) {
     );
 }
 
-export default function StaffPageWrapper({ onLogout }: { onLogout: () => void }) {
+export default function AdminPageWrapper({ onLogout }: { onLogout: () => void }) {
     return (
         <QueryClientProvider client={queryClient}>
-            <StaffPage onLogout={onLogout} />
+            <AdminPage onLogout={onLogout} />
         </QueryClientProvider>
     );
 }
+

@@ -11,7 +11,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-// Đảm bảo bạn đã import đúng instance axios của bạn
 import api from '@/axiosInstance';
 
 interface UserProfile {
@@ -25,13 +24,23 @@ interface UserProfile {
 
 const Auth: React.FC<{ onLoginSuccess: (user: UserProfile) => void }> = ({ onLoginSuccess }) => {
   const [, setLocation] = useLocation();
-
-  // State quan trọng: Kiểm tra xem đang ở chế độ Member hay Admin/Staff
   const [isAdminMode, setIsAdminMode] = useState(false);
 
-  // --- 1. LOGIC CHO MEMBER (GIỮ NGUYÊN) ---
+  // --- 1. LOGIC CHO MEMBER ---
   const handleMemberLoginSuccess = async (credentialResponse: CredentialResponse) => {
     if (!credentialResponse.credential) return;
+
+    // ✅ LOG TOKEN ĐỂ TEST BACKEND
+    console.log("╔══════════════════════════════════════════════════════════");
+    console.log("║ GOOGLE ID TOKEN (Member)");
+    console.log("╠══════════════════════════════════════════════════════════");
+    console.log(credentialResponse.credential);
+    console.log("╠══════════════════════════════════════════════════════════");
+    console.log("║ ➤ Copy token này để test với Postman/Backend");
+    console.log("║ ➤ Endpoint Member: POST /authen/login-member");
+    console.log("║ ➤ Body: JSON.stringify(token)");
+    console.log("║ ➤ Headers: Content-Type: application/json");
+    console.log("╚══════════════════════════════════════════════════════════");
 
     try {
       const response = await api.post(
@@ -41,7 +50,6 @@ const Auth: React.FC<{ onLoginSuccess: (user: UserProfile) => void }> = ({ onLog
       );
 
       if (response.data && response.data.success && response.data.accessToken) {
-        // Member login thành công -> gọi callback để App.tsx xử lý điều hướng
         saveUserAndNotify(response.data, 'Member');
       } else {
         alert("Lỗi đăng nhập Member: " + (response.data?.message || "Unknown error"));
@@ -52,11 +60,24 @@ const Auth: React.FC<{ onLoginSuccess: (user: UserProfile) => void }> = ({ onLog
     }
   };
 
-  // --- 2. LOGIC CHO ADMIN VÀ STAFF (MỚI) ---
+  // --- 2. LOGIC CHO ADMIN VÀ STAFF ---
   const handleAdminStaffLoginSuccess = async (credentialResponse: CredentialResponse) => {
     if (!credentialResponse.credential) return;
     const credential = credentialResponse.credential;
     const headers = { headers: { 'Content-Type': 'application/json' } };
+
+    // ✅ LOG TOKEN ĐỂ TEST BACKEND
+    console.log("╔══════════════════════════════════════════════════════════");
+    console.log("║ GOOGLE ID TOKEN (Admin/Staff)");
+    console.log("╠══════════════════════════════════════════════════════════");
+    console.log(credential);
+    console.log("╠══════════════════════════════════════════════════════════");
+    console.log("║ ➤ Copy token này để test với Postman/Backend");
+    console.log("║ ➤ Endpoint Admin: POST /authen/login-admin");
+    console.log("║ ➤ Endpoint Staff: POST /authen/login-staff");
+    console.log("║ ➤ Body: JSON.stringify(token)");
+    console.log("║ ➤ Headers: Content-Type: application/json");
+    console.log("╚══════════════════════════════════════════════════════════");
 
     try {
       // BƯỚC 1: Thử đăng nhập vào cổng ADMIN
@@ -81,7 +102,6 @@ const Auth: React.FC<{ onLoginSuccess: (user: UserProfile) => void }> = ({ onLog
         // Cả 2 đều lỗi
         alert("Tài khoản này không có quyền truy cập Admin hoặc Staff.");
       }
-
     } catch (error) {
       console.error('System Error:', error);
       alert('Lỗi hệ thống.');
@@ -99,7 +119,6 @@ const Auth: React.FC<{ onLoginSuccess: (user: UserProfile) => void }> = ({ onLog
     localStorage.setItem('tokens', btoa(encodeURIComponent(JSON.stringify({ accessToken, refreshToken }))));
 
     // Gọi hàm onLoginSuccess được truyền từ App.tsx
-    // App.tsx sẽ lo việc điều hướng (navigate) dựa trên role
     onLoginSuccess(userToStore);
   };
 
@@ -115,7 +134,6 @@ const Auth: React.FC<{ onLoginSuccess: (user: UserProfile) => void }> = ({ onLog
 
         <CardHeader className="text-center">
           <div className="flex items-center justify-center gap-2 mb-4">
-            {/* Đổi Icon tùy theo chế độ */}
             {isAdminMode ? (
               <Shield className="h-8 w-8 text-red-400 drop-shadow-[0_0_8px_rgba(248,113,113,0.8)]" />
             ) : (
@@ -133,11 +151,10 @@ const Auth: React.FC<{ onLoginSuccess: (user: UserProfile) => void }> = ({ onLog
 
         <CardContent>
           <div className="flex justify-center py-4">
-            {/* Nút Google Login sẽ gọi hàm khác nhau tùy vào biến isAdminMode */}
             <GoogleLogin
               onSuccess={isAdminMode ? handleAdminStaffLoginSuccess : handleMemberLoginSuccess}
               onError={() => alert('Login Failed')}
-              useOneTap={!isAdminMode} // Tắt OneTap khi ở chế độ Admin
+              useOneTap={!isAdminMode}
               theme="filled_black"
               shape="pill"
               width="300"
@@ -152,7 +169,6 @@ const Auth: React.FC<{ onLoginSuccess: (user: UserProfile) => void }> = ({ onLog
             <div className="relative flex justify-center"><span className="bg-transparent px-2 text-xs text-gray-400 uppercase">Or</span></div>
           </div>
 
-          {/* Nút bấm chuyển đổi chế độ - Đã sửa onClick */}
           <button
             type="button"
             onClick={() => setIsAdminMode(!isAdminMode)}
