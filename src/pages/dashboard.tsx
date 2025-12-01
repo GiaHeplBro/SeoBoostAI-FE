@@ -1,621 +1,387 @@
 import { useState } from "react";
-import { useQuery } from '@tanstack/react-query'; // Thêm import
-import axios from 'axios'; // Import axios
-import api from '@/axiosInstance'; // Thêm import
-
+import { useQuery } from '@tanstack/react-query';
+import api from '@/axiosInstance';
+import { Link } from "wouter";
 import {
-  BarChart,
-  TrendingUp,
-  Search,
-  FileText,
-  Globe,
-  Link,
-  ArrowUpRight,
   Sparkles,
-  AlertTriangle,
+  TrendingUp,
+  Wallet,
+  BookOpen,
+  Calculator,
+  Info,
+  ShoppingCart,
+  Gift,
+  Zap,
+  FileText,
 } from "lucide-react";
 import {
   Card,
   CardContent,
   CardDescription,
-  CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Input } from "@/components/ui/input";
 
-interface TopRankingKeyword {
-  keyword_name: string;
-  rank: number;
-  search_volume: number;
+// Types
+interface FeatureQuota {
+  featureId: number;
+  featureName: string;
+  freeUsage: number;
+  freeLimit: number;
+  freeRemaining: number;
+  paidRemaining: number;
+  totalRemaining: number;
 }
 
-interface KeywordData {
-  id: number;
-  keywordName: string;
-  position: number;
-  searchVolume: number;
-  difficulty: number;
-  // Giả sử có thêm trường 'change'
-  change?: number;
+interface WalletData {
+  walletID: number;
+  userID: number;
+  currency: number;
 }
 
-const fetchKeywords = async (): Promise<KeywordData[]> => {
-  // Giả định API của trang Keyword Analysis là /Keywords
-  const { data } = await api.get('/Keywords');
+// Fetch functions
+const fetchQuotas = async (): Promise<FeatureQuota[]> => {
+  const { data } = await api.get('/user-monthly-free-quotas/quota');
   return data;
 };
 
-const fetchTopRankings = async (): Promise<TopRankingKeyword[]> => {
-  const response = await axios.post('https://seo-flask-api.azurewebsites.net/top-ranking');
-  // API trả về object có chứa mảng "items"
-  return response.data.items || [];
+const fetchWallet = async (): Promise<WalletData> => {
+  const { data } = await api.get('/Wallets/user');
+  return data;
 };
 
-
-// Mock data for dashboard
-const websitePerformance = {
-  score: 72,
-  change: "+6%",
-  trend: "up",
+// Icon mapping cho features
+const featureIcons: { [key: string]: any } = {
+  "ContentOptimizations": FileText,
+  "TrendSearches": TrendingUp,
+  "PerformanceAnalysis": Zap,
 };
 
-const keywordPerformance = [
-  {
-    keyword: "content optimization",
-    position: 4,
-    change: 2,
-    searchVolume: 8500,
-  },
-  {
-    keyword: "seo tools online",
-    position: 7,
-    change: 3,
-    searchVolume: 12300,
-  },
-  {
-    keyword: "keyword research",
-    position: 9,
-    change: -1,
-    searchVolume: 22800,
-  },
-  {
-    keyword: "on page seo",
-    position: 12,
-    change: 4,
-    searchVolume: 6700,
-  },
-  {
-    keyword: "seo optimization platform",
-    position: 2,
-    change: 5,
-    searchVolume: 3200,
-  },
-];
-
-const recentAudits = [
-  {
-    url: "https://example.com/blog",
-    score: 85,
-    issues: 4,
-    date: "Today",
-  },
-  {
-    url: "https://example.com/services",
-    score: 68,
-    issues: 12,
-    date: "Yesterday",
-  },
-  {
-    url: "https://example.com/about",
-    score: 92,
-    issues: 1,
-    date: "May 12, 2023",
-  },
-];
-
-const seoAlerts = [
-  {
-    type: "critical",
-    message: "5 pages with missing meta descriptions",
-    date: "2 hours ago",
-  },
-  {
-    type: "warning",
-    message: "Organic traffic decreased by 5% this week",
-    date: "1 day ago",
-  },
-  {
-    type: "info",
-    message: "Google updated its core algorithm",
-    date: "3 days ago",
-  },
-];
+// Vietnamese name mapping
+const featureNames: { [key: string]: string } = {
+  "ContentOptimizations": "Tối ưu nội dung",
+  "TrendSearches": "Phân tích xu hướng",
+  "PerformanceAnalysis": "Phân tích hiệu suất",
+};
 
 export default function Dashboard() {
-  const [searchUrl, setSearchUrl] = useState("");
-
-  const {
-    data: topKeywords,
-    isLoading,
-    isError
-  } = useQuery({
-    queryKey: ['topRankings'], // Đặt một key mới cho query này
-    queryFn: fetchTopRankings, // Gọi hàm mới
+  const { data: quotas, isLoading: loadingQuotas } = useQuery({
+    queryKey: ['userQuotas'],
+    queryFn: fetchQuotas,
   });
 
-  // Dữ liệu giả cho các phần khác của dashboard (bạn có thể thay thế sau)
-  const websitePerformance = { score: 72, change: "+6%", trend: "up" as const };
+  const { data: wallet, isLoading: loadingWallet } = useQuery({
+    queryKey: ['wallet'],
+    queryFn: fetchWallet,
+  });
 
   return (
     <div className="space-y-6">
+      {/* Header */}
       <div className="flex flex-col gap-2">
-        <h1 className="text-3xl font-bold">Trang chủ</h1>
+        <h1 className="text-3xl font-bold">Dashboard</h1>
         <p className="text-gray-500 dark:text-gray-400">
-          Tổng quan về hiệu suất SEO và các cơ hội tối ưu hóa của bạn
+          Quản lý quota, ví và theo dõi hoạt động của bạn
         </p>
       </div>
 
-      {/* Quick Analysis Card */}
-      <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950 dark:to-indigo-950 border-none shadow-sm">
+      {/* Wallet Card */}
+      <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950 dark:to-indigo-950 border-none shadow-lg">
         <CardContent className="p-6">
-          <div className="grid gap-6 md:grid-cols-2">
-            <div>
-              <h2 className="text-xl font-semibold mb-2">
-                Phân tích Website nhanh
-              </h2>
-              <p className="text-gray-600 dark:text-gray-400 mb-4">
-                Nhập bất kỳ URL nào để nhận ngay phân tích SEO và đề xuất tối ưu hóa
-              </p>
-              <div className="flex space-x-2">
-                <div className="relative flex-1">
-                  <Globe className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    className="pl-9"
-                    placeholder="https://example.com"
-                    value={searchUrl}
-                    onChange={(e) => setSearchUrl(e.target.value)}
-                  />
-                </div>
-                <Button>Phân tích</Button>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="bg-white dark:bg-gray-800 p-4 rounded-full shadow-md">
+                <Wallet className="h-8 w-8 text-blue-600" />
+              </div>
+              <div>
+                <p className="text-sm text-gray-600 dark:text-gray-400">Số dư ví</p>
+                <h2 className="text-4xl font-bold text-blue-600">
+                  {loadingWallet ? (
+                    <span className="text-2xl">Đang tải...</span>
+                  ) : (
+                    `${wallet?.currency.toLocaleString("vi-VN")} VNĐ`
+                  )}
+                </h2>
               </div>
             </div>
-            <div className="flex items-center justify-center md:justify-end">
-              <div className="flex items-center space-x-8">
-                <div className="text-center">
-                  <div className="text-3xl font-bold text-blue-600">25k+</div>
-                  <div className="text-sm text-gray-500 dark:text-gray-400">
-                    Từ khóa được theo dõi
-                  </div>
-                </div>
-                <div className="text-center">
-                  <div className="text-3xl font-bold text-indigo-600">150+</div>
-                  <div className="text-sm text-gray-500 dark:text-gray-400">
-                    Trang web được phân tích
-                  </div>
-                </div>
-                <div className="text-center">
-                  <div className="text-3xl font-bold text-purple-600">92%</div>
-                  <div className="text-sm text-gray-500 dark:text-gray-400">
-                    Tỷ lệ thành công
-                  </div>
-                </div>
-              </div>
-            </div>
+            <Link href="/pricing">
+              <Button size="lg" className="bg-blue-600 hover:bg-blue-700">
+                <ShoppingCart className="h-5 w-5 mr-2" />
+                Mua thêm quota
+              </Button>
+            </Link>
           </div>
         </CardContent>
       </Card>
 
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Điểm Website</CardTitle>
-            <div
-              className={`${websitePerformance.trend === "up" ? "text-green-600" : "text-red-600"} flex items-center text-xs font-medium`}
-            >
-              {websitePerformance.trend === "up" ? (
-                <TrendingUp className="h-4 w-4 mr-1 text-green-600" />
-              ) : (
-                <TrendingUp className="h-4 w-4 mr-1 text-red-600 transform rotate-180" />
-              )}
-              {websitePerformance.change}
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="relative pt-2">
-              <div className="text-3xl font-bold">
-                {websitePerformance.score}/100
-              </div>
-              <div className="text-xs text-muted-foreground mt-1">
-                Hiệu suất Website
+      {/* Feature Quotas */}
+      <div>
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h2 className="text-2xl font-bold">Quota chức năng</h2>
+            <p className="text-sm text-gray-600 dark:text-gray-400">
+              Theo dõi số lần sử dụng miễn phí và đã mua
+            </p>
+          </div>
+        </div>
 
-              </div>
-              <Progress value={websitePerformance.score} className="h-2 mt-3" />
-            </div>
-          </CardContent>
-        </Card>
+        {loadingQuotas ? (
+          <div className="grid gap-6 md:grid-cols-3">
+            {[1, 2, 3].map((i) => (
+              <Card key={i} className="animate-pulse">
+                <CardHeader className="h-24 bg-gray-100 dark:bg-gray-800 rounded-t-lg"></CardHeader>
+                <CardContent className="h-40 bg-gray-50 dark:bg-gray-900"></CardContent>
+              </Card>
+            ))}
+          </div>
+        ) : (
+          <div className="grid gap-6 md:grid-cols-3">
+            {quotas?.map((quota) => {
+              const Icon = featureIcons[quota.featureName] || Sparkles;
+              const freePercentage = (quota.freeUsage / quota.freeLimit) * 100;
+              const totalPercentage = Math.min((quota.totalRemaining / (quota.freeLimit + quota.paidRemaining + quota.freeUsage)) * 100, 100);
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Từ khóa trong Top 10
-            </CardTitle>
-            <Search className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold">24</div>
-            <div className="text-xs text-muted-foreground mt-1">
-              <span className="text-green-600 font-medium">+3 từ khóa</span>{" "}
-              kể từ tháng trước
-            </div>
-            <Progress value={24} max={50} className="h-2 mt-3" />
-          </CardContent>
-        </Card>
-
-        {/* <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Backlinks</CardTitle>
-            <Link className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold">2,417</div>
-            <div className="text-xs text-muted-foreground mt-1">
-              <span className="text-green-600 font-medium">+89 links</span> since last month
-            </div>
-            <Progress value={72} className="h-2 mt-3" />
-          </CardContent>
-        </Card> */}
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Điểm nội dung</CardTitle>
-            <FileText className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold">78/100</div>
-            <div className="text-xs text-muted-foreground mt-1">
-              <span className="text-green-600 font-medium">+12 điểm</span>{" "}
-              với tối ưu hóa AI
-            </div>
-            <Progress value={78} className="h-2 mt-3" />
-          </CardContent>
-        </Card>
-      </div>
-
-      <Tabs defaultValue="keywords" className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="keywords">Xếp hạng từ khóa</TabsTrigger>
-          {/* <TabsTrigger value="audits">Recent Audits</TabsTrigger>
-          <TabsTrigger value="alerts">SEO Alerts</TabsTrigger> */}
-        </TabsList>
-
-        <TabsContent value="keywords" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <div className="flex justify-between items-center">
-                <div>
-                  <CardTitle>Xếp hạng từ khóa hàng đầu</CardTitle>
-                  <CardDescription>
-                    Hiệu suất của các từ khóa hàng đầu của bạn trong kết quả tìm kiếm
-                  </CardDescription>
-                </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="flex items-center gap-2"
-                >
-                  <BarChart className="h-4 w-4" />
-                  <span>View All</span>
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Từ khóa</TableHead>
-                    <TableHead className="text-center">Xếp hạng</TableHead>
-                    <TableHead className="text-center">Khối lượng tìm kiếm</TableHead>
-                    <TableHead className="text-right">Thao tác</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {/* SỬA Ở ĐÂY 4: Cập nhật logic hiển thị bảng */}
-                  {isLoading ? (
-                    <TableRow>
-                      <TableCell colSpan={4} className="text-center py-8">Loading top keywords...</TableCell>
-                    </TableRow>
-                  ) : isError ? (
-                    <TableRow>
-                      <TableCell colSpan={4} className="text-center py-8 text-red-500">Failed to load data.</TableCell>
-                    </TableRow>
-                  ) : (
-                    topKeywords?.map((keyword, index) => (
-                      <TableRow key={index}>
-                        <TableCell className="font-medium">
-                          {keyword.keyword_name}
-                        </TableCell>
-                        <TableCell className="text-center">
-                          <Badge
-                            variant={
-                              keyword.rank <= 3
-                                ? "default"
-                                : keyword.rank <= 10
-                                  ? "outline"
-                                  : "secondary"
-                            }
-                          >
-                            {keyword.rank}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-center">
-                          {keyword.search_volume.toLocaleString()}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <Button variant="ghost" size="sm">
-                            <ArrowUpRight className="h-4 w-4" />
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* <TabsContent value="audits" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <div className="flex justify-between items-center">
-                <div>
-                  <CardTitle>Recent Website Audits</CardTitle>
-                  <CardDescription>
-                    Results from your most recent SEO audits
-                  </CardDescription>
-                </div>
-                <Button variant="outline" size="sm">
-                  View All Audits
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="grid gap-4 md:grid-cols-3">
-                {recentAudits.map((audit, index) => (
-                  <Card key={index} className="border">
-                    <CardHeader className="pb-2">
-                      <CardTitle className="text-base flex items-center justify-between">
-                        <span className="truncate mr-2">
-                          {audit.url.replace("https://", "")}
-                        </span>
-                        <Badge
-                          variant={
-                            audit.score > 80
-                              ? "outline"
-                              : audit.score > 60
-                                ? "secondary"
-                                : "destructive"
-                          }
-                          className={
-                            audit.score > 80
-                              ? "bg-green-50 text-green-700 border-green-200"
-                              : ""
-                          }
-                        >
-                          {audit.score}/100
-                        </Badge>
-                      </CardTitle>
-                      <CardDescription>{audit.date}</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="space-y-2">
-                        <div className="flex justify-between text-sm">
-                          <span>Issues detected:</span>
-                          <span
-                            className={
-                              audit.issues > 5
-                                ? "text-amber-600 font-medium"
-                                : "font-medium"
-                            }
-                          >
-                            {audit.issues}{" "}
-                            {audit.issues === 1 ? "issue" : "issues"}
-                          </span>
+              return (
+                <Card key={quota.featureId} className="hover:shadow-lg transition-shadow">
+                  <CardHeader>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="bg-blue-50 dark:bg-blue-900 p-3 rounded-lg">
+                          <Icon className="h-6 w-6 text-blue-600" />
                         </div>
-                        <Progress
-                          value={100 - audit.issues * 5}
-                          className="h-1.5"
-                        />
+                        <CardTitle className="text-lg">
+                          {featureNames[quota.featureName] || quota.featureName}
+                        </CardTitle>
                       </div>
-                    </CardContent>
-                    <CardFooter className="pt-0">
-                      <Button variant="ghost" size="sm" className="w-full">
-                        View Details
-                      </Button>
-                    </CardFooter>
-                  </Card>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent> */}
-
-        {/* <TabsContent value="alerts" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <div className="flex justify-between items-center">
-                <div>
-                  <CardTitle>SEO Alerts & Notifications</CardTitle>
-                  <CardDescription>
-                    Important updates and issues that need your attention
-                  </CardDescription>
-                </div>
-                <Button variant="outline" size="sm">
-                  Clear All
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {seoAlerts.map((alert, index) => (
-                  <div
-                    key={index}
-                    className="flex items-start space-x-4 p-3 border rounded-lg"
-                  >
-                    <div
-                      className={`
-                      p-2 rounded-full flex-shrink-0
-                      ${
-                        alert.type === "critical"
-                          ? "bg-red-100"
-                          : alert.type === "warning"
-                            ? "bg-amber-100"
-                            : "bg-blue-100"
-                      }
-                    `}
-                    >
-                      {alert.type === "critical" ? (
-                        <AlertTriangle className="h-5 w-5 text-red-600" />
-                      ) : alert.type === "warning" ? (
-                        <AlertTriangle className="h-5 w-5 text-amber-600" />
-                      ) : (
-                        <Globe className="h-5 w-5 text-blue-600" />
-                      )}
                     </div>
-                    <div className="flex-1">
-                      <div className="flex justify-between items-start">
-                        <h4
-                          className={`font-medium ${
-                            alert.type === "critical"
-                              ? "text-red-900"
-                              : alert.type === "warning"
-                                ? "text-amber-900"
-                                : "text-blue-900"
-                          }`}
-                        >
-                          {alert.type === "critical"
-                            ? "Critical Issue"
-                            : alert.type === "warning"
-                              ? "Warning"
-                              : "Information"}
-                        </h4>
-                        <span className="text-xs text-gray-500">
-                          {alert.date}
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    {/* Free Quota */}
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between text-sm">
+                        <div className="flex items-center gap-2">
+                          <Gift className="h-4 w-4 text-green-600" />
+                          <span className="font-medium">Miễn phí</span>
+                        </div>
+                        <Badge variant="outline" className="text-green-600 border-green-600">
+                          {quota.freeRemaining}/{quota.freeLimit}
+                        </Badge>
+                      </div>
+                      <Progress value={freePercentage} className="h-2 bg-gray-200" />
+                      <p className="text-xs text-gray-500">
+                        Đã dùng: {quota.freeUsage} lần
+                      </p>
+                    </div>
+
+                    {/* Paid Quota */}
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between text-sm">
+                        <div className="flex items-center gap-2">
+                          <Zap className="h-4 w-4 text-blue-600" />
+                          <span className="font-medium">Đã mua</span>
+                        </div>
+                        <Badge variant="outline" className="text-blue-600 border-blue-600">
+                          {quota.paidRemaining} lần
+                        </Badge>
+                      </div>
+                    </div>
+
+                    {/* Total Remaining */}
+                    <div className="pt-3 border-t">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-semibold">Tổng còn lại:</span>
+                        <span className="text-2xl font-bold text-blue-600">
+                          {quota.totalRemaining}
                         </span>
                       </div>
-                      <p className="text-sm mt-1">{alert.message}</p>
                     </div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-            <CardFooter className="flex justify-between">
-              <div className="text-sm text-muted-foreground">
-                Showing 3 of 12 alerts
-              </div>
-              <Button variant="ghost" size="sm">
-                View All Alerts
-              </Button>
-            </CardFooter>
-          </Card>
-        </TabsContent> */}
-      </Tabs>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        )}
+      </div>
 
-      <div className="grid gap-6 md:grid-cols-2">
-        <Card>
+      {/* Quick Stats */}
+      <div className="grid gap-6 md:grid-cols-3">
+        <Card className="bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950 dark:to-emerald-950">
           <CardHeader>
-            <div className="flex justify-between items-center">
-              <CardTitle>Cơ hội tối ưu hóa</CardTitle>
-              <Badge className="bg-blue-50 border-blue-200 text-blue-700">
-                + 4
-              </Badge>
-            </div>
-            <CardDescription>
-              Những thao tác nhanh chóng để cải thiện hiệu suất SEO của bạn
-            </CardDescription>
+            <CardTitle className="flex items-center gap-2 text-green-700 dark:text-green-400">
+              <Gift className="h-5 w-5" />
+              Quota miễn phí tháng này
+            </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-3">
-              {[
-                "Tối ưu hóa thẻ tiêu đề trên 7 trang wed",
-                "Sửa 12 liên kết nội bộ bị hỏng",
-                "Cải thiện tốc độ tải trang trên thiết bị di động",
-                "Thêm đánh dấu lược đồ vào trang sản phẩm",
-              ].map((suggestion, i) => (
-                <div
-                  key={i}
-                  className="flex items-center justify-between p-2 border rounded hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer"
-                >
-                  <div className="flex items-center">
-                    <div className="bg-blue-50 p-2 rounded mr-3">
-                      <Sparkles className="h-4 w-4 text-blue-600" />
-                    </div>
-                    <span>{suggestion}</span>
-                  </div>
-                  <ArrowUpRight className="h-4 w-4 text-gray-400" />
-                </div>
-              ))}
+            <div className="text-3xl font-bold text-green-700 dark:text-green-400">
+              {quotas?.reduce((sum, q) => sum + q.freeRemaining, 0) || 0}
             </div>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+              Còn lại trong tháng
+            </p>
           </CardContent>
-          <CardFooter>
-            <Button variant="outline" className="w-full">
-              View All Opportunities
-            </Button>
-          </CardFooter>
         </Card>
 
-        <Card>
+        <Card className="bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-950 dark:to-pink-950">
           <CardHeader>
-            <CardTitle>Đề xuất nội dung AI</CardTitle>
-            <CardDescription>
-              Ý tưởng nội dung hỗ trợ AI để cải thiện thứ hạng của bạn
-            </CardDescription>
+            <CardTitle className="flex items-center gap-2 text-purple-700 dark:text-purple-400">
+              <Zap className="h-5 w-5" />
+              Quota đã mua
+            </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-3">
-              {[
-                "Tạo các hướng dẫn toàn diện về 'Các phương pháp hay nhất về SEO'",
-                "Thêm chi tiết vào bài viết của bạn về 'nghiên cứu từ khóa",
-                "Cải thiện khả năng đọc nội dung trên trang dịch vụ của bạn",
-                "Cập nhật bài đăng trên blog của bạn về 'Cập nhật thuật toán Google'",
-              ].map((suggestion, i) => (
-                <div
-                  key={i}
-                  className="flex items-center justify-between p-2 border rounded hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer"
-                >
-                  <div className="flex items-center">
-                    <div className="bg-purple-50 p-2 rounded mr-3">
-                      <Sparkles className="h-4 w-4 text-purple-600" />
-                    </div>
-                    <span>{suggestion}</span>
-                  </div>
-                  <Button variant="ghost" size="sm">
-                    Generate
-                  </Button>
-                </div>
-              ))}
+            <div className="text-3xl font-bold text-purple-700 dark:text-purple-400">
+              {quotas?.reduce((sum, q) => sum + q.paidRemaining, 0) || 0}
             </div>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+              Sẵn sàng sử dụng
+            </p>
           </CardContent>
-          <CardFooter>
-            <Button className="w-full bg-gradient-to-r from-blue-600 to-purple-600">
-              Get More AI Recommendations
-            </Button>
-          </CardFooter>
+        </Card>
+
+        <Card className="bg-gradient-to-br from-orange-50 to-amber-50 dark:from-orange-950 dark:to-amber-950">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-orange-700 dark:text-orange-400">
+              <Sparkles className="h-5 w-5" />
+              Tổng quota
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold text-orange-700 dark:text-orange-400">
+              {quotas?.reduce((sum, q) => sum + q.totalRemaining, 0) || 0}
+            </div>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+              Tổng số lần còn lại
+            </p>
+          </CardContent>
         </Card>
       </div>
+
+      {/* Guidelines & Documentation */}
+      <div className="grid gap-6 md:grid-cols-2">
+        {/* Hướng dẫn sử dụng */}
+        <Card>
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <BookOpen className="h-5 w-5 text-blue-600" />
+              <CardTitle>Hướng dẫn sử dụng</CardTitle>
+            </div>
+            <CardDescription>
+              Cách sử dụng các tính năng trong hệ thống
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {[
+              { title: "Tối ưu nội dung", desc: "Sử dụng AI để tối ưu hóa nội dung SEO của bạn" },
+              { title: "Phân tích xu hướng", desc: "Tìm kiếm từ khóa và xu hướng trending" },
+              { title: "Phân tích hiệu suất", desc: "Đánh giá hiệu suất website của bạn" },
+            ].map((guide, i) => (
+              <div
+                key={i}
+                className="flex items-start gap-3 p-3 border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer transition-colors"
+              >
+                <div className="bg-blue-50 dark:bg-blue-900 p-2 rounded-md flex-shrink-0">
+                  <Info className="h-4 w-4 text-blue-600" />
+                </div>
+                <div className="flex-1">
+                  <h4 className="font-medium text-sm">{guide.title}</h4>
+                  <p className="text-xs text-gray-500 mt-1">{guide.desc}</p>
+                </div>
+              </div>
+            ))}
+            <Button variant="outline" className="w-full mt-4">
+              Xem tất cả hướng dẫn
+            </Button>
+          </CardContent>
+        </Card>
+
+        {/* Cách tính điểm */}
+        <Card>
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <Calculator className="h-5 w-5 text-purple-600" />
+              <CardTitle>Cách tính điểm SEO</CardTitle>
+            </div>
+            <CardDescription>
+              Hiểu rõ cách hệ thống đánh giá website của bạn
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-3">
+              <div className="flex items-center justify-between p-3 bg-green-50 dark:bg-green-900/20 rounded-lg">
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                  <span className="text-sm font-medium">90-100</span>
+                </div>
+                <Badge variant="outline" className="bg-green-100 text-green-700 border-green-300">
+                  Xuất sắc
+                </Badge>
+              </div>
+
+              <div className="flex items-center justify-between p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
+                  <span className="text-sm font-medium">70-89</span>
+                </div>
+                <Badge variant="outline" className="bg-blue-100 text-blue-700 border-blue-300">
+                  Tốt
+                </Badge>
+              </div>
+
+              <div className="flex items-center justify-between p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg">
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>
+                  <span className="text-sm font-medium">50-69</span>
+                </div>
+                <Badge variant="outline" className="bg-yellow-100 text-yellow-700 border-yellow-300">
+                  Trung bình
+                </Badge>
+              </div>
+
+              <div className="flex items-center justify-between p-3 bg-red-50 dark:bg-red-900/20 rounded-lg">
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 bg-red-500 rounded-full"></div>
+                  <span className="text-sm font-medium">0-49</span>
+                </div>
+                <Badge variant="outline" className="bg-red-100 text-red-700 border-red-300">
+                  Cần cải thiện
+                </Badge>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Additional Info */}
+      <Card className="bg-gradient-to-r from-indigo-50 via-purple-50 to-pink-50 dark:from-indigo-950 dark:via-purple-950 dark:to-pink-950">
+        <CardContent className="p-6">
+          <div className="flex items-start gap-4">
+            <div className="bg-white dark:bg-gray-800 p-3 rounded-full">
+              <Sparkles className="h-6 w-6 text-purple-600" />
+            </div>
+            <div className="flex-1">
+              <h3 className="text-lg font-semibold mb-2">💡 Mẹo sử dụng hiệu quả</h3>
+              <ul className="space-y-2 text-sm text-gray-600 dark:text-gray-400">
+                <li className="flex items-start gap-2">
+                  <span className="text-purple-600 mt-1">•</span>
+                  <span>Sử dụng quota miễn phí trước khi dùng quota đã mua</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-purple-600 mt-1">•</span>
+                  <span>Quota miễn phí sẽ được reset vào đầu mỗi tháng</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-purple-600 mt-1">•</span>
+                  <span>Mua quota với số lượng lớn để tiết kiệm chi phí</span>
+                </li>
+              </ul>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }

@@ -199,7 +199,7 @@ function StaffPage({ onLogout }: { onLogout: () => void }) {
 
     // ==================== HANDLERS ====================
     const handleBan = (userId: number, isBanned: boolean) => {
-        const reason = isBanned ? prompt("Lý do ban user:") : undefined;
+        const reason = isBanned ? (prompt("Lý do ban user:") ?? undefined) : undefined;
         if (isBanned && !reason) return;
         banMutation.mutate({ userId, isBanned, reason });
     };

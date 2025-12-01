@@ -59,6 +59,9 @@ function MainAppLayout({ onLogout, user }: { onLogout: () => void; user: UserPro
             <Route path="/feature-comparison" component={FeatureComparisonPage} />
             <Route path="/transaction-history" component={TransactionHistoryPage} />
 
+            <Route path="/pricing" component={PricingPage} />
+
+
             {/* Nếu người dùng đã đăng nhập mà vào trang gốc, tự động chuyển đến dashboard */}
             <Route path="/"><Redirect to="/dashboard" /></Route>
             <Route component={NotFound} />
@@ -148,8 +151,6 @@ function App() {
             <Auth onLoginSuccess={handleLoginSuccess} />
           )}
         </Route>
-        <Route path="/pricing" component={PricingPage} />
-
         {/* Member routes - Cần đăng nhập */}
         <Route>
           {user && user.role === 'Member' ? (
