@@ -82,23 +82,23 @@ export default function Dashboard() {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex flex-col gap-2">
-        <h1 className="text-3xl font-bold">Dashboard</h1>
-        <p className="text-gray-500 dark:text-gray-400">
-          Quản lý quota, ví và theo dõi hoạt động của bạn
+        {/* <h1 className="text-3xl font-bold">Dashboard</h1> */}
+        <p className="text-gray-500 dark:text-gray-400" style={{ color: 'whitesmoke' }}>
+          Quản lý ví và theo dõi hoạt động của bạn
         </p>
       </div>
 
       {/* Wallet Card */}
-      <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950 dark:to-indigo-950 border-none shadow-lg">
+      <Card className="border-2 border-blue-200 dark:border-blue-800 bg-white dark:bg-gray-900">
         <CardContent className="p-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <div className="bg-white dark:bg-gray-800 p-4 rounded-full shadow-md">
-                <Wallet className="h-8 w-8 text-blue-600" />
+              <div className="bg-blue-100 dark:bg-blue-900 p-4 rounded-full">
+                <Wallet className="h-8 w-8 text-blue-600 dark:text-blue-400" />
               </div>
               <div>
                 <p className="text-sm text-gray-600 dark:text-gray-400">Số dư ví</p>
-                <h2 className="text-4xl font-bold text-blue-600">
+                <h2 className="text-4xl font-bold text-blue-600 dark:text-blue-400">
                   {loadingWallet ? (
                     <span className="text-2xl">Đang tải...</span>
                   ) : (
@@ -108,9 +108,9 @@ export default function Dashboard() {
               </div>
             </div>
             <Link href="/pricing">
-              <Button size="lg" className="bg-blue-600 hover:bg-blue-700">
+              <Button size="lg" className="bg-blue-600 hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-600">
                 <ShoppingCart className="h-5 w-5 mr-2" />
-                Mua thêm quota
+                Nạp thêm
               </Button>
             </Link>
           </div>
@@ -121,8 +121,8 @@ export default function Dashboard() {
       <div>
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h2 className="text-2xl font-bold">Quota chức năng</h2>
-            <p className="text-sm text-gray-600 dark:text-gray-400">
+            <h2 className="text-2xl font-bold" style={{ color: 'whitesmoke' }}>Số lần sử dụng</h2>
+            <p className="text-sm text-gray-600 dark:text-gray-400" style={{ color: 'whitesmoke' }}>
               Theo dõi số lần sử dụng miễn phí và đã mua
             </p>
           </div>
@@ -145,12 +145,12 @@ export default function Dashboard() {
               const totalPercentage = Math.min((quota.totalRemaining / (quota.freeLimit + quota.paidRemaining + quota.freeUsage)) * 100, 100);
 
               return (
-                <Card key={quota.featureId} className="hover:shadow-lg transition-shadow">
+                <Card key={quota.featureId} className="border-l-4 border-blue-500 hover:shadow-lg transition-shadow bg-white dark:bg-gray-900">
                   <CardHeader>
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
-                        <div className="bg-blue-50 dark:bg-blue-900 p-3 rounded-lg">
-                          <Icon className="h-6 w-6 text-blue-600" />
+                        <div className="bg-blue-50 dark:bg-blue-900/30 p-3 rounded-lg">
+                          <Icon className="h-6 w-6 text-blue-600 dark:text-blue-400" />
                         </div>
                         <CardTitle className="text-lg">
                           {featureNames[quota.featureName] || quota.featureName}
@@ -163,15 +163,15 @@ export default function Dashboard() {
                     <div className="space-y-2">
                       <div className="flex items-center justify-between text-sm">
                         <div className="flex items-center gap-2">
-                          <Gift className="h-4 w-4 text-green-600" />
+                          <Gift className="h-4 w-4 text-green-600 dark:text-green-400" />
                           <span className="font-medium">Miễn phí</span>
                         </div>
-                        <Badge variant="outline" className="text-green-600 border-green-600">
+                        <Badge variant="outline" className="text-green-600 border-green-600 dark:text-green-400 dark:border-green-400">
                           {quota.freeRemaining}/{quota.freeLimit}
                         </Badge>
                       </div>
-                      <Progress value={freePercentage} className="h-2 bg-gray-200" />
-                      <p className="text-xs text-gray-500">
+                      <Progress value={freePercentage} className="h-2" />
+                      <p className="text-xs text-gray-500 dark:text-gray-400">
                         Đã dùng: {quota.freeUsage} lần
                       </p>
                     </div>
@@ -180,20 +180,20 @@ export default function Dashboard() {
                     <div className="space-y-2">
                       <div className="flex items-center justify-between text-sm">
                         <div className="flex items-center gap-2">
-                          <Zap className="h-4 w-4 text-blue-600" />
+                          <Zap className="h-4 w-4 text-blue-600 dark:text-blue-400" />
                           <span className="font-medium">Đã mua</span>
                         </div>
-                        <Badge variant="outline" className="text-blue-600 border-blue-600">
+                        <Badge variant="outline" className="text-blue-600 border-blue-600 dark:text-blue-400 dark:border-blue-400">
                           {quota.paidRemaining} lần
                         </Badge>
                       </div>
                     </div>
 
                     {/* Total Remaining */}
-                    <div className="pt-3 border-t">
+                    <div className="pt-3 border-t dark:border-gray-700">
                       <div className="flex items-center justify-between">
                         <span className="text-sm font-semibold">Tổng còn lại:</span>
-                        <span className="text-2xl font-bold text-blue-600">
+                        <span className="text-2xl font-bold text-blue-600 dark:text-blue-400">
                           {quota.totalRemaining}
                         </span>
                       </div>
@@ -208,7 +208,7 @@ export default function Dashboard() {
 
       {/* Quick Stats */}
       <div className="grid gap-6 md:grid-cols-3">
-        <Card className="bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950 dark:to-emerald-950">
+        <Card className="border-l-4 border-green-500 bg-white dark:bg-gray-900">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-green-700 dark:text-green-400">
               <Gift className="h-5 w-5" />
@@ -225,7 +225,7 @@ export default function Dashboard() {
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-950 dark:to-pink-950">
+        <Card className="border-l-4 border-purple-500 bg-white dark:bg-gray-900">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-purple-700 dark:text-purple-400">
               <Zap className="h-5 w-5" />
@@ -242,7 +242,7 @@ export default function Dashboard() {
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-br from-orange-50 to-amber-50 dark:from-orange-950 dark:to-amber-950">
+        <Card className="border-l-4 border-orange-500 bg-white dark:bg-gray-900">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-orange-700 dark:text-orange-400">
               <Sparkles className="h-5 w-5" />
@@ -356,25 +356,25 @@ export default function Dashboard() {
       </div>
 
       {/* Additional Info */}
-      <Card className="bg-gradient-to-r from-indigo-50 via-purple-50 to-pink-50 dark:from-indigo-950 dark:via-purple-950 dark:to-pink-950">
+      <Card className="border-l-4 border-purple-500 bg-white dark:bg-gray-900">
         <CardContent className="p-6">
           <div className="flex items-start gap-4">
-            <div className="bg-white dark:bg-gray-800 p-3 rounded-full">
-              <Sparkles className="h-6 w-6 text-purple-600" />
+            <div className="bg-purple-100 dark:bg-purple-900/30 p-3 rounded-full">
+              <Sparkles className="h-6 w-6 text-purple-600 dark:text-purple-400" />
             </div>
             <div className="flex-1">
               <h3 className="text-lg font-semibold mb-2">💡 Mẹo sử dụng hiệu quả</h3>
               <ul className="space-y-2 text-sm text-gray-600 dark:text-gray-400">
                 <li className="flex items-start gap-2">
-                  <span className="text-purple-600 mt-1">•</span>
+                  <span className="text-purple-600 dark:text-purple-400 mt-1">•</span>
                   <span>Sử dụng quota miễn phí trước khi dùng quota đã mua</span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <span className="text-purple-600 mt-1">•</span>
+                  <span className="text-purple-600 dark:text-purple-400 mt-1">•</span>
                   <span>Quota miễn phí sẽ được reset vào đầu mỗi tháng</span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <span className="text-purple-600 mt-1">•</span>
+                  <span className="text-purple-600 dark:text-purple-400 mt-1">•</span>
                   <span>Mua quota với số lượng lớn để tiết kiệm chi phí</span>
                 </li>
               </ul>

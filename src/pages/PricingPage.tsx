@@ -27,51 +27,47 @@ const DialogFooter = ({ children }: any) => <div className="px-6 pb-6 flex justi
 const pricingTiers = [
   {
     id: 1,
-    name: "Chức năng 1",
-    price: 100000,
-    priceText: "100.000 VNĐ",
-    description: "Giới thiệu chức năng 1",
+    name: "Tối ưu hóa nội dung", // Đổi tên để hợp với chức năng viết/sửa văn bản
+    price: 50000,
+    priceText: "50.000 VNĐ",
+    description: "Tối ưu hóa nội dung và văn phong với AI",
     features: [
-      "20.000 Token mỗi tháng",
-      "Tối ưu từ khóa",
-      "Chấm điểm SEO",
-      "Viết lại nội dung bằng AI",
-      "Hỗ trợ và tư vấn qua Email",
+      "Chấm điểm chất lượng văn bản",
+      "AI đề xuất & cải thiện văn phong",
+      "Tạo bài viết tự động từ Keyword",
+      "So sánh hiệu quả 2 văn bản (A/B)",
     ],
-    isPopular: true,
+    isPopular: false,
   },
   {
     id: 2,
-    name: "Chức năng 2",
-    price: 250000,
-    priceText: "250.000 VNĐ",
-    description: "Giới thiệu chức năng 2",
+    name: "Phân tích xu hướng", // Đổi tên để hợp với chức năng từ khóa
+    price: 130000,
+    priceText: "130.000 VNĐ",
+    description: "Giải pháp nghiên cứu từ khóa dữ liệu thực",
     features: [
-      "100.000 Token mỗi tháng",
-      "Tối ưu từ khóa",
-      "Chấm điểm SEO",
-      "Viết lại nội dung bằng AI",
-      "Báo cáo và phân tích backlink tự động.",
-      "Hỗ trợ tư vấn qua Email và Chat Support",
+      "Nghiên cứu từ khóa chuyên sâu",
+      "AI gợi ý Keyword từ dữ liệu thực (Real-time)",
+      "Phân tích độ khó & lượng tìm kiếm",
+      "Lập kế hoạch từ khóa SEO",
+      "Theo dõi xu hướng tìm kiếm thị trường",
     ],
     isPopular: true,
   },
   {
     id: 3,
-    name: "Chức năng 3",
-    price: 370000,
-    priceText: "370.000 VNĐ",
-    description: "Giới thiệu chức năng 3",
+    name: "Tối ưu hóa Website", // Đổi tên để hợp với chức năng kỹ thuật/tốc độ
+    price: 60000,
+    priceText: "60.000 VNĐ",
+    description: "Phân tích kỹ thuật và sức khỏe Website",
     features: [
-      "350.000 Token mỗi tháng",
-      "Tối ưu từ khóa",
-      "Chấm điểm SEO",
-      "Viết lại nội dung bằng AI",
-      "Báo cáo và phân tích backlink tự động.",
-      "Đề xuất cải tiến kỹ thuật SEO.",
-      "Hỗ trợ tư vấn qua Email và Chat Support",
+      "Phân tích URL (Desktop & Mobile)",
+      "Đo lường tốc độ tải trang (PageSpeed)",
+      "Kiểm tra thẻ Meta, H1-H6, Alt ảnh",
+      "Chấm điểm sức khỏe Website (Health Score)",
+      "AI đề xuất giải pháp tối ưu code",
     ],
-    isPopular: true,
+    isPopular: false,
   },
 ];
 
@@ -144,8 +140,8 @@ export default function PricingPage() {
   return (
     <div className="container mx-auto py-12">
       <div className="text-center mb-12">
-        <h1 className="text-4xl font-bold tracking-tight">Gói tốt nhất cho bạn</h1>
-        <p className="mt-4 text-lg text-muted-foreground">
+        <h1 className="text-4xl font-bold tracking-tight" style={{ color: 'whitesmoke' }}>Gói tốt nhất cho bạn</h1>
+        <p className="mt-4 text-lg text-muted-foreground" style={{ color: 'whitesmoke' }}>
           Chọn gói phù hợp với nhu cầu của bạn và bắt đầu cải thiện SEO ngay hôm nay.
         </p>
       </div>
