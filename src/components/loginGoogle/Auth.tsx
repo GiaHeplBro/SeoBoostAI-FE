@@ -108,19 +108,57 @@ const Auth: React.FC<{ onLoginSuccess: (user: UserProfile) => void }> = ({ onLog
     }
   };
 
+
   // Hàm chung để lưu token và thông báo cho App.tsx
-  const saveUserAndNotify = (data: any, role: string) => {
+  const saveUserAndNotify = (data: any, expectedRole: string) => {
     const { accessToken, refreshToken } = data;
+
+    // Clear localStorage trước để tránh conflict
+    console.log("🧹 Clearing localStorage before saving new user...");
+    localStorage.clear();
+
+    // Giải mã JWT để lấy role từ backend
     const decodedUser: UserProfile = jwtDecode(accessToken);
-    const userToStore = { ...decodedUser, role: role, fullName: decodedUser.fullname };
+
+    console.log("═══════════════════════════════════════");
+    console.log("🔐 AUTHENTICATION DEBUG");
+    console.log("═══════════════════════════════════════");
+    console.log("Expected Role:", expectedRole);
+    console.log("JWT Role:", decodedUser.role);
+    console.log("User Email:", decodedUser.email);
+    console.log("═══════════════════════════════════════");
+
+    // ✅ FIX: Normalize role - Backend gửi "User" nhưng frontend dùng "Member"
+    let actualRole = decodedUser.role || expectedRole;
+
+    // Map "User" -> "Member" để tương thích
+    if (actualRole === "User") {
+      console.log("⚠️ Normalizing role: 'User' -> 'Member'");
+      actualRole = "Member";
+    }
+
+    // Cảnh báo nếu role không match
+    if (actualRole !== expectedRole && expectedRole !== "Member") {
+      console.warn("⚠️ Role mismatch detected!");
+      console.warn("   Expected:", expectedRole);
+      console.warn("   Got:", actualRole);
+    }
+
+    const userToStore = {
+      ...decodedUser,
+      role: actualRole,  // Dùng role đã normalize
+      fullName: decodedUser.fullname
+    };
 
     // Lưu vào localStorage
+    console.log("💾 Saving user:", { email: userToStore.email, role: userToStore.role });
     localStorage.setItem('user', btoa(encodeURIComponent(JSON.stringify(userToStore))));
     localStorage.setItem('tokens', btoa(encodeURIComponent(JSON.stringify({ accessToken, refreshToken }))));
 
-    // Gọi hàm onLoginSuccess được truyền từ App.tsx
+    console.log("✅ Login complete, calling onLoginSuccess");
     onLoginSuccess(userToStore);
   };
+
 
   return (
     <div
