@@ -78,16 +78,20 @@ function App() {
   const [, navigate] = useLocation();
 
   useEffect(() => {
+    console.log("🔄 App mounted, checking for existing session...");
     const encodedUser = localStorage.getItem('user');
     if (encodedUser) {
       try {
         const decodedUser = JSON.parse(decodeURIComponent(atob(encodedUser)));
+        console.log("✅ Found existing user:", { email: decodedUser.email, role: decodedUser.role });
         setUser(decodedUser);
       } catch (error) {
-        console.error("Lỗi khi giải mã user từ localStorage", error);
-        localStorage.removeItem('user');
-        localStorage.removeItem('tokens');
+        console.error("❌ Lỗi khi giải mã user từ localStorage", error);
+        console.log("🧹 Clearing corrupted localStorage...");
+        localStorage.clear(); // ✅ FIX: Dùng clear() thay vì removeItem()
       }
+    } else {
+      console.log("ℹ️ No existing session found");
     }
   }, []);
 
@@ -107,12 +111,31 @@ function App() {
   };
 
   const handleLogout = () => {
+    console.log("═══════════════════════════════════════");
+    console.log("🚪 LOGOUT PROCESS");
+    console.log("═══════════════════════════════════════");
+
     // Clear all React Query cache to prevent showing old user data
+    console.log("🧹 Clearing React Query cache...");
     queryClient.clear();
-    localStorage.removeItem('user');
-    localStorage.removeItem('tokens');
+
+    // ✅ FIX: CLEAR HOÀN TOÀN localStorage
+    console.log("🧹 Clearing ALL localStorage...");
+    localStorage.clear(); // Xóa TẤT CẢ thay vì removeItem từng cái
+
+    // Reset user state
+    console.log("🔄 Resetting user state...");
     setUser(null);
+
+    console.log("✅ Logout complete, redirecting to home...");
+    console.log("═══════════════════════════════════════");
+
+    // Navigate về trang chủ
     navigate('/');
+
+    // ✅ OPTIONAL: Force reload để clear mọi state trong memory
+    // Uncomment dòng này nếu vẫn còn vấn đề
+    // setTimeout(() => window.location.reload(), 100);
   };
 
   return (
