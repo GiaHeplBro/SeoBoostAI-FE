@@ -30,9 +30,10 @@ export const fetchExistingElements = async (analysisCacheID: number): Promise<El
 };
 
 // API 3: Tạo mới Element (POST) - actually GET with suggestions
-// TEMPORARY: Using /analysis endpoint since /suggestion returns 404
+// API 3: Tạo mới Element (POST) - actually GET with suggestions
+// Correct endpoint for Deep Dive Analysis
 export const generateDeepDiveAnalysis = async (analysisCacheID: number): Promise<ElementSuggestion[]> => {
-    const { data } = await api.get(`/elements/analysis/${analysisCacheID}`);
+    const { data } = await api.get(`/elements/suggestion/${analysisCacheID}`);
     return data.data; // Extract data from wrapper
 };
 
