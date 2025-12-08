@@ -25,6 +25,8 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 
+import { fetchUserProfile } from "@/features/wallet/api";
+
 // Types
 interface FeatureQuota {
   featureId: number;
@@ -36,20 +38,9 @@ interface FeatureQuota {
   totalRemaining: number;
 }
 
-interface WalletData {
-  walletID: number;
-  userID: number;
-  currency: number;
-}
-
 // Fetch functions
 const fetchQuotas = async (): Promise<FeatureQuota[]> => {
   const { data } = await api.get('/user-monthly-free-quotas/quota');
-  return data;
-};
-
-const fetchWallet = async (): Promise<WalletData> => {
-  const { data } = await api.get('/Wallets/user');
   return data;
 };
 
@@ -73,9 +64,9 @@ export default function Dashboard() {
     queryFn: fetchQuotas,
   });
 
-  const { data: wallet, isLoading: loadingWallet } = useQuery({
-    queryKey: ['wallet'],
-    queryFn: fetchWallet,
+  const { data: user, isLoading: loadingUser } = useQuery({
+    queryKey: ['userProfile'],
+    queryFn: fetchUserProfile,
   });
 
   return (
@@ -99,10 +90,10 @@ export default function Dashboard() {
               <div>
                 <p className="text-sm text-gray-600 dark:text-gray-400">Số dư ví</p>
                 <h2 className="text-4xl font-bold text-blue-600 dark:text-blue-400">
-                  {loadingWallet ? (
+                  {loadingUser ? (
                     <span className="text-2xl">Đang tải...</span>
                   ) : (
-                    `${wallet?.currency.toLocaleString("vi-VN")} VNĐ`
+                    `${user?.currency.toLocaleString("vi-VN") || 0} VNĐ`
                   )}
                 </h2>
               </div>

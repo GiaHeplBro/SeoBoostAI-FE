@@ -13,6 +13,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { WalletBalance } from "@/features/wallet/components/WalletBalance";
+import { TimezoneClock } from "@/components/ui/timezone-clock";
 
 const pathToTitle: Record<string, string> = {
   "/": "Dashboard",
@@ -88,6 +89,7 @@ export default function Header({ onLogout, user, setSidebarOpen }: HeaderProps) 
               <span>Upgrade</span>
             </Button>
           </Link>
+          <TimezoneClock />
           {/* Wallet Balance */}
           <WalletBalance />
           <div className="relative">
@@ -133,6 +135,6 @@ export default function Header({ onLogout, user, setSidebarOpen }: HeaderProps) 
           </DropdownMenu>
         </div>
       </div>
-    </header>
+    </header >
   );
 }
