@@ -24,7 +24,8 @@ import type {
   PageSpeedScores,
   ComparisonModel,
   HistoryItem,
-  PerformanceHistoryResponse
+  PerformanceHistoryResponse,
+  MetaDataAnalysis
 } from "@/features/seo-audit/types";
 
 import {
@@ -34,7 +35,9 @@ import {
   generateDeepDiveAnalysis,
   fetchPerformanceHistory,
   fetchSingleReport,
-  fetchComparisonResult
+  fetchComparisonResult,
+  generateMetaDataAnalysis,
+  fetchMetaDataAnalysisCache
 } from "@/features/seo-audit/api";
 
 // Element suggestion type from feature modules
@@ -177,6 +180,10 @@ export default function ContentOptimization() {
   const [showDeepDive, setShowDeepDive] = useState(false);
   const [comparisonData, setComparisonData] = useState<ComparisonModel | null>(null);
 
+  // MetaDataAnalysis states
+  const [metaDataAnalysis, setMetaDataAnalysis] = useState<MetaDataAnalysis | null>(null);
+  const [activeDeepDiveTab, setActiveDeepDiveTab] = useState<'elements' | 'meta'>('elements');
+
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -214,6 +221,7 @@ export default function ContentOptimization() {
       setDeepDiveAnalysis(null);
       setShowDeepDive(false);
       setComparisonData(null);
+      setMetaDataAnalysis(null); // Reset meta data
       queryClient.invalidateQueries({ queryKey: ['performanceHistory'] });
 
       // Tải dữ liệu so sánh
@@ -244,6 +252,7 @@ export default function ContentOptimization() {
       setCurrentAnalysis(response.data); // Extract data from wrapper
       setDeepDiveAnalysis(null);
       setShowDeepDive(false);
+      setMetaDataAnalysis(null); // Reset meta data để nút "Phân tích chuyên sâu" hiện lại
       queryClient.invalidateQueries({ queryKey: ['performanceHistory'] });
 
       // Tải dữ liệu so sánh
@@ -319,6 +328,33 @@ export default function ContentOptimization() {
     },
   });
 
+  // Mutation MetaData 1: Generate Meta Analysis (POST)
+  const generateMetaDataMutation = useMutation<MetaDataAnalysis, Error, number>({
+    mutationFn: generateMetaDataAnalysis,
+    onSuccess: (data) => {
+      console.log("✅ Meta analysis data:", data);
+      setMetaDataAnalysis(data);
+      toast({ title: "Phân tích Meta hoàn tất!" });
+    },
+    onError: (error: any) => {
+      console.error("Meta analysis error:", error);
+      toast({ title: "Lỗi phân tích Meta", description: error.message, variant: "destructive" });
+    },
+  });
+
+  // Mutation MetaData 2: Fetch existing Meta Analysis (GET)
+  const fetchMetaDataMutation = useMutation<MetaDataAnalysis, Error, number>({
+    mutationFn: fetchMetaDataAnalysisCache,
+    onSuccess: (data) => {
+      setMetaDataAnalysis(data);
+    },
+    onError: (error: any) => {
+      // 404 means no meta analysis yet
+      console.log("Chưa có phân tích Meta (404 is expected):", error?.response?.status);
+      setMetaDataAnalysis(null);
+    },
+  });
+
   // Mutation 4: Tải 1 báo cáo từ lịch sử (API 5)
   const singleReportMutation = useMutation<PerformanceHistoryResponse, Error, number>({
     mutationFn: fetchSingleReport,
@@ -327,11 +363,14 @@ export default function ContentOptimization() {
       setDeepDiveAnalysis(null);
       setShowDeepDive(false);
       setComparisonData(null);
+      setMetaDataAnalysis(null); // Reset meta data
+      setActiveDeepDiveTab('elements'); // Reset to default tab
       toast({ title: "Đã tải báo cáo", description: "Đã tải kết quả từ lịch sử." });
       window.scrollTo({ top: 0, behavior: 'smooth' });
 
       if (response.data.analysisCache.analysisCacheID) {
         fetchDeepDiveMutation.mutate(response.data.analysisCache.analysisCacheID);
+        fetchMetaDataMutation.mutate(response.data.analysisCache.analysisCacheID); // Also fetch meta data
 
         // Tải dữ liệu so sánh
         try {
@@ -365,6 +404,12 @@ export default function ContentOptimization() {
     }
   }, [currentAnalysis]);
 
+  // Kiểm tra xem Meta Analysis đã có AI suggestions chưa
+  const hasMetaSuggestions = useMemo(() => {
+    const details = metaDataAnalysis?.metaDataSuggestions?.[0]?.metaTagSuggestionDetails;
+    return Array.isArray(details) && details.length > 0;
+  }, [metaDataAnalysis]);
+
   // --- Event Handlers ---
 
   const handleAnalyze = () => {
@@ -396,7 +441,11 @@ export default function ContentOptimization() {
 
   const handleGenerateDeepDive = () => {
     if (!currentAnalysis?.analysisCache?.analysisCacheID) return;
-    generateDeepDiveMutation.mutate(currentAnalysis.analysisCache.analysisCacheID);
+    const cacheId = currentAnalysis.analysisCache.analysisCacheID;
+
+    // Chạy cả 2 API song song: Element và MetaData
+    generateDeepDiveMutation.mutate(cacheId);
+    generateMetaDataMutation.mutate(cacheId);
   };
 
   const handleLoadFromHistory = (scanHistoryID: number) => {
@@ -682,60 +731,159 @@ export default function ContentOptimization() {
                       </p>
                     </div>
                   </CardContent>
-                  {!showDeepDive && (
+                  {/* Hiển thị nút khi chưa có AI suggestions từ Element hoặc Meta */}
+                  {!showDeepDive && !hasMetaSuggestions && (
                     <CardFooter className="border-t border-slate-800">
                       <Button
                         className="ml-auto bg-blue-600 hover:bg-blue-700 text-white"
                         onClick={handleGenerateDeepDive}
-                        disabled={generateDeepDiveMutation.isPending}
+                        disabled={generateDeepDiveMutation.isPending || generateMetaDataMutation.isPending}
                       >
-                        {generateDeepDiveMutation.isPending ? "Đang phân tích..." : "Phân Tích Chuyên Sâu"}
+                        {(generateDeepDiveMutation.isPending || generateMetaDataMutation.isPending) ? "Đang phân tích..." : "Phân Tích Chuyên Sâu"}
                       </Button>
                     </CardFooter>
                   )}
                 </Card>
 
                 {/* Deep Dive Analysis */}
-                {(fetchDeepDiveMutation.isPending || generateDeepDiveMutation.isPending || (showDeepDive && deepDiveAnalysis)) && (
+                {(fetchDeepDiveMutation.isPending || generateDeepDiveMutation.isPending || generateMetaDataMutation.isPending || fetchMetaDataMutation.isPending || showDeepDive || metaDataAnalysis) && (
                   <Card className="bg-slate-900 border-slate-800">
                     <CardHeader>
-                      <CardTitle className="text-white">Phân Tích Chi Tiết Các Phần Tử</CardTitle>
+                      {/* Toggle Buttons */}
+                      <div className="flex gap-2 flex-wrap">
+                        <Button
+                          variant={activeDeepDiveTab === 'elements' ? 'default' : 'outline'}
+                          onClick={() => setActiveDeepDiveTab('elements')}
+                          className={activeDeepDiveTab === 'elements'
+                            ? 'bg-blue-600 hover:bg-blue-700 text-white'
+                            : 'bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700'}
+                          size="sm"
+                        >
+                          Phân Tích Phần Tử
+                        </Button>
+                        <Button
+                          variant={activeDeepDiveTab === 'meta' ? 'default' : 'outline'}
+                          onClick={() => setActiveDeepDiveTab('meta')}
+                          className={activeDeepDiveTab === 'meta'
+                            ? 'bg-blue-600 hover:bg-blue-700 text-white'
+                            : 'bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700'}
+                          size="sm"
+                        >
+                          Phân Tích Thẻ Meta
+                        </Button>
+                      </div>
                     </CardHeader>
                     <CardContent>
-                      {(fetchDeepDiveMutation.isPending || generateDeepDiveMutation.isPending) && (
-                        <p className="text-slate-400">Đang phân tích các phần tử trang...</p>
+                      {/* Element Analysis Tab */}
+                      {activeDeepDiveTab === 'elements' && (
+                        <>
+                          {(fetchDeepDiveMutation.isPending || generateDeepDiveMutation.isPending) && (
+                            <p className="text-slate-400">Đang phân tích các phần tử trang...</p>
+                          )}
+
+                          {deepDiveAnalysis && deepDiveAnalysis.length > 0 && (
+                            <div className="h-[500px] overflow-y-auto border border-slate-700 rounded-lg">
+                              <Table>
+                                <TableHeader className="sticky top-0 bg-slate-900 z-10">
+                                  <TableRow className="border-slate-800">
+                                    <TableHead className="text-slate-300 w-20">Tag</TableHead>
+                                    <TableHead className="text-slate-300 w-32">HTML</TableHead>
+                                    <TableHead className="text-slate-300 w-48">Mô Tả</TableHead>
+                                    <TableHead className="text-slate-300">Khuyến Nghị AI</TableHead>
+                                  </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                  {deepDiveAnalysis.map(item => (
+                                    <TableRow key={item.elementID} className="border-slate-800">
+                                      <TableCell className="w-20"><code className="text-xs text-blue-400">{item.tagName}</code></TableCell>
+                                      <TableCell className="w-32"><pre className="text-xs bg-slate-800 p-1 rounded max-w-[8rem] overflow-x-auto text-slate-300"><code>{item.outerHTML}</code></pre></TableCell>
+                                      <TableCell className="text-xs text-slate-300 w-48">
+                                        {typeof item.description === 'string' ? item.description : (item.description ? "Có vấn đề" : "Đã tối ưu")}
+                                      </TableCell>
+                                      <TableCell className="text-xs font-medium text-blue-400">
+                                        {typeof item.aiRecommendation === 'string' ? item.aiRecommendation : "Không cần điều chỉnh"}
+                                      </TableCell>
+                                    </TableRow>
+                                  ))}
+                                </TableBody>
+                              </Table>
+                            </div>
+                          )}
+                          {deepDiveAnalysis && deepDiveAnalysis.length === 0 && !fetchDeepDiveMutation.isPending && !generateDeepDiveMutation.isPending && (
+                            <p className="text-sm text-slate-400">Không tìm thấy chi tiết phần tử nào.</p>
+                          )}
+                          {!deepDiveAnalysis && !fetchDeepDiveMutation.isPending && !generateDeepDiveMutation.isPending && (
+                            <p className="text-sm text-slate-400">Chưa có dữ liệu phân tích phần tử. Nhấn "Phân Tích Chuyên Sâu" để bắt đầu.</p>
+                          )}
+                        </>
                       )}
 
-                      {deepDiveAnalysis && deepDiveAnalysis.length > 0 && (
-                        <ScrollArea className="max-h-[500px]">
-                          <Table>
-                            <TableHeader>
-                              <TableRow className="border-slate-800">
-                                <TableHead className="text-slate-300 w-20">Tag</TableHead>
-                                <TableHead className="text-slate-300 w-32">HTML</TableHead>
-                                <TableHead className="text-slate-300 w-48">Mô Tả</TableHead>
-                                <TableHead className="text-slate-300">Khuyến Nghị AI</TableHead>
-                              </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                              {deepDiveAnalysis.map(item => (
-                                <TableRow key={item.elementID} className="border-slate-800">
-                                  <TableCell className="w-20"><code className="text-xs text-blue-400">{item.tagName}</code></TableCell>
-                                  <TableCell className="w-32"><pre className="text-xs bg-slate-800 p-1 rounded max-w-[8rem] overflow-x-auto text-slate-300"><code>{item.outerHTML}</code></pre></TableCell>
-                                  <TableCell className="text-xs text-slate-300 w-48">
-                                    {typeof item.description === 'string' ? item.description : (item.description ? "Có vấn đề" : "Đã tối ưu")}
-                                  </TableCell>
-                                  <TableCell className="text-xs font-medium text-blue-400">
-                                    {typeof item.aiRecommendation === 'string' ? item.aiRecommendation : "Không cần điều chỉnh"}
-                                  </TableCell>
-                                </TableRow>
-                              ))}
-                            </TableBody>
-                          </Table>
-                        </ScrollArea>
-                      )}
-                      {deepDiveAnalysis && deepDiveAnalysis.length === 0 && !fetchDeepDiveMutation.isPending && (
-                        <p className="text-sm text-slate-400">Không tìm thấy chi tiết phần tử nào.</p>
+                      {/* Meta Analysis Tab */}
+                      {activeDeepDiveTab === 'meta' && (
+                        <>
+                          {(fetchMetaDataMutation.isPending || generateMetaDataMutation.isPending) && (
+                            <p className="text-slate-400">Đang phân tích thẻ Meta...</p>
+                          )}
+
+                          {metaDataAnalysis && metaDataAnalysis.metaDataSuggestions && metaDataAnalysis.metaDataSuggestions.length > 0 && (
+                            <>
+                              {/* General Assessment */}
+                              <div className="mb-4 p-3 bg-slate-800 rounded-lg">
+                                <p className="text-sm text-slate-400 mb-1">Đánh giá chung:</p>
+                                <p className="text-white font-medium">{metaDataAnalysis.metaDataSuggestions[0].generalAssessment}</p>
+                              </div>
+
+                              {/* Meta Tags Cards */}
+                              <div className="h-[500px] overflow-y-auto space-y-4 pr-2">
+                                {metaDataAnalysis.metaDataSuggestions[0].metaTagSuggestionDetails.map(detail => (
+                                  <div key={detail.id} className="border border-slate-700 rounded-lg overflow-hidden">
+                                    {/* Top Row: 3 columns */}
+                                    <div className="grid grid-cols-3 gap-0 border-b border-slate-700">
+                                      {/* Thẻ */}
+                                      <div className="p-3 border-r border-slate-700">
+                                        <p className="text-xs text-slate-400 mb-1">Thẻ</p>
+                                        <div className="flex items-center gap-2 flex-wrap">
+                                          <code className="text-sm text-blue-400 font-medium">{detail.tagName}</code>
+                                          {detail.isImportant && (
+                                            <span className="text-xs bg-amber-500/20 text-amber-400 px-1.5 py-0.5 rounded">Quan trọng</span>
+                                          )}
+                                        </div>
+                                      </div>
+
+                                      {/* Giá trị hiện tại */}
+                                      <div className="p-3 border-r border-slate-700">
+                                        <p className="text-xs text-slate-400 mb-1">Giá trị hiện tại</p>
+                                        <pre className="text-xs bg-slate-800 p-2 rounded text-slate-300 whitespace-pre-wrap max-h-24 overflow-y-auto">
+                                          <code>{detail.currentValue}</code>
+                                        </pre>
+                                      </div>
+
+                                      {/* Vấn đề */}
+                                      <div className="p-3">
+                                        <p className="text-xs text-slate-400 mb-1">Vấn đề</p>
+                                        <p className="text-sm text-amber-400">{detail.issue}</p>
+                                      </div>
+                                    </div>
+
+                                    {/* Bottom Row: Khuyến Nghị full width */}
+                                    <div className="p-3 bg-slate-800/50">
+                                      <p className="text-xs text-slate-400 mb-1">Khuyến Nghị</p>
+                                      <p className="text-sm text-green-400 font-medium">{detail.recommendation}</p>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </>
+                          )}
+
+                          {metaDataAnalysis && (!metaDataAnalysis.metaDataSuggestions || metaDataAnalysis.metaDataSuggestions.length === 0) && !fetchMetaDataMutation.isPending && !generateMetaDataMutation.isPending && (
+                            <p className="text-sm text-slate-400">Không có khuyến nghị cải thiện cho thẻ Meta.</p>
+                          )}
+
+                          {!metaDataAnalysis && !fetchMetaDataMutation.isPending && !generateMetaDataMutation.isPending && (
+                            <p className="text-sm text-slate-400">Chưa có dữ liệu phân tích Meta. Nhấn "Phân Tích Chuyên Sâu" để bắt đầu.</p>
+                          )}
+                        </>
                       )}
                     </CardContent>
                   </Card>

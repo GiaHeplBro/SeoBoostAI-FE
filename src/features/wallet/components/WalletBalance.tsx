@@ -2,15 +2,15 @@ import { useQuery } from '@tanstack/react-query';
 import { Wallet, Plus, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useLocation } from 'wouter';
-import { fetchWallet } from '../api';
+import { fetchUserProfile } from '../api';
 
 export function WalletBalance() {
     const [, navigate] = useLocation();
 
-    // Fetch wallet data
-    const { data: wallet, isLoading } = useQuery({
-        queryKey: ['wallet'],
-        queryFn: fetchWallet,
+    // Fetch user profile (includes wallet balance)
+    const { data: user, isLoading } = useQuery({
+        queryKey: ['userProfile'],
+        queryFn: fetchUserProfile,
         refetchInterval: 30000, // Refresh every 30s
     });
 
@@ -23,7 +23,7 @@ export function WalletBalance() {
     }
 
     // Format currency with thousand separators
-    const formattedBalance = wallet?.currency.toLocaleString('vi-VN');
+    const formattedBalance = user?.currency.toLocaleString('vi-VN');
 
     return (
         <div className="flex items-center gap-2 px-3 py-1.5 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">

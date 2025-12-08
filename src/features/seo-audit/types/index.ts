@@ -142,3 +142,56 @@ export interface ElementsResponse {
 
 // Kiểu dữ liệu cho một mục trong danh sách
 export type HistoryItem = ScanHistoryItem;
+
+// ============ MetaDataAnalysis Types ============
+
+// MetaTagSuggestionDetail - chi tiết suggestion cho từng thẻ meta
+export interface MetaTagSuggestionDetail {
+    id: number;
+    metaDataSuggestionId: number;
+    tagName: string;
+    currentValue: string;
+    issue: string;
+    recommendation: string;
+    isImportant: boolean;
+    createdAt: string;
+    metaDataSuggestion: null;
+}
+
+// MetaDataSuggestion - suggestion tổng thể
+export interface MetaDataSuggestion {
+    id: number;
+    metaDataAnalysisId: number;
+    generalAssessment: string;
+    createdAt: string;
+    metaDataAnalysis: null;
+    metaTagSuggestionDetails: MetaTagSuggestionDetail[];
+}
+
+// MetaDataAnalysis - response chính từ API metadata-analysis
+export interface MetaDataAnalysis {
+    id: number;
+    url: string;
+    title: string;
+    description: string;
+    keywords: string | null;
+    charset: string;
+    viewport: string;
+    canonical: string;
+    robots: string;
+    openGraphData: string; // JSON string
+    twitterCardData: string; // JSON string
+    otherMetaData: string; // JSON string
+    createdAt: string;
+    urlHash: string;
+    analysisCacheID: number;
+    analysisCache: null;
+    metaDataSuggestions: MetaDataSuggestion[];
+}
+
+// Response wrapper cho MetaDataAnalysis API
+export interface MetaDataAnalysisResponse {
+    success: boolean;
+    message: string;
+    data: MetaDataAnalysis;
+}

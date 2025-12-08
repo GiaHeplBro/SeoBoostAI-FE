@@ -8,7 +8,8 @@ import type {
     PerformanceHistoryListResponse,
     ElementSuggestion,
     HistoryItem,
-    AnalysisResultResponse
+    AnalysisResultResponse,
+    MetaDataAnalysis
 } from '../types';
 
 // API 1: Phân tích URL (POST) - userId từ token
@@ -74,4 +75,20 @@ export const fetchSingleReport = async (id: number): Promise<PerformanceHistoryR
 export const fetchComparisonResult = async (analysisCacheId: number): Promise<AnalysisResultResponse> => {
     const { data } = await api.get(`/analysis-cache/result/${analysisCacheId}`);
     return data;
+};
+
+// ============ MetaDataAnalysis APIs ============
+
+// API MetaData 1: Phân tích Meta (POST) - chạy AI phân tích thẻ meta
+export const generateMetaDataAnalysis = async (analysisCacheID: number): Promise<MetaDataAnalysis> => {
+    const { data } = await api.post('/metadata-analysis/analyze', analysisCacheID, {
+        headers: { 'Content-Type': 'application/json' }
+    });
+    return data.data;
+};
+
+// API MetaData 2: Lấy cache Meta đã phân tích (GET)
+export const fetchMetaDataAnalysisCache = async (analysisCacheId: number): Promise<MetaDataAnalysis> => {
+    const { data } = await api.get(`/metadata-analysis/analyze-cache/${analysisCacheId}`);
+    return data.data;
 };
