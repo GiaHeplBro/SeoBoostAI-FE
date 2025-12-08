@@ -7,16 +7,18 @@ import {
     MessageSquare,
     LogOut,
     UserCog,
+    Receipt,
 } from 'lucide-react';
 
 // Import components from features
 import { DashboardView } from '@/features/staff/components/DashboardView';
 import { FeedbackView } from '@/features/staff/components/FeedbackView';
-import { MembersView } from '@/features/staff/components/MembersView';
+import { UserManagement } from '@/features/staff/components/UserManagement';
+import { TransactionManagement } from '@/features/staff/components/TransactionManagement';
 
 const queryClient = new QueryClient();
 
-type TabType = 'dashboard' | 'feedbacks' | 'members';
+type TabType = 'dashboard' | 'feedbacks' | 'members' | 'transactions';
 
 interface NavItem {
     id: TabType;
@@ -27,7 +29,8 @@ interface NavItem {
 const navItems: NavItem[] = [
     { id: 'dashboard', label: 'Dashboard', icon: <LayoutDashboard className="h-5 w-5" /> },
     { id: 'feedbacks', label: 'Feedback', icon: <MessageSquare className="h-5 w-5" /> },
-    { id: 'members', label: 'Members', icon: <Users className="h-5 w-5" /> },
+    { id: 'members', label: 'Người dùng', icon: <Users className="h-5 w-5" /> },
+    { id: 'transactions', label: 'Giao dịch', icon: <Receipt className="h-5 w-5" /> },
 ];
 
 function StaffPage({ onLogout }: { onLogout: () => void }) {
@@ -40,7 +43,9 @@ function StaffPage({ onLogout }: { onLogout: () => void }) {
             case 'feedbacks':
                 return <FeedbackView />;
             case 'members':
-                return <MembersView />;
+                return <UserManagement />;
+            case 'transactions':
+                return <TransactionManagement />;
             default:
                 return <DashboardView />;
         }
@@ -70,8 +75,8 @@ function StaffPage({ onLogout }: { onLogout: () => void }) {
                             key={item.id}
                             onClick={() => setActiveTab(item.id)}
                             className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${activeTab === item.id
-                                    ? 'bg-indigo-600 text-white shadow-lg'
-                                    : 'text-indigo-200 hover:bg-indigo-700/50'
+                                ? 'bg-indigo-600 text-white shadow-lg'
+                                : 'text-indigo-200 hover:bg-indigo-700/50'
                                 }`}
                         >
                             {item.icon}
