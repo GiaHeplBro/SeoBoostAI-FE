@@ -1,10 +1,51 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Check, ArrowLeft, Minus, Plus, ShoppingCart, X } from "lucide-react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { Check, ArrowLeft, Minus, Plus, ShoppingCart, X, Loader2 } from "lucide-react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import api from "@/axiosInstance";
+
+// Interface cho dữ liệu từ API
+interface FeatureFromAPI {
+  featureID: number;
+  name: string;
+  price: number;
+  description: string;
+  benefits: string[];
+}
+
+// Interface cho pricing tier được chuyển đổi từ API
+interface PricingTier {
+  id: number;
+  name: string;
+  price: number;
+  priceText: string;
+  description: string;
+  features: string[];
+  isPopular: boolean;
+}
+
+// Map tên feature từ API sang tên hiển thị tiếng Việt
+const featureNameMap: { [key: string]: string } = {
+  "ContentOptimizations": "Tối ưu hóa nội dung",
+  "TrendSearches": "Phân tích xu hướng",
+  "PerformanceAnalysis": "Tối ưu hóa Website",
+};
+
+// Chuyển đổi dữ liệu từ API sang format của UI
+const transformAPIToTier = (feature: FeatureFromAPI): PricingTier => {
+  return {
+    id: feature.featureID,
+    name: featureNameMap[feature.name] || feature.name,
+    price: feature.price,
+    priceText: `${feature.price.toLocaleString("vi-VN")} VNĐ`,
+    description: feature.description,
+    features: feature.benefits,
+    // Đánh dấu "Phân tích xu hướng" là phổ biến nhất
+    isPopular: feature.name === "TrendSearches",
+  };
+};
 
 // Dialog components (simple version)
 const Dialog = ({ open, onClose, children }: any) => {
@@ -23,61 +64,42 @@ const DialogTitle = ({ children }: any) => <h2 className="text-xl font-semibold"
 const DialogContent = ({ children }: any) => <div className="px-6 pb-4">{children}</div>;
 const DialogFooter = ({ children }: any) => <div className="px-6 pb-6 flex justify-end gap-2">{children}</div>;
 
-// Dữ liệu cho các gói pricing
-const pricingTiers = [
-  {
-    id: 1,
-    name: "Tối ưu hóa nội dung", // Đổi tên để hợp với chức năng viết/sửa văn bản
-    price: 50000,
-    priceText: "50.000 VNĐ",
-    description: "Tối ưu hóa nội dung và văn phong với AI",
-    features: [
-      "Chấm điểm chất lượng văn bản",
-      "AI đề xuất & cải thiện văn phong",
-      "Tạo bài viết tự động từ Keyword",
-      "So sánh hiệu quả 2 văn bản (A/B)",
-    ],
-    isPopular: false,
-  },
-  {
-    id: 2,
-    name: "Phân tích xu hướng", // Đổi tên để hợp với chức năng từ khóa
-    price: 130000,
-    priceText: "130.000 VNĐ",
-    description: "Giải pháp nghiên cứu từ khóa dữ liệu thực",
-    features: [
-      "Nghiên cứu từ khóa chuyên sâu",
-      "AI gợi ý Keyword từ dữ liệu thực (Real-time)",
-      "Phân tích độ khó & lượng tìm kiếm",
-      "Lập kế hoạch từ khóa SEO",
-      "Theo dõi xu hướng tìm kiếm thị trường",
-    ],
-    isPopular: true,
-  },
-  {
-    id: 3,
-    name: "Tối ưu hóa Website", // Đổi tên để hợp với chức năng kỹ thuật/tốc độ
-    price: 60000,
-    priceText: "60.000 VNĐ",
-    description: "Phân tích kỹ thuật và sức khỏe Website",
-    features: [
-      "Phân tích URL (Desktop & Mobile)",
-      "Đo lường tốc độ tải trang (PageSpeed)",
-      "Kiểm tra thẻ Meta, H1-H6, Alt ảnh",
-      "Chấm điểm sức khỏe Website (Health Score)",
-      "AI đề xuất giải pháp tối ưu code",
-    ],
-    isPopular: false,
-  },
-];
-
 export default function PricingPage() {
   const queryClient = useQueryClient();
-  const [quantities, setQuantities] = useState<{ [key: number]: number }>({
-    1: 1,
-    2: 1,
-    3: 1,
+
+  // Fetch features từ API
+  const { data: featuresData, isLoading, isError, error } = useQuery<FeatureFromAPI[]>({
+    queryKey: ["features"],
+    queryFn: async () => {
+      const response = await api.get("/features");
+      return response.data;
+    },
   });
+
+  // Chuyển đổi dữ liệu từ API sang format UI
+  const pricingTiers: PricingTier[] = featuresData
+    ? featuresData.map(transformAPIToTier)
+    : [];
+
+  const [quantities, setQuantities] = useState<{ [key: number]: number }>({});
+
+  // Khởi tạo quantities khi có dữ liệu từ API
+  useEffect(() => {
+    if (pricingTiers.length > 0) {
+      const initialQuantities: { [key: number]: number } = {};
+      pricingTiers.forEach((tier) => {
+        initialQuantities[tier.id] = 1;
+      });
+      setQuantities((prev) => {
+        // Chỉ set nếu chưa có
+        if (Object.keys(prev).length === 0) {
+          return initialQuantities;
+        }
+        return prev;
+      });
+    }
+  }, [featuresData]);
+
   const [confirmDialog, setConfirmDialog] = useState<{
     open: boolean;
     featureId: number | null;
@@ -103,6 +125,8 @@ export default function PricingPage() {
       setConfirmDialog({ open: false, featureId: null, quantity: 0, totalPrice: 0, featureName: "" });
       // Invalidate wallet query để cập nhật số dư
       queryClient.invalidateQueries({ queryKey: ["wallet"] });
+      // Invalidate userProfile để cập nhật số dư ví trên header
+      queryClient.invalidateQueries({ queryKey: ["userProfile"] });
     },
     onError: (error: any) => {
       alert(error.response?.data?.message || "Mua gói thất bại. Vui lòng thử lại.");
@@ -116,7 +140,7 @@ export default function PricingPage() {
     }));
   };
 
-  const handleBuyClick = (tier: typeof pricingTiers[0]) => {
+  const handleBuyClick = (tier: PricingTier) => {
     const quantity = quantities[tier.id] || 1;
     const totalPrice = tier.price * quantity;
     setConfirmDialog({
@@ -137,6 +161,37 @@ export default function PricingPage() {
     }
   };
 
+  // Loading state
+  if (isLoading) {
+    return (
+      <div className="container mx-auto py-12 flex flex-col items-center justify-center min-h-[400px]">
+        <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
+        <p className="text-lg text-muted-foreground">Đang tải danh sách gói...</p>
+      </div>
+    );
+  }
+
+  // Error state
+  if (isError) {
+    return (
+      <div className="container mx-auto py-12 flex flex-col items-center justify-center min-h-[400px]">
+        <div className="text-center">
+          <X className="h-12 w-12 text-red-500 mx-auto mb-4" />
+          <h2 className="text-xl font-semibold text-red-600 mb-2">Không thể tải danh sách gói</h2>
+          <p className="text-muted-foreground mb-4">
+            {(error as any)?.message || "Đã xảy ra lỗi khi tải dữ liệu. Vui lòng thử lại."}
+          </p>
+          <Link href="/dashboard">
+            <Button variant="outline">
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Về Dashboard
+            </Button>
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="container mx-auto py-12">
       <div className="text-center mb-12">
@@ -147,7 +202,7 @@ export default function PricingPage() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-        {pricingTiers.map((tier) => (
+        {pricingTiers.map((tier: PricingTier) => (
           <Card key={tier.id} className={`flex flex-col ${tier.isPopular ? 'border-primary shadow-lg' : ''}`}>
             {tier.isPopular && (
               <div className="py-1 px-3 bg-primary text-primary-foreground text-sm font-semibold rounded-t-lg text-center">
@@ -164,7 +219,7 @@ export default function PricingPage() {
             </CardHeader>
             <CardContent className="flex-grow">
               <ul className="space-y-3">
-                {tier.features.map((feature, index) => (
+                {tier.features.map((feature: string, index: number) => (
                   <li key={index} className="flex items-center">
                     <Check className="h-5 w-5 text-green-500 mr-3 flex-shrink-0" />
                     <span>{feature}</span>
