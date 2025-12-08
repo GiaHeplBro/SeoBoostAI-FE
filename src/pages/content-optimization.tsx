@@ -308,29 +308,33 @@ export default function ContentOptimization() {
                   </div>
                 </CardHeader>
                 <CardContent>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <ComparisonScoreCard
-                      title="SEO Score"
-                      originalScore={currentResult.aiData.comparison.original.seo_score}
-                      optimizedScore={currentResult.aiData.comparison.optimized.seo_score}
-                      originalJustification={currentResult.aiData.comparison.original.seo_justification}
-                      optimizedJustification={currentResult.aiData.comparison.optimized.seo_justification}
-                    />
-                    <ComparisonScoreCard
-                      title="Readability"
-                      originalScore={currentResult.aiData.comparison.original.readability_score}
-                      optimizedScore={currentResult.aiData.comparison.optimized.readability_score}
-                      originalJustification={currentResult.aiData.comparison.original.readability_justification}
-                      optimizedJustification={currentResult.aiData.comparison.optimized.readability_justification}
-                    />
-                    <ComparisonScoreCard
-                      title="Engagement"
-                      originalScore={currentResult.aiData.comparison.original.engagement_score}
-                      optimizedScore={currentResult.aiData.comparison.optimized.engagement_score}
-                      originalJustification={currentResult.aiData.comparison.original.engagement_justification}
-                      optimizedJustification={currentResult.aiData.comparison.optimized.engagement_justification}
-                    />
-                  </div>
+                  {currentResult.aiData?.comparison ? (
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <ComparisonScoreCard
+                        title="SEO Score"
+                        originalScore={currentResult.aiData.comparison.original?.seo_score ?? 0}
+                        optimizedScore={currentResult.aiData.comparison.optimized?.seo_score ?? 0}
+                        originalJustification={currentResult.aiData.comparison.original?.seo_justification ?? ''}
+                        optimizedJustification={currentResult.aiData.comparison.optimized?.seo_justification ?? ''}
+                      />
+                      <ComparisonScoreCard
+                        title="Readability"
+                        originalScore={currentResult.aiData.comparison.original?.readability_score ?? 0}
+                        optimizedScore={currentResult.aiData.comparison.optimized?.readability_score ?? 0}
+                        originalJustification={currentResult.aiData.comparison.original?.readability_justification ?? ''}
+                        optimizedJustification={currentResult.aiData.comparison.optimized?.readability_justification ?? ''}
+                      />
+                      <ComparisonScoreCard
+                        title="Engagement"
+                        originalScore={currentResult.aiData.comparison.original?.engagement_score ?? 0}
+                        optimizedScore={currentResult.aiData.comparison.optimized?.engagement_score ?? 0}
+                        originalJustification={currentResult.aiData.comparison.original?.engagement_justification ?? ''}
+                        optimizedJustification={currentResult.aiData.comparison.optimized?.engagement_justification ?? ''}
+                      />
+                    </div>
+                  ) : (
+                    <p className="text-sm text-slate-400 text-center py-4">Không có dữ liệu so sánh cho bản ghi này</p>
+                  )}
                 </CardContent>
               </Card>
 
@@ -383,26 +387,30 @@ export default function ContentOptimization() {
                           <AccordionContent>
                             <div className="space-y-3 p-2">
                               {/* Scores */}
-                              <div className="grid grid-cols-3 gap-2 text-center text-xs">
-                                <div>
-                                  <p className="text-slate-400">SEO</p>
-                                  <p className="font-bold text-white">
-                                    {item.aiData.comparison.original.seo_score} → {item.aiData.comparison.optimized.seo_score}
-                                  </p>
+                              {item.aiData?.comparison ? (
+                                <div className="grid grid-cols-3 gap-2 text-center text-xs">
+                                  <div>
+                                    <p className="text-slate-400">SEO</p>
+                                    <p className="font-bold text-white">
+                                      {item.aiData.comparison.original?.seo_score ?? 'N/A'} → {item.aiData.comparison.optimized?.seo_score ?? 'N/A'}
+                                    </p>
+                                  </div>
+                                  <div>
+                                    <p className="text-slate-400">Read</p>
+                                    <p className="font-bold text-white">
+                                      {item.aiData.comparison.original?.readability_score ?? 'N/A'} → {item.aiData.comparison.optimized?.readability_score ?? 'N/A'}
+                                    </p>
+                                  </div>
+                                  <div>
+                                    <p className="text-slate-400">Eng</p>
+                                    <p className="font-bold text-white">
+                                      {item.aiData.comparison.original?.engagement_score ?? 'N/A'} → {item.aiData.comparison.optimized?.engagement_score ?? 'N/A'}
+                                    </p>
+                                  </div>
                                 </div>
-                                <div>
-                                  <p className="text-slate-400">Read</p>
-                                  <p className="font-bold text-white">
-                                    {item.aiData.comparison.original.readability_score} → {item.aiData.comparison.optimized.readability_score}
-                                  </p>
-                                </div>
-                                <div>
-                                  <p className="text-slate-400">Eng</p>
-                                  <p className="font-bold text-white">
-                                    {item.aiData.comparison.original.engagement_score} → {item.aiData.comparison.optimized.engagement_score}
-                                  </p>
-                                </div>
-                              </div>
+                              ) : (
+                                <p className="text-sm text-slate-400 text-center">Không có dữ liệu so sánh</p>
+                              )}
 
                               {/* Load Button */}
                               <Button
