@@ -41,22 +41,43 @@ export interface StaffDashboard {
 
 export interface FeedbackMessage {
     messageID: number;
-    senderName: string;
-    senderRole: string;
+    feedbackID: number;
+    senderID: number;
     content: string;
     createdAt: string;
+    isDeleted: boolean;
 }
 
 export interface Feedback {
     feedbackID: number;
-    userEmail: string;
-    userName?: string;
+    userID: number;
     topic: string;
-    status: 'Open' | 'In Progress' | 'Resolved' | 'Closed';
+    status: string; // 'PENDING' | 'Open' | 'In Progress' | 'Completed'
     description?: string;
     createdAt: string;
     updatedAt?: string;
-    messages?: FeedbackMessage[];
+    isDeleted: boolean;
+    feedbackMessages?: FeedbackMessage[];
+    user?: {
+        userID: number;
+        fullName: string;
+        email: string;
+    } | null;
+}
+
+export interface FeedbackListResponse {
+    totalItems: number;
+    totalPages: number;
+    currentPage: number;
+    pageSize: number;
+    items: Feedback[];
+}
+
+// SignalR Chat Message (for real-time messaging)
+export interface ChatMessage {
+    user: string;
+    message: string;
+    time: string;
 }
 
 export interface UserDeposit {

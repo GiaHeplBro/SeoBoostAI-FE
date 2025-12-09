@@ -1,6 +1,6 @@
 // Staff Feature API
 import api from '@/axiosInstance';
-import type { User, StaffDashboard, Feedback, UserDetails, UserFilterRequest, UserFilterResponse } from '../types';
+import type { User, StaffDashboard, Feedback, FeedbackListResponse, FeedbackMessage, UserDetails, UserFilterRequest, UserFilterResponse } from '../types';
 
 // ==================== Request Types ====================
 export interface BanUserRequest {
@@ -79,6 +79,27 @@ export const unbanUser = async (userId: number) => {
 };
 
 // Feedback Management
+
+
+// GET /api/feedbacks/{currentPage}/{pageSize} - Get paginated feedbacks (Staff)
+export const getFeedbacksPaginated = async (currentPage: number = 1, pageSize: number = 10): Promise<FeedbackListResponse> => {
+    const response = await api.get(`/feedbacks/${currentPage}/${pageSize}`);
+    return response.data.data; // Response: { success, message, data: FeedbackListResponse }
+};
+
+// GET /api/feedbacks/chat-histories/{feedbackId} - Get chat history for a feedback
+export const getChatHistory = async (feedbackId: number): Promise<FeedbackMessage[]> => {
+    const response = await api.get(`/feedbacks/chat-histories/${feedbackId}`);
+    return response.data.data || []; // Response: { success, message, data: FeedbackMessage[] }
+};
+
+// PUT /api/feedbacks - Update feedback (e.g., change status to Completed)
+export const updateFeedback = async (feedback: Partial<Feedback>): Promise<Feedback> => {
+    const response = await api.put('/feedbacks', feedback);
+    return response.data.data || response.data;
+};
+
+// Legacy (kept for compatibility)
 export const getFeedbacks = async (filters?: FeedbackFilterRequest): Promise<Feedback[]> => {
     const response = await api.get('/feedbacks', { params: filters });
     return response.data?.items || response.data || [];
