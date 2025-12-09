@@ -192,7 +192,91 @@ export const updateFeedbackStatus = async (feedbackId: number, status: string) =
     return response.data;
 };
 
-// System Config
+// System Settings (Admin Settings)
+import type { AdminSettingsResponse, AdminSetting, UpdateSettingRequest, Feature, SettingsByFeatureResponse } from '../types';
+
+// GET /api/admin-settings - Get all settings
+export const getAdminSettings = async (): Promise<AdminSettingsResponse> => {
+    const response = await api.get('/admin-settings');
+    return response.data;
+};
+
+// PUT /api/admin-settings - Update a setting
+export const updateAdminSetting = async (data: UpdateSettingRequest): Promise<{ message: string }> => {
+    const response = await api.put('/admin-settings', data);
+    return response.data;
+};
+
+// GET /api/admin-settings/{featureId} - Get settings by feature ID
+export const getSettingsByFeatureId = async (featureId: number): Promise<SettingsByFeatureResponse> => {
+    const response = await api.get(`/admin-settings/${featureId}`);
+    return response.data;
+};
+
+// GET /api/features - Get all features
+export const getFeatures = async (): Promise<Feature[]> => {
+    const response = await api.get('/features');
+    return response.data;
+};
+
+// GET /api/features/{currentPage}/{pageSize} - Get features with pagination
+import type { FeaturesPaginatedResponse, UpdateFeatureRequest } from '../types';
+
+export const getFeaturesPaginated = async (currentPage: number = 1, pageSize: number = 10): Promise<FeaturesPaginatedResponse> => {
+    const response = await api.get(`/features/${currentPage}/${pageSize}`);
+    return response.data;
+};
+
+// PUT /api/features/{id} - Update feature price and description
+export const updateFeature = async (featureId: number, data: UpdateFeatureRequest): Promise<{ message: string }> => {
+    const response = await api.put(`/features/${featureId}`, data);
+    return response.data;
+};
+
+// GET /api/user-monthly-free-quotas/quota - Get feature quotas
+import type { FeatureQuota } from '../types';
+
+export const getFeatureQuotas = async (): Promise<FeatureQuota[]> => {
+    const response = await api.get('/user-monthly-free-quotas/quota');
+    return response.data;
+};
+
+// PUT /api/user-monthly-free-quotas/update-monthly-limit - Update monthly free limit
+export const updateMonthlyLimit = async (limit: number): Promise<{ message: string }> => {
+    const response = await api.put('/user-monthly-free-quotas/update-monthly-limit', limit, {
+        headers: { 'Content-Type': 'application/json' }
+    });
+    return response.data;
+};
+
+// Gemini API Keys
+import type { GeminiKey, CreateGeminiKeyRequest } from '../types';
+
+// GET /api/gemini-keys - Get all Gemini keys
+export const getGeminiKeys = async (): Promise<GeminiKey[]> => {
+    const response = await api.get('/gemini-keys');
+    return response.data;
+};
+
+// GET /api/gemini-keys/{id} - Get Gemini key by ID
+export const getGeminiKeyById = async (id: number): Promise<GeminiKey> => {
+    const response = await api.get(`/gemini-keys/${id}`);
+    return response.data;
+};
+
+// POST /api/gemini-keys - Create new Gemini key
+export const createGeminiKey = async (data: CreateGeminiKeyRequest): Promise<GeminiKey> => {
+    const response = await api.post('/gemini-keys', data);
+    return response.data;
+};
+
+// DELETE /api/gemini-keys/{id} - Delete Gemini key
+export const deleteGeminiKey = async (id: number): Promise<{ message: string }> => {
+    const response = await api.delete(`/gemini-keys/${id}`);
+    return response.data;
+};
+
+// Legacy functions (kept for compatibility)
 export const getSystemConfigs = async (): Promise<SystemConfig[]> => {
     const response = await api.get('/system-configs');
     return response.data?.items || response.data || [];

@@ -164,9 +164,128 @@ export interface Feedback {
     messages?: FeedbackMessage[];
 }
 
-// System Config
+// System Settings/Config
+
+// Response from GET /api/admin-settings
+export interface AdminSettingsResponse {
+    success: boolean;
+    message: string;
+    data: Record<string, string>; // key-value pairs
+}
+
+// Single setting item from GET /api/admin-settings/{featureId}
+export interface AdminSetting {
+    settingID: number;
+    settingKey: string;
+    settingValue: string;
+    description?: string | null;
+    lastUpdatedDate: string;
+    featureID: number;
+    feature?: any | null;
+}
+
+// Response from GET /api/admin-settings/{featureId}
+export interface SettingsByFeatureResponse {
+    success: boolean;
+    message: string;
+    data: AdminSetting[];
+}
+
+// Request for PUT /api/admin-settings
+export interface UpdateSettingRequest {
+    key: string;
+    value: string;
+    featureID: number;
+}
+
+// Feature from GET /api/features
+export interface Feature {
+    featureID: number;
+    name: string;
+    price: number;
+    description: string;
+    benefits: string[];
+}
+
+// Feature Information (benefits detail)
+export interface FeatureInformation {
+    informationID: number;
+    featureID: number;
+    informationFeature: string;
+    createdAt: string;
+    updatedAt?: string | null;
+    feature?: any | null;
+}
+
+// Detailed Feature from GET /api/features/{currentPage}/{pageSize}
+export interface FeatureDetailed {
+    featureID: number;
+    name: string;
+    description: string;
+    price: number;
+    featureInformations: FeatureInformation[];
+    purchasedFeatures?: any[];
+    systemSettings?: any[];
+    userMonthlyFreeQuota?: any[];
+}
+
+// Response from GET /api/features/{currentPage}/{pageSize}
+export interface FeaturesPaginatedResponse {
+    totalItems: number;
+    totalPages: number;
+    currentPage: number;
+    pageSize: number;
+    items: FeatureDetailed[];
+}
+
+// Request for PUT /api/features/{id}
+export interface UpdateFeatureRequest {
+    price: number;
+    description: string;
+}
+
+// Feature Quota from GET /api/user-monthly-free-quotas/quota
+export interface FeatureQuota {
+    featureId: number;
+    featureName: string;
+    freeUsage: number;
+    freeLimit: number;
+    freeRemaining: number;
+    paidRemaining: number;
+    totalRemaining: number;
+}
+
+// Gemini API Key
+export interface GeminiKey {
+    id: number;
+    apiKey: string;
+    keyName: string;
+    isActive: boolean;
+    rpmLimit: number;
+    tpmLimit: number;
+    rpdLimit: number;
+    requestsUsedToday: number;
+    tokensUsedToday: number;
+    lastResetDate: string;
+    rateLimitedUntil: string | null;
+    createdAt: string;
+    updatedAt: string | null;
+}
+
+// Request for POST /api/gemini-keys
+export interface CreateGeminiKeyRequest {
+    apiKey: string;
+    keyName: string;
+    isActive: boolean;
+    rpmLimit: number;
+    tpmLimit: number;
+    rpdLimit: number;
+}
+
+// Legacy interface (kept for compatibility)
 export interface SystemConfig {
     settingKey: string;
     settingValue: string;
     description: string;
 }
+

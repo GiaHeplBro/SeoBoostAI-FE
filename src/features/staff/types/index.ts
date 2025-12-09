@@ -5,10 +5,29 @@ export interface User {
     fullName: string;
     email: string;
     role: 'Admin' | 'Staff' | 'Member';
-    createdAt?: string;
+    createdAt: string;
     isBanned: boolean;
-    wallet?: {
-        currency: number;
+    isDeleted: boolean;
+    currency: number;
+    avatar?: string;
+    googleID?: string;
+}
+
+// User Filter for Staff (same as Admin but only for Members)
+export interface UserFilterRequest {
+    CurrentPage: number;
+    PageSize: number;
+    Role?: string;
+    IsBanned?: boolean;
+    IsDeleted?: boolean;
+}
+
+export interface UserFilterResponse {
+    data: {
+        items: User[];
+        currentPage: number;
+        totalPages: number;
+        totalItems: number;
     };
 }
 
@@ -22,22 +41,43 @@ export interface StaffDashboard {
 
 export interface FeedbackMessage {
     messageID: number;
-    senderName: string;
-    senderRole: string;
+    feedbackID: number;
+    senderID: number;
     content: string;
     createdAt: string;
+    isDeleted: boolean;
 }
 
 export interface Feedback {
     feedbackID: number;
-    userEmail: string;
-    userName?: string;
+    userID: number;
     topic: string;
-    status: 'Open' | 'In Progress' | 'Resolved' | 'Closed';
+    status: string; // 'PENDING' | 'Open' | 'In Progress' | 'Completed'
     description?: string;
     createdAt: string;
     updatedAt?: string;
-    messages?: FeedbackMessage[];
+    isDeleted: boolean;
+    feedbackMessages?: FeedbackMessage[];
+    user?: {
+        userID: number;
+        fullName: string;
+        email: string;
+    } | null;
+}
+
+export interface FeedbackListResponse {
+    totalItems: number;
+    totalPages: number;
+    currentPage: number;
+    pageSize: number;
+    items: Feedback[];
+}
+
+// SignalR Chat Message (for real-time messaging)
+export interface ChatMessage {
+    user: string;
+    message: string;
+    time: string;
 }
 
 export interface UserDeposit {
@@ -66,4 +106,26 @@ export interface UserDetails {
     deposits: UserDeposit[];
     purchases: UserPurchase[];
     featureUsage: UserFeatureUsage[];
+}
+
+// Transaction types
+export interface Transaction {
+    transactionID: number;
+    userID: number;
+    type: 'DEPOSIT' | 'PURCHASE';
+    money: number;
+    description: string;
+    paymentMethod: string;
+    status: 'PENDING' | 'COMPLETED' | 'FAILED';
+    balanceAfter: number;
+    requestTime: string;
+    completedTime?: string;
+    gatewayTransactionId?: string;
+}
+
+export interface TransactionListResponse {
+    items: Transaction[];
+    currentPage: number;
+    totalPages: number;
+    totalItems: number;
 }
