@@ -204,7 +204,7 @@ export function MembersView() {
                                 </div>
                                 <div className="flex items-center gap-3">
                                     <span className="font-mono text-green-600 font-medium">
-                                        {(member.wallet?.currency || 0).toLocaleString()} đ
+                                        {(member.currency || 0).toLocaleString()} đ
                                     </span>
                                     <Button
                                         variant={member.isBanned ? 'outline' : 'ghost'}

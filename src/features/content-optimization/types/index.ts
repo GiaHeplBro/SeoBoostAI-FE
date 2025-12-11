@@ -8,7 +8,6 @@ export interface ContentOptimizationPayload {
     contentLength: string;
     optimizationLevel: number;
     readabilityLevel: string;
-    includeCitation: boolean;
     featureId: number; // Feature ID for Content Optimization
 }
 
@@ -32,6 +31,7 @@ export interface ComparisonData {
 export interface AIData {
     comparison: ComparisonData;
     optimized_content: string; // Markdown content
+    summary?: string;
 }
 
 // Main response from create optimization API
@@ -68,6 +68,5 @@ export interface ParsedUserRequest {
     ContentLength: string;
     OptimizationLevel: number;
     ReadabilityLevel: string;
-    IncludeCitation: boolean;
     FeatureId: number;
 }
