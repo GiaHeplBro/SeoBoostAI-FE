@@ -78,6 +78,7 @@ export interface ChatMessage {
     user: string;
     message: string;
     time: string;
+    isMe?: boolean; // Flag to track if message is from current user
 }
 
 export interface UserDeposit {

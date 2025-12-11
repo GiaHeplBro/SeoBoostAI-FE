@@ -25,6 +25,7 @@ const pathToTitle: Record<string, string> = {
   "/pricing": "Upgrade Plan",
   "/feature-comparison": "Pricing Details",
   "/transaction-history": "Lịch sử giao dịch",
+  "/support": "Hỗ trợ trực tuyến",
 };
 
 const pathToDescription: Record<string, string> = {
@@ -33,6 +34,7 @@ const pathToDescription: Record<string, string> = {
   "/pricing": "Choose a plan that fits your needs",
   "/feature-comparison": "A detailed look at our features and plans",
   "/transaction-history": "Xem tất cả giao dịch của ví",
+  "/support": "Liên hệ với đội ngũ hỗ trợ của chúng tôi",
 };
 
 interface UserProfile {

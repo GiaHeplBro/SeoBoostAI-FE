@@ -43,7 +43,7 @@ export default function ContentOptimization() {
   const [optimizationLevel, setOptimizationLevel] = useState<number[]>([3]);
   const [readabilityPreference, setReadabilityPreference] = useState<number[]>([2]);
   const [contentLengthPreference, setContentLengthPreference] = useState<number[]>([2]);
-  const [includeCitation, setIncludeCitation] = useState(false);
+
 
   // Current optimization result
   const [currentResult, setCurrentResult] = useState<ContentOptimizationResponse | null>(null);
@@ -120,7 +120,6 @@ export default function ContentOptimization() {
       content: content,
       optimizationLevel: optimizationLevel[0],
       readabilityLevel: READABILITY_LEVELS[readabilityPreference[0]],
-      includeCitation: includeCitation,
       contentLength: CONTENT_LENGTH_OPTIONS[contentLengthPreference[0]],
       featureId: 1 // Feature ID for Content Optimization
     };
@@ -256,15 +255,7 @@ export default function ContentOptimization() {
                 />
               </div>
 
-              {/* Include Citation */}
-              <div className="flex items-center justify-between">
-                <Label htmlFor="citation" className="text-slate-300">Bao gồm trích dẫn</Label>
-                <Switch
-                  id="citation"
-                  checked={includeCitation}
-                  onCheckedChange={setIncludeCitation}
-                />
-              </div>
+
 
               {/* Optimize Button */}
               <Button
@@ -340,6 +331,20 @@ export default function ContentOptimization() {
 
               {/* Optimized Content */}
               <OptimizedContentDisplay content={currentResult.aiData.optimized_content} />
+
+              {/* Summary */}
+              {currentResult.aiData?.summary && (
+                <Card className="bg-slate-900 border-slate-800">
+                  <CardHeader>
+                    <CardTitle className="text-white">Tóm tắt</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-slate-300 leading-relaxed">
+                      {currentResult.aiData.summary}
+                    </p>
+                  </CardContent>
+                </Card>
+              )}
             </div>
           )}
         </div>

@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
     ChevronLeft, ChevronRight, Eye, Ban, CheckCircle,
-    X, Users, UserX
+    X, Users, UserX, Search
 } from 'lucide-react';
 import { getUsersFilter, getUserById, toggleBanUser } from '../api';
 import type { User, UserFilterRequest, UserFilterResponse } from '../types';
@@ -64,6 +64,7 @@ export function UserManagement() {
     const [currentPage, setCurrentPage] = useState(1);
     const [bannedFilter, setBannedFilter] = useState<string>(''); // '' | 'true' | 'false'
     const [deletedFilter, setDeletedFilter] = useState<string>(''); // '' | 'true' | 'false'
+    const [searchQuery, setSearchQuery] = useState('');
     const pageSize = 10;
 
     // Dialog states
@@ -120,6 +121,14 @@ export function UserManagement() {
         setCurrentPage(1);
     };
 
+    // Client-side search filtering
+    const filteredUsers = users.filter(user => {
+        if (!searchQuery.trim()) return true;
+        const query = searchQuery.toLowerCase();
+        return user.fullName?.toLowerCase().includes(query) ||
+            user.email?.toLowerCase().includes(query);
+    });
+
     if (isError) {
         return (
             <div className="text-center py-12 text-gray-500">
@@ -139,6 +148,29 @@ export function UserManagement() {
             {/* Filters - No Role filter for Staff */}
             <div className="bg-white rounded-xl border p-4">
                 <div className="flex gap-4 flex-wrap">
+                    {/* Search Input */}
+                    <div className="flex-[2] min-w-[200px]">
+                        <label className="block text-xs font-medium text-gray-500 mb-1">Tìm kiếm</label>
+                        <div className="relative">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                            <input
+                                type="text"
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                placeholder="Tìm theo tên hoặc email..."
+                                className="w-full pl-9 pr-8 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                            />
+                            {searchQuery && (
+                                <button
+                                    onClick={() => setSearchQuery('')}
+                                    className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                                >
+                                    <X className="h-4 w-4" />
+                                </button>
+                            )}
+                        </div>
+                    </div>
+
                     {/* Banned Filter */}
                     <div className="flex-1 min-w-[150px]">
                         <label className="block text-xs font-medium text-gray-500 mb-1">Trạng thái khóa</label>
@@ -182,7 +214,7 @@ export function UserManagement() {
                                 </tr>
                             </thead>
                             <tbody className="divide-y">
-                                {users.map((user) => (
+                                {filteredUsers.map((user) => (
                                     <tr key={user.userID} className="hover:bg-gray-50">
                                         <td className="px-6 py-4">
                                             <div className="flex items-center gap-3">
@@ -233,7 +265,17 @@ export function UserManagement() {
                             </tbody>
                         </table>
 
-                        {users.length === 0 && (
+                        {filteredUsers.length === 0 && searchQuery && (
+                            <div className="text-center py-12 text-gray-500">
+                                <Search className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+                                <p>Không tìm thấy "{searchQuery}"</p>
+                                <button onClick={() => setSearchQuery('')} className="text-blue-600 text-sm mt-2 hover:underline">
+                                    Xóa tìm kiếm
+                                </button>
+                            </div>
+                        )}
+
+                        {filteredUsers.length === 0 && !searchQuery && (
                             <div className="text-center py-12 text-gray-500">
                                 <UserX className="h-12 w-12 mx-auto mb-4 text-gray-300" />
                                 <p>Không tìm thấy người dùng nào</p>

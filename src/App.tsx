@@ -25,6 +25,7 @@ import UsersPage from '@/pages/UsersPage';
 import TransactionHistoryPage from '@/pages/TransactionHistoryPage';
 import DepositPage from '@/pages/DepositPage';
 import PaymentResultPage from '@/pages/PaymentResultPage';
+import UserFeedbackPage from '@/pages/UserFeedbackPage';
 
 // Định nghĩa interface UserProfile
 interface UserProfile {
@@ -63,6 +64,7 @@ function MainAppLayout({ onLogout, user }: { onLogout: () => void; user: UserPro
             <Route path="/deposit" component={DepositPage} />
             <Route path="/payment/success" component={PaymentResultPage} />
             <Route path="/payment/failed" component={PaymentResultPage} />
+            <Route path="/support" component={UserFeedbackPage} />
 
             <Route path="/pricing" component={PricingPage} />
 
