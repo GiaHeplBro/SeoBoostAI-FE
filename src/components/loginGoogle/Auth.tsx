@@ -17,6 +17,8 @@ interface UserProfile {
   email?: string;
   fullname?: string;
   role?: string;
+  user_ID?: string; // From JWT payload
+  userID?: number;  // Normalized for frontend use
   exp?: number;
   iat?: number;
   [key: string]: any;
@@ -126,6 +128,7 @@ const Auth: React.FC<{ onLoginSuccess: (user: UserProfile) => void }> = ({ onLog
     console.log("Expected Role:", expectedRole);
     console.log("JWT Role:", decodedUser.role);
     console.log("User Email:", decodedUser.email);
+    console.log("User ID from JWT:", decodedUser.user_ID); // Log user_ID
     console.log("═══════════════════════════════════════");
 
     // ✅ FIX: Normalize role - Backend gửi "User" nhưng frontend dùng "Member"
@@ -147,11 +150,13 @@ const Auth: React.FC<{ onLoginSuccess: (user: UserProfile) => void }> = ({ onLog
     const userToStore = {
       ...decodedUser,
       role: actualRole,  // Dùng role đã normalize
-      fullName: decodedUser.fullname
+      fullName: decodedUser.fullname,
+      // ✅ FIX: Thêm userID từ JWT's user_ID field
+      userID: decodedUser.user_ID ? Number(decodedUser.user_ID) : undefined
     };
 
     // Lưu vào localStorage
-    console.log("💾 Saving user:", { email: userToStore.email, role: userToStore.role });
+    console.log("💾 Saving user:", { email: userToStore.email, role: userToStore.role, userID: userToStore.userID });
     localStorage.setItem('user', btoa(encodeURIComponent(JSON.stringify(userToStore))));
     localStorage.setItem('tokens', btoa(encodeURIComponent(JSON.stringify({ accessToken, refreshToken }))));
 

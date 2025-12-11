@@ -145,23 +145,41 @@ export interface AdminDepositResponse {
 
 // Feedback
 export interface FeedbackMessage {
-    messageID: number;
-    senderName: string;
-    senderRole: string;
-    content: string;
+    messageID?: number;
+    senderID?: number;
+    senderName?: string;
+    senderRole?: string;
+    content?: string;
+    message?: string; // Alternative field name from chat history API
     createdAt: string;
 }
 
 export interface Feedback {
     feedbackID: number;
-    userEmail: string;
+    userID: number;
+    userEmail?: string;
     userName?: string;
     topic: string;
-    status: 'Open' | 'In Progress' | 'Resolved' | 'Closed';
+    status: string; // 'PENDING' | 'Open' | 'In Progress' | 'COMPLETED' | 'Resolved' | 'Closed'
     description?: string;
     createdAt: string;
     updatedAt?: string;
+    isDeleted?: boolean;
     messages?: FeedbackMessage[];
+    user?: {
+        userID: number;
+        fullName: string;
+        email: string;
+    } | null;
+}
+
+// Response from /api/feedbacks/{currentPage}/{pageSize}
+export interface FeedbackListResponse {
+    totalItems: number;
+    totalPages: number;
+    currentPage: number;
+    pageSize: number;
+    items: Feedback[];
 }
 
 // System Settings/Config

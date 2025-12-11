@@ -182,6 +182,20 @@ export const getFeedbacks = async (filters?: FeedbackFilterRequest): Promise<Fee
     return response.data?.items || response.data || [];
 };
 
+// GET /api/feedbacks/{currentPage}/{pageSize} - Get paginated feedbacks
+import type { FeedbackListResponse, FeedbackMessage } from '../types';
+
+export const getFeedbacksPaginated = async (currentPage: number = 1, pageSize: number = 10): Promise<FeedbackListResponse> => {
+    const response = await api.get(`/feedbacks/${currentPage}/${pageSize}`);
+    return response.data.data; // Response: { success, message, data: FeedbackListResponse }
+};
+
+// GET /api/feedbacks/chat-histories/{feedbackId} - Get chat history for a feedback
+export const getChatHistory = async (feedbackId: number): Promise<FeedbackMessage[]> => {
+    const response = await api.get(`/feedbacks/chat-histories/${feedbackId}`);
+    return response.data.data || [];
+};
+
 export const addFeedbackReply = async (feedbackId: number, data: FeedbackReplyRequest) => {
     const response = await api.post(`/feedbacks/${feedbackId}/messages`, data);
     return response.data;

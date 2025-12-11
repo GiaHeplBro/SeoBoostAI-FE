@@ -6,6 +6,7 @@ import {
   Sparkles,
   Rocket,
   History,
+  MessageSquare,
 } from "lucide-react";
 
 const menuItems = [
@@ -22,6 +23,7 @@ const menuItems = [
     category: "Tài Khoản",
     items: [
       { name: "Lịch sử giao dịch", icon: <History className="mr-3 h-5 w-5" />, path: "/transaction-history" },
+      { name: "Hỗ trợ", icon: <MessageSquare className="mr-3 h-5 w-5" />, path: "/support" },
     ],
   },
 ];

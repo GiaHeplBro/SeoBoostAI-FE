@@ -4,10 +4,26 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import * as signalR from '@microsoft/signalr';
 import {
     MessageSquare, Send, CheckCircle, Clock, ChevronLeft, ChevronRight,
-    User, AlertCircle, RefreshCw
+    User, AlertCircle, RefreshCw, Search, Filter, X
 } from 'lucide-react';
-import { getFeedbacksPaginated, getChatHistory, updateFeedback } from '../api';
+import { getFeedbacksPaginated, getChatHistory, updateFeedback, getUsersFilter } from '../api';
 import type { Feedback, FeedbackListResponse, FeedbackMessage, ChatMessage } from '../types';
+
+// ==================== Constants ====================
+
+const TOPIC_OPTIONS = [
+    { value: 'all', label: 'Tất cả chủ đề' },
+    { value: 'Lỗi nạp tiền, lỗi ví', label: 'Lỗi nạp tiền, lỗi ví' },
+    { value: 'Lỗi chức năng', label: 'Lỗi chức năng' },
+    { value: 'Góp ý-Phàn nàn', label: 'Góp ý - Phàn nàn' },
+    { value: 'Khác', label: 'Khác' },
+];
+
+const STATUS_OPTIONS = [
+    { value: 'pending', label: 'Chờ xử lý' },
+    { value: 'completed', label: 'Hoàn thành' },
+    { value: 'all', label: 'Tất cả' },
+];
 
 // ==================== UI Components ====================
 
@@ -19,7 +35,7 @@ const Badge = ({ variant = 'default', children }: { variant?: string; children: 
         info: 'bg-blue-100 text-blue-800',
         pending: 'bg-orange-100 text-orange-800',
     };
-    return <span className={`px-2 py-1 rounded-full text-xs font-medium ${variants[variant] || variants.default}`}>{children}</span>;
+    return <span className={`px - 2 py - 1 rounded - full text - xs font - medium ${variants[variant] || variants.default} `}>{children}</span>;
 };
 
 const Button = ({ variant = 'default', size = 'default', className = '', disabled = false, children, ...props }: any) => {
@@ -35,7 +51,7 @@ const Button = ({ variant = 'default', size = 'default', className = '', disable
         icon: 'p-2',
     };
     return (
-        <button className={`rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${variants[variant]} ${sizes[size]} ${className}`}
+        <button className={`rounded - lg font - medium transition - colors disabled: opacity - 50 disabled: cursor - not - allowed ${variants[variant]} ${sizes[size]} ${className} `}
             disabled={disabled} {...props}>{children}</button>
     );
 };
@@ -56,12 +72,16 @@ const getAccessToken = (): string | null => {
 };
 
 const getCurrentUserId = (): number | null => {
+    // Get userID from localStorage (saved during login from JWT's user_ID)
     const userStr = localStorage.getItem('user');
     if (!userStr) return null;
     try {
-        const user = JSON.parse(userStr);
-        return user.userID || user.id || null;
-    } catch {
+        const decoded = JSON.parse(decodeURIComponent(atob(userStr)));
+        const userId = decoded.userID || decoded.user_ID;
+        console.log('🔍 Staff User ID from localStorage:', userId);
+        return userId ? Number(userId) : null;
+    } catch (error) {
+        console.error('Error getting user ID:', error);
         return null;
     }
 };
@@ -99,6 +119,11 @@ export function FeedbackView() {
     const [connection, setConnection] = useState<signalR.HubConnection | null>(null);
     const [connectionStatus, setConnectionStatus] = useState<'disconnected' | 'connecting' | 'connected' | 'error'>('disconnected');
 
+    // Search & Filter State
+    const [searchQuery, setSearchQuery] = useState('');
+    const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'completed'>('pending'); // Default to pending
+    const [topicFilter, setTopicFilter] = useState('all');
+
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const selectedTicketRef = useRef<Feedback | null>(null);
 
@@ -115,8 +140,21 @@ export function FeedbackView() {
     // Fetch feedbacks with pagination
     const { data: feedbackData, isLoading, refetch } = useQuery<FeedbackListResponse>({
         queryKey: ['staff-feedbacks-paginated', currentPage],
-        queryFn: () => getFeedbacksPaginated(currentPage, 10),
+        queryFn: () => getFeedbacksPaginated(currentPage, 100), // Get more items for client-side filtering
     });
+
+    // Fetch users for user info lookup
+    const { data: usersData } = useQuery({
+        queryKey: ['staff-users-for-feedback'],
+        queryFn: () => getUsersFilter({ CurrentPage: 1, PageSize: 500 }),
+        staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+    });
+
+    // Create user lookup map
+    const usersMap = usersData?.data?.items?.reduce((map: Record<number, { fullName: string; email: string }>, user) => {
+        map[user.userID] = { fullName: user.fullName, email: user.email };
+        return map;
+    }, {} as Record<number, { fullName: string; email: string }>) || {};
 
     // Update feedback mutation (for completing ticket)
     const updateMutation = useMutation({
@@ -177,7 +215,9 @@ export function FeedbackView() {
 
             // Listen for messages
             newConnection.on('ReceiveMessage', (user: string, message: string, time: string) => {
-                const msg: ChatMessage = { user, message, time };
+                // Check if message is from staff (comparing with 'Staff' or 'Admin')
+                const isMe = user === 'Staff' || user === 'Admin' || user === 'Bạn (Staff)';
+                const msg: ChatMessage = { user, message, time, isMe };
                 setMessages(prev => {
                     const updated = [...prev, msg];
                     return updated.sort((a, b) => new Date(a.time).getTime() - new Date(b.time).getTime());
@@ -222,13 +262,24 @@ export function FeedbackView() {
         // Fetch chat history
         try {
             const history = await getChatHistory(ticket.feedbackID);
+            console.log('📜 Staff Chat history:', history);
+            console.log('🔍 Staff User ID for comparison:', currentUserId);
+
             const formattedHistory: ChatMessage[] = history
                 .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
-                .map(h => ({
-                    user: h.senderID === currentUserId ? 'Staff' : 'User',
-                    message: h.content,
-                    time: h.createdAt
-                }));
+                .map(h => {
+                    // Ensure numeric comparison
+                    const senderId = Number(h.senderID);
+                    const myId = Number(currentUserId);
+                    const isMe = senderId === myId;
+                    console.log(`Staff: Message from senderID=${senderId}, myId=${myId}, isMe=${isMe}`);
+                    return {
+                        user: isMe ? 'Staff' : 'User',
+                        message: h.content,
+                        time: h.createdAt,
+                        isMe: isMe
+                    };
+                });
             setMessages(formattedHistory);
         } catch (error) {
             console.error('Error fetching chat history:', error);
@@ -289,6 +340,42 @@ export function FeedbackView() {
     const totalPages = feedbackData?.totalPages || 1;
     const totalItems = feedbackData?.totalItems || 0;
 
+    // Filter and sort tickets
+    const filteredTickets = tickets
+        .filter(ticket => {
+            // Status filter
+            const status = ticket.status?.toUpperCase();
+            if (statusFilter === 'pending') {
+                if (status === 'COMPLETED' || status === 'RESOLVED') return false;
+            } else if (statusFilter === 'completed') {
+                if (status !== 'COMPLETED' && status !== 'RESOLVED') return false;
+            }
+
+            // Topic filter
+            if (topicFilter !== 'all' && ticket.topic !== topicFilter) return false;
+
+            // Search query (search in user name, email, topic, description)
+            if (searchQuery.trim()) {
+                const query = searchQuery.toLowerCase();
+                const userName = ticket.user?.fullName?.toLowerCase() || '';
+                const userEmail = ticket.user?.email?.toLowerCase() || '';
+                const topic = ticket.topic?.toLowerCase() || '';
+                const description = ticket.description?.toLowerCase() || '';
+                const ticketId = ticket.feedbackID?.toString() || '';
+
+                if (!userName.includes(query) &&
+                    !userEmail.includes(query) &&
+                    !topic.includes(query) &&
+                    !description.includes(query) &&
+                    !ticketId.includes(query)) {
+                    return false;
+                }
+            }
+
+            return true;
+        })
+        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
     if (isLoading) {
         return (
             <div className="flex items-center justify-center h-64">
@@ -300,8 +387,9 @@ export function FeedbackView() {
     return (
         <div className="flex h-[calc(100vh-8rem)] bg-gray-50 rounded-xl overflow-hidden border">
             {/* Ticket List Sidebar */}
-            <div className="w-80 bg-white border-r flex flex-col">
-                <div className="p-4 border-b bg-gray-50">
+            <div className="w-96 bg-white border-r flex flex-col">
+                {/* Header with Search & Filters */}
+                <div className="p-3 border-b bg-gray-50 space-y-2">
                     <div className="flex items-center justify-between">
                         <h2 className="font-bold text-gray-800 flex items-center gap-2">
                             <MessageSquare className="h-5 w-5" /> Tickets
@@ -313,33 +401,97 @@ export function FeedbackView() {
                             </Button>
                         </div>
                     </div>
-                    <p className="text-sm text-gray-500 mt-1">{totalItems} yêu cầu hỗ trợ</p>
+
+                    {/* Search Input */}
+                    <div className="relative">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                        <input
+                            type="text"
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            placeholder="Tìm theo tên, email, #ID..."
+                            className="w-full pl-9 pr-8 py-2 text-sm border rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                        />
+                        {searchQuery && (
+                            <button
+                                onClick={() => setSearchQuery('')}
+                                className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                            >
+                                <X className="h-4 w-4" />
+                            </button>
+                        )}
+                    </div>
+
+                    {/* Status Filter Buttons */}
+                    <div className="flex gap-1">
+                        {STATUS_OPTIONS.map((opt) => (
+                            <button
+                                key={opt.value}
+                                onClick={() => setStatusFilter(opt.value as any)}
+                                className={`flex-1 px-2 py-1.5 rounded text-xs font-medium transition-colors ${statusFilter === opt.value
+                                    ? 'bg-blue-600 text-white'
+                                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                                    }`}
+                            >
+                                {opt.label}
+                            </button>
+                        ))}
+                    </div>
+
+                    {/* Topic Filter */}
+                    <select
+                        value={topicFilter}
+                        onChange={(e) => setTopicFilter(e.target.value)}
+                        className="w-full px-3 py-1.5 text-sm border rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white"
+                    >
+                        {TOPIC_OPTIONS.map((opt) => (
+                            <option key={opt.value} value={opt.value}>{opt.label}</option>
+                        ))}
+                    </select>
+
+                    <p className="text-xs text-gray-500">{filteredTickets.length}/{totalItems} hiển thị</p>
                 </div>
 
                 <div className="flex-1 overflow-y-auto">
-                    {tickets.map(ticket => {
+                    {filteredTickets.map(ticket => {
                         const statusInfo = getStatusInfo(ticket.status);
                         const isSelected = selectedTicket?.feedbackID === ticket.feedbackID;
+                        // Get user info from usersMap or ticket.user
+                        const userInfo = usersMap[ticket.userID] || ticket.user;
+                        const displayName = userInfo?.fullName || userInfo?.email || `User #${ticket.userID}`;
                         return (
                             <div key={ticket.feedbackID} onClick={() => joinTicket(ticket)}
-                                className={`p-4 border-b cursor-pointer transition-all ${isSelected ? 'bg-blue-50 border-l-4 border-l-blue-600' : 'hover:bg-gray-50 border-l-4 border-l-transparent'}`}>
+                                className={`p-3 border-b cursor-pointer transition-all ${isSelected ? 'bg-blue-50 border-l-4 border-l-blue-600' : 'hover:bg-gray-50 border-l-4 border-l-transparent'}`}>
                                 <div className="flex items-start justify-between gap-2">
                                     <div className="flex-1 min-w-0">
-                                        <div className="font-medium text-gray-800 truncate">
+                                        <div className="font-medium text-gray-800 text-sm truncate">
                                             #{ticket.feedbackID} {ticket.topic}
                                         </div>
-                                        <div className="text-sm text-gray-500 truncate mt-0.5">
-                                            {ticket.user?.fullName || ticket.user?.email || `User #${ticket.userID}`}
+                                        <div className="text-xs text-gray-500 truncate mt-0.5">
+                                            {displayName}
                                         </div>
+                                        <div className="text-xs text-gray-400 mt-1">{formatDateTime(ticket.createdAt)}</div>
                                     </div>
                                     <Badge variant={statusInfo.variant}>
-                                        <span className="flex items-center gap-1">{statusInfo.icon}{statusInfo.label}</span>
+                                        <span className="flex items-center gap-1">{statusInfo.icon}</span>
                                     </Badge>
                                 </div>
-                                <div className="text-xs text-gray-400 mt-2">{formatDateTime(ticket.createdAt)}</div>
                             </div>
                         );
                     })}
+
+                    {filteredTickets.length === 0 && tickets.length > 0 && (
+                        <div className="text-center py-8 text-gray-500">
+                            <Filter className="h-8 w-8 mx-auto mb-2 text-gray-300" />
+                            <p className="text-sm">Không có ticket phù hợp</p>
+                            <button
+                                onClick={() => { setStatusFilter('all'); setTopicFilter('all'); setSearchQuery(''); }}
+                                className="text-xs text-blue-600 mt-1 hover:underline"
+                            >
+                                Xóa bộ lọc
+                            </button>
+                        </div>
+                    )}
 
                     {tickets.length === 0 && (
                         <div className="text-center py-12 text-gray-500">
@@ -375,7 +527,9 @@ export function FeedbackView() {
                                 </div>
                                 <div>
                                     <h3 className="font-semibold text-gray-800">Ticket #{selectedTicket.feedbackID} - {selectedTicket.topic}</h3>
-                                    <p className="text-sm text-gray-500">{selectedTicket.user?.fullName || selectedTicket.user?.email || `User #${selectedTicket.userID}`}</p>
+                                    <p className="text-sm text-gray-500">
+                                        {usersMap[selectedTicket.userID]?.fullName || usersMap[selectedTicket.userID]?.email || selectedTicket.user?.fullName || selectedTicket.user?.email || `User #${selectedTicket.userID}`}
+                                    </p>
                                 </div>
                             </div>
                             {selectedTicket.status?.toUpperCase() !== 'COMPLETED' && (
@@ -396,11 +550,12 @@ export function FeedbackView() {
                         {/* Messages */}
                         <div className="flex-1 overflow-y-auto p-4 space-y-4">
                             {messages.map((msg, idx) => {
-                                const isStaff = msg.user === 'Staff' || msg.user === 'Admin';
+                                // Use isMe flag if available, otherwise fallback to user name comparison
+                                const isStaff = msg.isMe !== undefined ? msg.isMe : (msg.user === 'Staff' || msg.user === 'Admin');
                                 return (
                                     <div key={idx} className={`flex ${isStaff ? 'justify-end' : 'justify-start'}`}>
                                         <div className={`max-w-[70%] rounded-2xl px-4 py-2 ${isStaff ? 'bg-blue-600 text-white rounded-br-md' : 'bg-gray-100 text-gray-800 rounded-bl-md'}`}>
-                                            <div className={`text-xs mb-1 ${isStaff ? 'text-blue-200' : 'text-gray-500'}`}>{msg.user}</div>
+                                            <div className={`text-xs mb-1 ${isStaff ? 'text-blue-200' : 'text-gray-500'}`}>{isStaff ? 'Bạn (Staff)' : msg.user}</div>
                                             <p className="break-words">{msg.message}</p>
                                             <div className={`text-xs mt-1 ${isStaff ? 'text-blue-200' : 'text-gray-400'}`}>{formatDateTime(msg.time)}</div>
                                         </div>
@@ -447,6 +602,6 @@ export function FeedbackView() {
                     </div>
                 )}
             </div>
-        </div>
+        </div >
     );
 }
