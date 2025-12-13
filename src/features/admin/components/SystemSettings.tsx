@@ -1,5 +1,5 @@
 // Admin System Settings, Feature Management & API Key Management Component
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
     Search, ChevronDown, ChevronRight, Settings, Edit2, Save, X, Filter, Key, Plus,
@@ -61,11 +61,21 @@ const Dialog = ({ open, onClose, title, children }: { open: boolean; onClose: ()
 type MainSection = 'settings' | 'features' | 'apikeys';
 type SettingsView = 'all' | 'byFeature';
 
-export function SystemSettings() {
+interface SystemSettingsProps {
+    defaultSection?: MainSection;
+    showSectionToggle?: boolean;
+}
+
+export function SystemSettings({ defaultSection = 'settings', showSectionToggle = true }: SystemSettingsProps) {
     const queryClient = useQueryClient();
 
-    // Main section toggle
-    const [mainSection, setMainSection] = useState<MainSection>('settings');
+    // Main section toggle - sync with defaultSection prop
+    const [mainSection, setMainSection] = useState<MainSection>(defaultSection);
+
+    // Sync mainSection when defaultSection prop changes
+    useEffect(() => {
+        setMainSection(defaultSection);
+    }, [defaultSection]);
 
     // Settings states
     const [settingsView, setSettingsView] = useState<SettingsView>('all');
@@ -209,24 +219,34 @@ export function SystemSettings() {
             {/* Header */}
             <div className="flex items-center justify-between">
                 <div>
-                    <h2 className="text-2xl font-bold text-gray-800">Cài đặt hệ thống</h2>
-                    <p className="text-gray-500 mt-1">Quản lý cấu hình, chức năng và API keys</p>
+                    <h2 className="text-2xl font-bold text-gray-800">
+                        {mainSection === 'settings' && 'Quản lý cấu hình'}
+                        {mainSection === 'features' && 'Quản lý chức năng'}
+                        {mainSection === 'apikeys' && 'Quản lý API Keys'}
+                    </h2>
+                    <p className="text-gray-500 mt-1">
+                        {mainSection === 'settings' && 'Quản lý cấu hình hệ thống'}
+                        {mainSection === 'features' && 'Quản lý các chức năng và giá cả'}
+                        {mainSection === 'apikeys' && 'Quản lý API keys cho Gemini AI'}
+                    </p>
                 </div>
-                {/* Main Section Toggle */}
-                <div className="flex gap-1 bg-gray-100 p-1 rounded-lg">
-                    <button onClick={() => setMainSection('settings')}
-                        className={`px-3 py-2 text-sm font-medium rounded-md transition-all ${mainSection === 'settings' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-600'}`}>
-                        <Settings className="h-4 w-4 inline mr-1" />Cài đặt
-                    </button>
-                    <button onClick={() => setMainSection('features')}
-                        className={`px-3 py-2 text-sm font-medium rounded-md transition-all ${mainSection === 'features' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-600'}`}>
-                        <Package className="h-4 w-4 inline mr-1" />Chức năng
-                    </button>
-                    <button onClick={() => setMainSection('apikeys')}
-                        className={`px-3 py-2 text-sm font-medium rounded-md transition-all ${mainSection === 'apikeys' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-600'}`}>
-                        <Key className="h-4 w-4 inline mr-1" />API Keys
-                    </button>
-                </div>
+                {/* Main Section Toggle - only show if showSectionToggle is true */}
+                {showSectionToggle && (
+                    <div className="flex gap-1 bg-gray-100 p-1 rounded-lg">
+                        <button onClick={() => setMainSection('settings')}
+                            className={`px-3 py-2 text-sm font-medium rounded-md transition-all ${mainSection === 'settings' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-600'}`}>
+                            <Settings className="h-4 w-4 inline mr-1" />Cài đặt
+                        </button>
+                        <button onClick={() => setMainSection('features')}
+                            className={`px-3 py-2 text-sm font-medium rounded-md transition-all ${mainSection === 'features' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-600'}`}>
+                            <Package className="h-4 w-4 inline mr-1" />Chức năng
+                        </button>
+                        <button onClick={() => setMainSection('apikeys')}
+                            className={`px-3 py-2 text-sm font-medium rounded-md transition-all ${mainSection === 'apikeys' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-600'}`}>
+                            <Key className="h-4 w-4 inline mr-1" />API Keys
+                        </button>
+                    </div>
+                )}
             </div>
 
             {/* ==================== SETTINGS SECTION ==================== */}

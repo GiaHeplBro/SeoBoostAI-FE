@@ -1,7 +1,7 @@
 // API functions for Wallet feature
 
 import api from '@/axiosInstance';
-import { User, PaginatedTransactionResponse } from '../types';
+import { User, PaginatedTransactionResponse, TransactionReceipt } from '../types';
 
 /**
  * Get current user profile (includes wallet balance)
@@ -21,6 +21,15 @@ export const fetchUserProfile = async (): Promise<User> => {
  */
 export const fetchTransactions = async (page: number, pageSize: number): Promise<PaginatedTransactionResponse> => {
     const { data } = await api.get(`/transactions/${page}/${pageSize}`);
+    return data;
+};
+
+/**
+ * Get transaction receipt details
+ * GET /api/transactions/{id}/receipt
+ */
+export const fetchTransactionReceipt = async (transactionId: number): Promise<TransactionReceipt> => {
+    const { data } = await api.get(`/transactions/${transactionId}/receipt`);
     return data;
 };
 

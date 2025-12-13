@@ -48,3 +48,19 @@ export interface PaginatedTransactionResponse {
     pageSize: number;
     items: Transaction[];
 }
+
+export interface TransactionReceipt {
+    transactionCode: string;
+    status: string;
+    paymentDate: string;
+    payerName: string;
+    payerEmail: string;
+    paymentMethod: string;
+    bankName: string;
+    serviceName: string;
+    description: string;
+    amount: number;
+    vatRate: number;
+    vatAmount: number;
+    totalAmount: number;
+}
