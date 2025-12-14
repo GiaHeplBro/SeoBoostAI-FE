@@ -136,7 +136,8 @@ export default function PricingPage() {
   const handleQuantityChange = (featureId: number, delta: number) => {
     setQuantities((prev) => ({
       ...prev,
-      [featureId]: Math.max(1, (prev[featureId] || 1) + delta),
+      // BR-45: Giới hạn số lượng mua tối đa là 10
+      [featureId]: Math.min(10, Math.max(1, (prev[featureId] || 1) + delta)),
     }));
   };
 
@@ -247,6 +248,7 @@ export default function PricingPage() {
                   size="sm"
                   variant="outline"
                   onClick={() => handleQuantityChange(tier.id, 1)}
+                  disabled={(quantities[tier.id] || 1) >= 10}
                   className="h-8 w-8 p-0"
                 >
                   <Plus className="h-4 w-4" />

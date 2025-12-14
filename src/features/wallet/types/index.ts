@@ -1,21 +1,17 @@
 // TypeScript interfaces for Wallet feature
 
 export interface Transaction {
-    transactionID: number;
-    userID: number;
-    money: number;
-    gatewayTransactionId: string | null;
-    bankTransId: string | null;
-    paymentMethod: string;
-    type: 'DEPOSIT' | 'PURCHASE' | 'WITHDRAWAL';
+    transactionId: number;
+    amount: number;
+    balanceAfter: number;
     description: string;
-    status: 'PENDING' | 'COMPLETED' | 'CANCELED' | 'FAILED';
-    requestTime: string;
-    completedTime: string | null;
-    isDeleted: boolean;
-    balanceAfter: number | null;
-    purchasedFeatures?: any[];
-    user?: any;
+    status: string;
+    paymentDate: string;
+    paymentMethod: string;
+    gatewayTransactionId: string;
+    // Optional/Legacy fields might need review, but keeping strictly to provided JSON for now
+    type?: string;
+    userID?: number;
 }
 
 export interface User {
@@ -47,4 +43,20 @@ export interface PaginatedTransactionResponse {
     currentPage: number;
     pageSize: number;
     items: Transaction[];
+}
+
+export interface TransactionReceipt {
+    transactionCode: string;
+    status: string;
+    paymentDate: string;
+    payerName: string;
+    payerEmail: string;
+    paymentMethod: string;
+    bankName: string;
+    serviceName: string;
+    description: string;
+    amount: number;
+    vatRate: number;
+    vatAmount: number;
+    totalAmount: number;
 }

@@ -9,6 +9,8 @@ import {
     Settings,
     LogOut,
     Shield,
+    Package,
+    Key,
 } from 'lucide-react';
 
 // Import components from features
@@ -20,7 +22,7 @@ import { SystemSettings } from '@/features/admin/components/SystemSettings';
 
 const queryClient = new QueryClient();
 
-type TabType = 'dashboard' | 'users' | 'transactions' | 'feedbacks' | 'settings';
+type TabType = 'dashboard' | 'users' | 'transactions' | 'feedbacks' | 'features' | 'apikeys' | 'settings';
 
 interface NavItem {
     id: TabType;
@@ -33,7 +35,9 @@ const navItems: NavItem[] = [
     { id: 'users', label: 'Người dùng', icon: <Users className="h-5 w-5" /> },
     { id: 'transactions', label: 'Giao dịch', icon: <CreditCard className="h-5 w-5" /> },
     { id: 'feedbacks', label: 'Feedback', icon: <MessageSquare className="h-5 w-5" /> },
-    { id: 'settings', label: 'Cài đặt', icon: <Settings className="h-5 w-5" /> },
+    { id: 'features', label: 'Quản lý chức năng', icon: <Package className="h-5 w-5" /> },
+    { id: 'apikeys', label: 'Quản lý API Keys', icon: <Key className="h-5 w-5" /> },
+    { id: 'settings', label: 'Quản lý cấu hình', icon: <Settings className="h-5 w-5" /> },
 ];
 
 function AdminPage({ onLogout }: { onLogout: () => void }) {
@@ -49,8 +53,12 @@ function AdminPage({ onLogout }: { onLogout: () => void }) {
                 return <TransactionManagement />;
             case 'feedbacks':
                 return <FeedbackManagement />;
+            case 'features':
+                return <SystemSettings defaultSection="features" showSectionToggle={false} />;
+            case 'apikeys':
+                return <SystemSettings defaultSection="apikeys" showSectionToggle={false} />;
             case 'settings':
-                return <SystemSettings />;
+                return <SystemSettings defaultSection="settings" showSectionToggle={false} />;
             default:
                 return <DashboardView />;
         }
@@ -80,8 +88,8 @@ function AdminPage({ onLogout }: { onLogout: () => void }) {
                             key={item.id}
                             onClick={() => setActiveTab(item.id)}
                             className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${activeTab === item.id
-                                    ? 'bg-blue-600 text-white shadow-lg'
-                                    : 'text-slate-300 hover:bg-slate-700/50'
+                                ? 'bg-blue-600 text-white shadow-lg'
+                                : 'text-slate-300 hover:bg-slate-700/50'
                                 }`}
                         >
                             {item.icon}

@@ -1,7 +1,7 @@
 // API functions for Wallet feature
 
 import api from '@/axiosInstance';
-import { User, PaginatedTransactionResponse } from '../types';
+import { User, PaginatedTransactionResponse, TransactionReceipt } from '../types';
 
 /**
  * Get current user profile (includes wallet balance)
@@ -17,12 +17,22 @@ export const fetchUserProfile = async (): Promise<User> => {
 
 /**
  * Get transaction history with pagination
- * GET /api/transactions/{page}/{pageSize}
+ * GET /api/transactions/history/{currentPage}/{pageSize}
  */
 export const fetchTransactions = async (page: number, pageSize: number): Promise<PaginatedTransactionResponse> => {
-    const { data } = await api.get(`/transactions/${page}/${pageSize}`);
+    const { data } = await api.get(`/transactions/history/${page}/${pageSize}`);
+    return data.data; // Response is wrapped in { data: { ... } }
+};
+
+/**
+ * Get transaction receipt details
+ * GET /api/transactions/{id}/receipt
+ */
+export const fetchTransactionReceipt = async (transactionId: number): Promise<TransactionReceipt> => {
+    const { data } = await api.get(`/transactions/${transactionId}/receipt`);
     return data;
 };
+
 
 /**
  * Create PayOS payment link
@@ -31,4 +41,15 @@ export const fetchTransactions = async (page: number, pageSize: number): Promise
 export const createPaymentLink = async (amount: number): Promise<{ checkoutUrl: string }> => {
     const { data } = await api.post('/payment/create-payment-link', { amount });
     return data;
+};
+
+/**
+ * Download transaction receipt PDF
+ * GET /api/transactions/{id}/receipt/download
+ */
+export const downloadTransactionReceipt = async (transactionId: number): Promise<Blob> => {
+    const response = await api.get(`/transactions/${transactionId}/receipt/download`, {
+        responseType: 'blob'
+    });
+    return response.data;
 };

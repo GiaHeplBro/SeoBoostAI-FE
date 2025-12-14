@@ -76,6 +76,17 @@ export default function KeywordAnalysis() {
             return;
         }
 
+        // BR-20 (Updated): Check word count limit
+        const wordCount = searchQuery.trim().split(/\s+/).length;
+        if (wordCount > 350) {
+            toast({
+                title: "Quá giới hạn từ",
+                description: `Câu hỏi không được vượt quá 350 từ. (Hiện tại: ${wordCount} từ)`,
+                variant: "destructive",
+            });
+            return;
+        }
+
         setViewState('loading');
         analysisMutation.mutate({
             question: searchQuery.trim(),
@@ -215,6 +226,7 @@ export default function KeywordAnalysis() {
                         <div className="text-center">
                             <h2 className="text-2xl font-bold mb-2 text-white">Đang phân tích xu hướng...</h2>
                             <p className="text-white/70">Quá trình này có thể mất 1-4 phút. Vui lòng chờ...</p>
+                            <p className="text-xs text-blue-400 font-medium mt-1">Ước tính thời gian: 1-2 phút</p>
                         </div>
                         <div className="w-full max-w-md space-y-2">
                             <div className="h-2 bg-[#181818] rounded-full overflow-hidden">
