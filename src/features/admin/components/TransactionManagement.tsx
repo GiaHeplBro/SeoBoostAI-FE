@@ -3,9 +3,10 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
     Search, ChevronLeft, ChevronRight, Eye, DollarSign, ArrowDownCircle, ShoppingCart,
-    X, Users, Receipt, CheckCircle, Clock
+    X, Users, Receipt, CheckCircle, Clock, Download
 } from 'lucide-react';
 import { getTransactionsPaginated, getTransactionById, adminDeposit, getUsersFilter } from '../api';
+import { downloadTransactionReceipt } from '@/features/wallet/api';
 import type { Transaction, TransactionListResponse, User, UserFilterResponse } from '../types';
 
 // ==================== UI Components ====================
@@ -90,6 +91,9 @@ export function TransactionManagement() {
     const [searchQuery, setSearchQuery] = useState('');
     const [sortByBalance, setSortByBalance] = useState(false);
 
+    // Download state
+    const [isDownloading, setIsDownloading] = useState(false);
+
     // Fetch all transactions
     const { data: txData, isLoading: loadingTx } = useQuery<TransactionListResponse>({
         queryKey: ['admin-transactions', txCurrentPage],
@@ -119,7 +123,10 @@ export function TransactionManagement() {
             queryClient.invalidateQueries({ queryKey: ['admin-tx-users'] });
             setDepositDialog({ open: false, user: null });
             setDepositForm({ money: 0, description: '' });
-            alert(`${data.message} Số dư mới: ${formatCurrency(data.newBalance)}`);
+            // Show transaction details immediately after deposit
+            if (data.transactionId) {
+                setDetailsDialog({ open: true, transactionId: data.transactionId });
+            }
         },
         onError: (error: any) => {
             alert(error.response?.data?.message || 'Có lỗi xảy ra khi nạp tiền');
@@ -172,6 +179,31 @@ export function TransactionManagement() {
             money: depositForm.money,
             description: depositForm.description,
         });
+    };
+    // Download receipt PDF
+    const handleDownloadReceipt = async (transactionId: number) => {
+        setIsDownloading(true);
+        try {
+            const blob = await downloadTransactionReceipt(transactionId);
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `HoaDon_${transactionId}_${new Date().getTime()}.pdf`;
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            document.body.removeChild(a);
+        } catch (error) {
+            console.error('Failed to download receipt:', error);
+            alert('Không thể tải hóa đơn. Vui lòng thử lại.');
+        } finally {
+            setIsDownloading(false);
+        }
+    };
+
+    // Close details dialog
+    const handleCloseDetails = () => {
+        setDetailsDialog({ open: false, transactionId: null });
     };
 
     const renderTransactionsTable = (txList: Transaction[], loading: boolean) => {
@@ -388,7 +420,7 @@ export function TransactionManagement() {
             )}
 
             {/* Transaction Details Dialog */}
-            <Dialog open={detailsDialog.open} onClose={() => setDetailsDialog({ open: false, transactionId: null })} title="Chi tiết giao dịch">
+            <Dialog open={detailsDialog.open} onClose={handleCloseDetails} title="Chi tiết giao dịch">
                 {loadingDetails ? (
                     <div className="flex items-center justify-center h-32">
                         <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
@@ -439,6 +471,21 @@ export function TransactionManagement() {
                             <div className="pt-4 border-t">
                                 <span className="text-sm text-gray-500">Gateway Transaction ID</span>
                                 <p className="font-mono text-xs mt-1 break-all">{txDetails.gatewayTransactionId}</p>
+                            </div>
+                        )}
+
+                        {/* Download Receipt Button - Only show for COMPLETED transactions */}
+                        {txDetails.status === 'COMPLETED' && (
+                            <div className="pt-4 border-t">
+                                <Button
+                                    variant="default"
+                                    className="w-full"
+                                    onClick={() => handleDownloadReceipt(txDetails.transactionID)}
+                                    disabled={isDownloading}
+                                >
+                                    <Download className="h-4 w-4 mr-2" />
+                                    {isDownloading ? 'Đang tải...' : 'Tải hóa đơn PDF'}
+                                </Button>
                             </div>
                         )}
                     </div>

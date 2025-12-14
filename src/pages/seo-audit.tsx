@@ -13,6 +13,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
+import ReactMarkdown from 'react-markdown';
 
 // --- Import Icons ---
 import { History, Smartphone, Laptop, Search, Info, RefreshCcw, TrendingUp, TrendingDown } from "lucide-react";
@@ -638,100 +639,130 @@ export default function ContentOptimization() {
                   <CardHeader>
                     <CardTitle className="text-white">Chỉ Số Web Cốt Lõi</CardTitle>
                     <CardDescription className="text-slate-400">
-                      6 chỉ số quan trọng cho <strong>{currentAnalysis.analysisCache.strategy}</strong>
+                      5 chỉ số quan trọng cho <strong>{currentAnalysis.analysisCache.strategy}</strong>
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
                     <div className="grid grid-cols-2 gap-4">
                       {/* LCP */}
-                      <div className="flex flex-col gap-2 rounded-lg p-4 bg-slate-800 border border-slate-700">
-                        <div className="flex items-center gap-2">
-                          <div className={`w-2 h-2 rounded-full ${getScoreColor('LCP', scores.LCP).replace('text-', 'bg-')}`}></div>
-                          <p className="text-xs font-medium text-slate-400">LCP</p>
-                        </div>
-                        <p className="text-2xl font-bold text-white">{Math.round(scores.LCP)}<span className="text-sm text-slate-400 ml-1">ms</span></p>
-                        {comparisonData?.lcpChange !== undefined && comparisonData.lcpChange !== 0 && (
-                          <div className={`flex items-center gap-1 text-xs ${comparisonData.lcpChange < 0 ? 'text-green-500' : 'text-red-500'}`}>
-                            {comparisonData.lcpChange < 0 ? <TrendingDown className="h-3 w-3" /> : <TrendingUp className="h-3 w-3" />}
-                            <span>{Math.abs(comparisonData.lcpChange).toFixed(0)}ms</span>
-                          </div>
-                        )}
-                      </div>
+                      <TooltipProvider delayDuration={100}>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <div className="flex flex-col gap-2 rounded-lg p-4 bg-slate-800 border border-slate-700 cursor-help">
+                              <div className="flex items-center gap-2">
+                                <div className={`w-2 h-2 rounded-full ${getScoreColor('LCP', scores.LCP).replace('text-', 'bg-')}`}></div>
+                                <p className="text-xs font-medium text-slate-400">Largest Contentful Paint (LCP)</p>
+                              </div>
+                              <p className="text-2xl font-bold text-white">{(scores.LCP / 1000).toFixed(2)}<span className="text-sm text-slate-400 ml-1">giây</span></p>
+                              {comparisonData?.lcpChange !== undefined && comparisonData.lcpChange !== 0 && (
+                                <div className={`flex items-center gap-1 text-xs ${comparisonData.lcpChange < 0 ? 'text-green-500' : 'text-red-500'}`}>
+                                  {comparisonData.lcpChange < 0 ? <TrendingDown className="h-3 w-3" /> : <TrendingUp className="h-3 w-3" />}
+                                  <span>{(Math.abs(comparisonData.lcpChange) / 1000).toFixed(2)}s</span>
+                                </div>
+                              )}
+                            </div>
+                          </TooltipTrigger>
+                          <TooltipContent side="top" className="max-w-[250px]">
+                            <p className="text-sm">{getMetricInfo('LCP')}</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
 
                       {/* FCP */}
-                      <div className="flex flex-col gap-2 rounded-lg p-4 bg-slate-800 border border-slate-700">
-                        <div className="flex items-center gap-2">
-                          <div className={`w-2 h-2 rounded-full ${getScoreColor('FCP', scores.FCP).replace('text-', 'bg-')}`}></div>
-                          <p className="text-xs font-medium text-slate-400">FCP</p>
-                        </div>
-                        <p className="text-2xl font-bold text-white">{Math.round(scores.FCP)}<span className="text-sm text-slate-400 ml-1">ms</span></p>
-                        {comparisonData?.fcpChange !== undefined && comparisonData.fcpChange !== 0 && (
-                          <div className={`flex items-center gap-1 text-xs ${comparisonData.fcpChange < 0 ? 'text-green-500' : 'text-red-500'}`}>
-                            {comparisonData.fcpChange < 0 ? <TrendingDown className="h-3 w-3" /> : <TrendingUp className="h-3 w-3" />}
-                            <span>{Math.abs(comparisonData.fcpChange).toFixed(0)}ms</span>
-                          </div>
-                        )}
-                      </div>
+                      <TooltipProvider delayDuration={100}>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <div className="flex flex-col gap-2 rounded-lg p-4 bg-slate-800 border border-slate-700 cursor-help">
+                              <div className="flex items-center gap-2">
+                                <div className={`w-2 h-2 rounded-full ${getScoreColor('FCP', scores.FCP).replace('text-', 'bg-')}`}></div>
+                                <p className="text-xs font-medium text-slate-400">First Contentful Paint (FCP)</p>
+                              </div>
+                              <p className="text-2xl font-bold text-white">{(scores.FCP / 1000).toFixed(2)}<span className="text-sm text-slate-400 ml-1">giây</span></p>
+                              {comparisonData?.fcpChange !== undefined && comparisonData.fcpChange !== 0 && (
+                                <div className={`flex items-center gap-1 text-xs ${comparisonData.fcpChange < 0 ? 'text-green-500' : 'text-red-500'}`}>
+                                  {comparisonData.fcpChange < 0 ? <TrendingDown className="h-3 w-3" /> : <TrendingUp className="h-3 w-3" />}
+                                  <span>{(Math.abs(comparisonData.fcpChange) / 1000).toFixed(2)}s</span>
+                                </div>
+                              )}
+                            </div>
+                          </TooltipTrigger>
+                          <TooltipContent side="top" className="max-w-[250px]">
+                            <p className="text-sm">{getMetricInfo('FCP')}</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
 
                       {/* CLS */}
-                      <div className="flex flex-col gap-2 rounded-lg p-4 bg-slate-800 border border-slate-700">
-                        <div className="flex items-center gap-2">
-                          <div className={`w-2 h-2 rounded-full ${getScoreColor('CLS', scores.CLS).replace('text-', 'bg-')}`}></div>
-                          <p className="text-xs font-medium text-slate-400">CLS</p>
-                        </div>
-                        <p className="text-2xl font-bold text-white">{scores.CLS.toFixed(3)}</p>
-                        {comparisonData?.clsChange !== undefined && comparisonData.clsChange !== 0 && (
-                          <div className={`flex items-center gap-1 text-xs ${comparisonData.clsChange < 0 ? 'text-green-500' : 'text-red-500'}`}>
-                            {comparisonData.clsChange < 0 ? <TrendingDown className="h-3 w-3" /> : <TrendingUp className="h-3 w-3" />}
-                            <span>{Math.abs(comparisonData.clsChange).toFixed(3)}</span>
-                          </div>
-                        )}
-                      </div>
+                      <TooltipProvider delayDuration={100}>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <div className="flex flex-col gap-2 rounded-lg p-4 bg-slate-800 border border-slate-700 cursor-help">
+                              <div className="flex items-center gap-2">
+                                <div className={`w-2 h-2 rounded-full ${getScoreColor('CLS', scores.CLS).replace('text-', 'bg-')}`}></div>
+                                <p className="text-xs font-medium text-slate-400">Cumulative Layout Shift (CLS)</p>
+                              </div>
+                              <p className="text-2xl font-bold text-white">{scores.CLS.toFixed(3)}</p>
+                              {comparisonData?.clsChange !== undefined && comparisonData.clsChange !== 0 && (
+                                <div className={`flex items-center gap-1 text-xs ${comparisonData.clsChange < 0 ? 'text-green-500' : 'text-red-500'}`}>
+                                  {comparisonData.clsChange < 0 ? <TrendingDown className="h-3 w-3" /> : <TrendingUp className="h-3 w-3" />}
+                                  <span>{Math.abs(comparisonData.clsChange).toFixed(3)}</span>
+                                </div>
+                              )}
+                            </div>
+                          </TooltipTrigger>
+                          <TooltipContent side="top" className="max-w-[250px]">
+                            <p className="text-sm">{getMetricInfo('CLS')}</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
 
                       {/* TBT */}
-                      <div className="flex flex-col gap-2 rounded-lg p-4 bg-slate-800 border border-slate-700">
-                        <div className="flex items-center gap-2">
-                          <div className={`w-2 h-2 rounded-full ${getScoreColor('TBT', scores.TBT).replace('text-', 'bg-')}`}></div>
-                          <p className="text-xs font-medium text-slate-400">TBT</p>
-                        </div>
-                        <p className="text-2xl font-bold text-white">{Math.round(scores.TBT)}<span className="text-sm text-slate-400 ml-1">ms</span></p>
-                        {comparisonData?.tbtChange !== undefined && comparisonData.tbtChange !== 0 && (
-                          <div className={`flex items-center gap-1 text-xs ${comparisonData.tbtChange < 0 ? 'text-green-500' : 'text-red-500'}`}>
-                            {comparisonData.tbtChange < 0 ? <TrendingDown className="h-3 w-3" /> : <TrendingUp className="h-3 w-3" />}
-                            <span>{Math.abs(comparisonData.tbtChange).toFixed(0)}ms</span>
-                          </div>
-                        )}
-                      </div>
+                      <TooltipProvider delayDuration={100}>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <div className="flex flex-col gap-2 rounded-lg p-4 bg-slate-800 border border-slate-700 cursor-help">
+                              <div className="flex items-center gap-2">
+                                <div className={`w-2 h-2 rounded-full ${getScoreColor('TBT', scores.TBT).replace('text-', 'bg-')}`}></div>
+                                <p className="text-xs font-medium text-slate-400">Total Blocking Time (TBT)</p>
+                              </div>
+                              <p className="text-2xl font-bold text-white">{Math.round(scores.TBT)}<span className="text-sm text-slate-400 ml-1">mili giây</span></p>
+                              {comparisonData?.tbtChange !== undefined && comparisonData.tbtChange !== 0 && (
+                                <div className={`flex items-center gap-1 text-xs ${comparisonData.tbtChange < 0 ? 'text-green-500' : 'text-red-500'}`}>
+                                  {comparisonData.tbtChange < 0 ? <TrendingDown className="h-3 w-3" /> : <TrendingUp className="h-3 w-3" />}
+                                  <span>{Math.abs(comparisonData.tbtChange).toFixed(0)}ms</span>
+                                </div>
+                              )}
+                            </div>
+                          </TooltipTrigger>
+                          <TooltipContent side="top" className="max-w-[250px]">
+                            <p className="text-sm">{getMetricInfo('TBT')}</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
 
-                      {/* SI */}
-                      <div className="flex flex-col gap-2 rounded-lg p-4 bg-slate-800 border border-slate-700">
-                        <div className="flex items-center gap-2">
-                          <div className={`w-2 h-2 rounded-full ${getScoreColor('SI', scores.SpeedIndex).replace('text-', 'bg-')}`}></div>
-                          <p className="text-xs font-medium text-slate-400">Speed Index</p>
-                        </div>
-                        <p className="text-2xl font-bold text-white">{Math.round(scores.SpeedIndex)}<span className="text-sm text-slate-400 ml-1">ms</span></p>
-                        {comparisonData?.siChange !== undefined && comparisonData.siChange !== 0 && (
-                          <div className={`flex items-center gap-1 text-xs ${comparisonData.siChange < 0 ? 'text-green-500' : 'text-red-500'}`}>
-                            {comparisonData.siChange < 0 ? <TrendingDown className="h-3 w-3" /> : <TrendingUp className="h-3 w-3" />}
-                            <span>{Math.abs(comparisonData.siChange).toFixed(0)}ms</span>
-                          </div>
-                        )}
-                      </div>
-
-                      {/* TTI */}
-                      <div className="flex flex-col gap-2 rounded-lg p-4 bg-slate-800 border border-slate-700">
-                        <div className="flex items-center gap-2">
-                          <div className={`w-2 h-2 rounded-full ${getScoreColor('TTI', scores.TimeToInteractive).replace('text-', 'bg-')}`}></div>
-                          <p className="text-xs font-medium text-slate-400">TTI</p>
-                        </div>
-                        <p className="text-2xl font-bold text-white">{Math.round(scores.TimeToInteractive)}<span className="text-sm text-slate-400 ml-1">ms</span></p>
-                        {comparisonData?.ttiChange !== undefined && comparisonData.ttiChange !== 0 && (
-                          <div className={`flex items-center gap-1 text-xs ${comparisonData.ttiChange < 0 ? 'text-green-500' : 'text-red-500'}`}>
-                            {comparisonData.ttiChange < 0 ? <TrendingDown className="h-3 w-3" /> : <TrendingUp className="h-3 w-3" />}
-                            <span>{Math.abs(comparisonData.ttiChange).toFixed(0)}ms</span>
-                          </div>
-                        )}
-                      </div>
+                      {/* Speed Index */}
+                      <TooltipProvider delayDuration={100}>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <div className="flex flex-col gap-2 rounded-lg p-4 bg-slate-800 border border-slate-700 cursor-help col-span-2">
+                              <div className="flex items-center gap-2">
+                                <div className={`w-2 h-2 rounded-full ${getScoreColor('SI', scores.SpeedIndex).replace('text-', 'bg-')}`}></div>
+                                <p className="text-xs font-medium text-slate-400">Speed Index (SI)</p>
+                              </div>
+                              <p className="text-2xl font-bold text-white">{(scores.SpeedIndex / 1000).toFixed(2)}<span className="text-sm text-slate-400 ml-1">giây</span></p>
+                              {comparisonData?.siChange !== undefined && comparisonData.siChange !== 0 && (
+                                <div className={`flex items-center gap-1 text-xs ${comparisonData.siChange < 0 ? 'text-green-500' : 'text-red-500'}`}>
+                                  {comparisonData.siChange < 0 ? <TrendingDown className="h-3 w-3" /> : <TrendingUp className="h-3 w-3" />}
+                                  <span>{(Math.abs(comparisonData.siChange) / 1000).toFixed(2)}s</span>
+                                </div>
+                              )}
+                            </div>
+                          </TooltipTrigger>
+                          <TooltipContent side="top" className="max-w-[250px]">
+                            <p className="text-sm">{getMetricInfo('SI')}</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
                     </div>
                   </CardContent>
                 </Card>
@@ -744,15 +775,15 @@ export default function ContentOptimization() {
                   <CardContent className="space-y-4">
                     <div>
                       <h4 className="font-semibold text-white mb-2">Đánh Giá Chung</h4>
-                      <p className="text-sm text-slate-300 bg-slate-800 p-3 rounded-md">
-                        {currentAnalysis.analysisCache.generalAssessment}
-                      </p>
+                      <div className="text-sm text-slate-300 bg-slate-800 p-3 rounded-md prose prose-invert prose-sm max-w-none">
+                        <ReactMarkdown>{currentAnalysis.analysisCache.generalAssessment}</ReactMarkdown>
+                      </div>
                     </div>
                     <div>
                       <h4 className="font-semibold text-white mb-2">Khuyến Nghị</h4>
-                      <p className="text-sm text-slate-300 bg-slate-800 p-3 rounded-md">
-                        {currentAnalysis.analysisCache.suggestion}
-                      </p>
+                      <div className="text-sm text-slate-300 bg-slate-800 p-3 rounded-md prose prose-invert prose-sm max-w-none">
+                        <ReactMarkdown>{currentAnalysis.analysisCache.suggestion}</ReactMarkdown>
+                      </div>
                     </div>
                   </CardContent>
                   {/* Hiển thị nút khi chưa có AI suggestions */}

@@ -64,8 +64,11 @@ const DialogTitle = ({ children }: any) => <h2 className="text-xl font-semibold"
 const DialogContent = ({ children }: any) => <div className="px-6 pb-4">{children}</div>;
 const DialogFooter = ({ children }: any) => <div className="px-6 pb-6 flex justify-end gap-2">{children}</div>;
 
+import { useToast } from "@/hooks/use-toast";
+
 export default function PricingPage() {
   const queryClient = useQueryClient();
+  const { toast } = useToast();
 
   // Fetch features từ API
   const { data: featuresData, isLoading, isError, error } = useQuery<FeatureFromAPI[]>({
@@ -121,7 +124,11 @@ export default function PricingPage() {
       return response.data;
     },
     onSuccess: (data) => {
-      alert(data.message || "Mua gói thành công! Số lượt đã được cộng thêm.");
+      toast({
+        title: "Mua thành công!",
+        description: data.message || "Số lượt sử dụng đã được cộng vào tài khoản.",
+        className: "bg-green-50 border-green-200"
+      });
       setConfirmDialog({ open: false, featureId: null, quantity: 0, totalPrice: 0, featureName: "" });
       // Invalidate wallet query để cập nhật số dư
       queryClient.invalidateQueries({ queryKey: ["wallet"] });
@@ -129,7 +136,11 @@ export default function PricingPage() {
       queryClient.invalidateQueries({ queryKey: ["userProfile"] });
     },
     onError: (error: any) => {
-      alert(error.response?.data?.message || "Mua gói thất bại. Vui lòng thử lại.");
+      toast({
+        title: "Mua thất bại",
+        description: error.response?.data?.message || "Số dư không đủ hoặc lỗi hệ thống.",
+        variant: "destructive"
+      });
     },
   });
 
