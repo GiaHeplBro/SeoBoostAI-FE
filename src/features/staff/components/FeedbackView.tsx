@@ -123,6 +123,7 @@ export function FeedbackView() {
     const [searchQuery, setSearchQuery] = useState('');
     const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'completed'>('pending'); // Default to pending
     const [topicFilter, setTopicFilter] = useState('all');
+    const [showCompleteConfirm, setShowCompleteConfirm] = useState(false);
 
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const selectedTicketRef = useRef<Feedback | null>(null);
@@ -533,7 +534,7 @@ export function FeedbackView() {
                                 </div>
                             </div>
                             {selectedTicket.status?.toUpperCase() !== 'COMPLETED' && (
-                                <Button variant="success" size="sm" onClick={completeTicket} disabled={updateMutation.isPending}>
+                                <Button variant="success" size="sm" onClick={() => setShowCompleteConfirm(true)} disabled={updateMutation.isPending}>
                                     <CheckCircle className="h-4 w-4 mr-1" />
                                     {updateMutation.isPending ? 'Đang xử lý...' : 'Hoàn thành'}
                                 </Button>
@@ -602,6 +603,27 @@ export function FeedbackView() {
                     </div>
                 )}
             </div>
+
+            {/* Complete Ticket Confirmation Dialog */}
+            {selectedTicket && (
+                <div className={`fixed inset-0 z-50 flex items-center justify-center bg-black/50 ${!showCompleteConfirm ? 'hidden' : ''}`} onClick={() => setShowCompleteConfirm(false)}>
+                    <div className="bg-white rounded-xl shadow-xl max-w-md w-full mx-4 p-6" onClick={(e) => e.stopPropagation()}>
+                        <h3 className="text-lg font-bold text-gray-900 mb-2">Xác nhận hoàn thành</h3>
+                        <p className="text-gray-600 mb-6">
+                            Bạn có chắc chắn muốn đánh dấu ticket <strong>#{selectedTicket.feedbackID}</strong> là đã hoàn thành?
+                            <br />
+                            <span className="text-sm text-gray-500 mt-1 block">Hành động này sẽ đóng phiên chat và thông báo cho người dùng.</span>
+                        </p>
+                        <div className="flex justify-end gap-3">
+                            <Button variant="ghost" onClick={() => setShowCompleteConfirm(false)}>Hủy bỏ</Button>
+                            <Button variant="success" onClick={() => { completeTicket(); setShowCompleteConfirm(false); }}>
+                                <CheckCircle className="h-4 w-4 mr-2" />
+                                Xác nhận hoàn thành
+                            </Button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div >
     );
 }

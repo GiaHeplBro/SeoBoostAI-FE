@@ -300,7 +300,7 @@ export default function ContentOptimization() {
                 </CardHeader>
                 <CardContent>
                   {currentResult.aiData?.comparison ? (
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="grid grid-cols-1 gap-4">
                       <ComparisonScoreCard
                         title="SEO Score"
                         originalScore={currentResult.aiData.comparison.original?.seo_score ?? 0}

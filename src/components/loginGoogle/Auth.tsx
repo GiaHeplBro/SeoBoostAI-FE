@@ -13,6 +13,8 @@ import {
 } from "@/components/ui/card";
 import api from '@/axiosInstance';
 
+import { useToast } from "@/hooks/use-toast";
+
 interface UserProfile {
   email?: string;
   fullname?: string;
@@ -27,6 +29,7 @@ interface UserProfile {
 const Auth: React.FC<{ onLoginSuccess: (user: UserProfile) => void }> = ({ onLoginSuccess }) => {
   const [, setLocation] = useLocation();
   const [isAdminMode, setIsAdminMode] = useState(false);
+  const { toast } = useToast();
 
   // --- 1. LOGIC CHO MEMBER ---
   const handleMemberLoginSuccess = async (credentialResponse: CredentialResponse) => {
@@ -38,11 +41,6 @@ const Auth: React.FC<{ onLoginSuccess: (user: UserProfile) => void }> = ({ onLog
     console.log("╠══════════════════════════════════════════════════════════");
     console.log(credentialResponse.credential);
     console.log("╠══════════════════════════════════════════════════════════");
-    console.log("║ ➤ Copy token này để test với Postman/Backend");
-    console.log("║ ➤ Endpoint Member: POST /authen/login-member");
-    console.log("║ ➤ Body: JSON.stringify(token)");
-    console.log("║ ➤ Headers: Content-Type: application/json");
-    console.log("╚══════════════════════════════════════════════════════════");
 
     try {
       const response = await api.post(
@@ -52,13 +50,26 @@ const Auth: React.FC<{ onLoginSuccess: (user: UserProfile) => void }> = ({ onLog
       );
 
       if (response.data && response.data.success && response.data.accessToken) {
+        toast({
+          title: "Đăng nhập thành công",
+          description: "Chào mừng bạn quay trở lại!",
+          className: "bg-green-50 border-green-200"
+        });
         saveUserAndNotify(response.data, 'Member');
       } else {
-        alert("Lỗi đăng nhập Member: " + (response.data?.message || "Unknown error"));
+        toast({
+          title: "Đăng nhập thất bại",
+          description: response.data?.message || "Lỗi không xác định từ hệ thống.",
+          variant: "destructive"
+        });
       }
     } catch (error: any) {
       console.error('Member Login failed:', error);
-      alert(error.response?.data?.message || 'Đăng nhập Member thất bại.');
+      toast({
+        title: "Lỗi đăng nhập",
+        description: error.response?.data?.message || "Không thể kết nối đến máy chủ.",
+        variant: "destructive"
+      });
     }
   };
 
@@ -68,24 +79,12 @@ const Auth: React.FC<{ onLoginSuccess: (user: UserProfile) => void }> = ({ onLog
     const credential = credentialResponse.credential;
     const headers = { headers: { 'Content-Type': 'application/json' } };
 
-    // ✅ LOG TOKEN ĐỂ TEST BACKEND
-    console.log("╔══════════════════════════════════════════════════════════");
-    console.log("║ GOOGLE ID TOKEN (Admin/Staff)");
-    console.log("╠══════════════════════════════════════════════════════════");
-    console.log(credential);
-    console.log("╠══════════════════════════════════════════════════════════");
-    console.log("║ ➤ Copy token này để test với Postman/Backend");
-    console.log("║ ➤ Endpoint Admin: POST /authen/login-admin");
-    console.log("║ ➤ Endpoint Staff: POST /authen/login-staff");
-    console.log("║ ➤ Body: JSON.stringify(token)");
-    console.log("║ ➤ Headers: Content-Type: application/json");
-    console.log("╚══════════════════════════════════════════════════════════");
-
     try {
       // BƯỚC 1: Thử đăng nhập vào cổng ADMIN
       try {
         const adminRes = await api.post('/authen/login-admin', JSON.stringify(credential), headers);
         if (adminRes.data && adminRes.data.success) {
+          toast({ title: "Chào mừng Admin!", description: "Đăng nhập hệ thống quản trị thành công." });
           saveUserAndNotify(adminRes.data, 'Admin');
           return;
         }
@@ -97,16 +96,25 @@ const Auth: React.FC<{ onLoginSuccess: (user: UserProfile) => void }> = ({ onLog
       try {
         const staffRes = await api.post('/authen/login-staff', JSON.stringify(credential), headers);
         if (staffRes.data && staffRes.data.success) {
+          toast({ title: "Chào mừng Staff!", description: "Đăng nhập cổng nhân viên thành công." });
           saveUserAndNotify(staffRes.data, 'Staff');
           return;
         }
       } catch (error) {
         // Cả 2 đều lỗi
-        alert("Tài khoản này không có quyền truy cập Admin hoặc Staff.");
+        toast({
+          title: "Truy cập bị từ chối",
+          description: "Tài khoản này không có quyền truy cập Admin hoặc Staff.",
+          variant: "destructive"
+        });
       }
     } catch (error) {
       console.error('System Error:', error);
-      alert('Lỗi hệ thống.');
+      toast({
+        title: "Lỗi hệ thống",
+        description: "Vui lòng thử lại sau hoặc liên hệ kỹ thuật.",
+        variant: "destructive"
+      });
     }
   };
 
@@ -122,29 +130,12 @@ const Auth: React.FC<{ onLoginSuccess: (user: UserProfile) => void }> = ({ onLog
     // Giải mã JWT để lấy role từ backend
     const decodedUser: UserProfile = jwtDecode(accessToken);
 
-    console.log("═══════════════════════════════════════");
-    console.log("🔐 AUTHENTICATION DEBUG");
-    console.log("═══════════════════════════════════════");
-    console.log("Expected Role:", expectedRole);
-    console.log("JWT Role:", decodedUser.role);
-    console.log("User Email:", decodedUser.email);
-    console.log("User ID from JWT:", decodedUser.user_ID); // Log user_ID
-    console.log("═══════════════════════════════════════");
-
     // ✅ FIX: Normalize role - Backend gửi "User" nhưng frontend dùng "Member"
     let actualRole = decodedUser.role || expectedRole;
 
     // Map "User" -> "Member" để tương thích
     if (actualRole === "User") {
-      console.log("⚠️ Normalizing role: 'User' -> 'Member'");
       actualRole = "Member";
-    }
-
-    // Cảnh báo nếu role không match
-    if (actualRole !== expectedRole && expectedRole !== "Member") {
-      console.warn("⚠️ Role mismatch detected!");
-      console.warn("   Expected:", expectedRole);
-      console.warn("   Got:", actualRole);
     }
 
     const userToStore = {
@@ -156,11 +147,9 @@ const Auth: React.FC<{ onLoginSuccess: (user: UserProfile) => void }> = ({ onLog
     };
 
     // Lưu vào localStorage
-    console.log("💾 Saving user:", { email: userToStore.email, role: userToStore.role, userID: userToStore.userID });
     localStorage.setItem('user', btoa(encodeURIComponent(JSON.stringify(userToStore))));
     localStorage.setItem('tokens', btoa(encodeURIComponent(JSON.stringify({ accessToken, refreshToken }))));
 
-    console.log("✅ Login complete, calling onLoginSuccess");
     onLoginSuccess(userToStore);
   };
 
@@ -196,7 +185,7 @@ const Auth: React.FC<{ onLoginSuccess: (user: UserProfile) => void }> = ({ onLog
           <div className="flex justify-center py-4">
             <GoogleLogin
               onSuccess={isAdminMode ? handleAdminStaffLoginSuccess : handleMemberLoginSuccess}
-              onError={() => alert('Login Failed')}
+              onError={() => toast({ title: "Lỗi Google", description: "Đăng nhập Google thất bại.", variant: "destructive" })}
               useOneTap={!isAdminMode}
               theme="filled_black"
               shape="pill"

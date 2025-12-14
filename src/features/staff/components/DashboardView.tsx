@@ -62,10 +62,10 @@ export function DashboardView() {
         queryFn: () => getUsersFilter({ CurrentPage: 1, PageSize: 100 }), // Get up to 100 for stats
     });
 
-    // Fetch feedbacks with pagination
+    // Fetch feedbacks with pagination - use larger pageSize for accurate stats
     const { data: feedbacksData, isLoading: loadingFeedbacks } = useQuery<FeedbackListResponse>({
         queryKey: ['staff-dashboard-feedbacks'],
-        queryFn: () => getFeedbacksPaginated(1, 10),
+        queryFn: () => getFeedbacksPaginated(1, 1000), // Fetch up to 1000 for accurate counting
     });
 
     const isLoading = loadingUsers || loadingFeedbacks;
