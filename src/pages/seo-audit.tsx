@@ -378,6 +378,18 @@ export default function ContentOptimization() {
       toast({ title: "Lỗi", description: "Vui lòng nhập URL.", variant: "destructive" });
       return;
     }
+
+    // BR-21: Strict URL Validation
+    const urlRegex = /^(https?:\/\/)/i;
+    if (!urlRegex.test(url)) {
+      toast({
+        title: "Lỗi định dạng",
+        description: "URL phải bắt đầu bằng http:// hoặc https:// (VD: https://google.com)",
+        variant: "destructive"
+      });
+      return;
+    }
+
     // userId không cần check vì BE lấy từ token
 
     const payload: PerformanceHistoryPayload = {
@@ -600,7 +612,15 @@ export default function ContentOptimization() {
             )}
 
             {(analysisMutation.isPending || updateAnalysisMutation.isPending) && (
-              <Card className="bg-slate-900 border-slate-800 min-h-[400px] p-6 space-y-4">
+              <Card className="bg-slate-900 border-slate-800 min-h-[400px] p-6 space-y-4 relative">
+                <div className="absolute inset-0 flex flex-col items-center justify-center z-10 bg-slate-900/50 backdrop-blur-sm rounded-xl">
+                  <div className="flex flex-col items-center gap-2 p-4 bg-slate-800/90 rounded-lg border border-slate-700 shadow-lg">
+                    <p className="text-lg font-medium text-white animate-pulse">Đang phân tích website...</p>
+                    <p className="text-sm text-slate-400">Hệ thống đang thu thập dữ liệu từ Google PageSpeed Insights.</p>
+                    <p className="text-xs text-blue-400 font-medium mt-1">Ước tính thời gian: 1-3 phút</p>
+                  </div>
+                </div>
+                {/* Background Skeletons */}
                 <Skeleton className="h-8 w-1/2 bg-slate-800" />
                 <div className="grid grid-cols-2 gap-4 pt-4">
                   <Skeleton className="h-32 bg-slate-800" />
