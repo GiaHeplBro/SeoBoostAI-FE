@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { fetchUserProfile, fetchTransactions, fetchTransactionReceipt } from '@/features/wallet/api';
+import { fetchUserProfile, fetchTransactions, fetchTransactionReceipt, downloadTransactionReceipt } from '@/features/wallet/api';
 import { TransactionReceipt, Transaction } from '@/features/wallet/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -19,7 +19,7 @@ import {
     DialogHeader,
     DialogTitle,
 } from "@/components/ui/dialog";
-import { Loader2, ArrowUpCircle, ArrowDownCircle, ShoppingCart, Wallet, ChevronLeft, ChevronRight, Search, Receipt, X, CheckCircle2, Clock, XCircle, AlertCircle } from 'lucide-react';
+import { Loader2, ArrowUpCircle, ArrowDownCircle, ShoppingCart, Wallet, ChevronLeft, ChevronRight, Search, Receipt, X, CheckCircle2, Clock, XCircle, AlertCircle, Download } from 'lucide-react';
 import { formatDateTime } from '@/utils/dateUtils';
 
 export default function TransactionHistoryPage() {
@@ -47,16 +47,25 @@ export default function TransactionHistoryPage() {
     const transactions = transactionData?.items || [];
     const totalPages = transactionData?.totalPages || 1;
 
+    // Helper to infer or get type
+    const getTransactionType = (t: Transaction) => {
+        if (t.type) return t.type;
+        const desc = (t.description || '').toLowerCase();
+        if (desc.includes('nạp') || desc.includes('đền bù') || desc.includes('trả lại')) return 'DEPOSIT';
+        return 'PURCHASE';
+    };
+
     // Filter transactions based on search query and type filter
     const filteredTransactions = transactions.filter(transaction => {
+        const type = getTransactionType(transaction);
         // Type filter
-        const matchesType = typeFilter === 'ALL' || transaction.type === typeFilter;
+        const matchesType = typeFilter === 'ALL' || type === typeFilter;
 
         // Search query filter
         const matchesSearch = !searchQuery ||
             transaction.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
             transaction.paymentMethod?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            transaction.type?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            type.toLowerCase().includes(searchQuery.toLowerCase()) ||
             transaction.gatewayTransactionId?.toLowerCase().includes(searchQuery.toLowerCase());
 
         return matchesType && matchesSearch;
@@ -71,7 +80,7 @@ export default function TransactionHistoryPage() {
         setIsLoadingReceipt(true);
 
         try {
-            const receipt = await fetchTransactionReceipt(transaction.transactionID);
+            const receipt = await fetchTransactionReceipt(transaction.transactionId);
             setReceiptData(receipt);
         } catch (error) {
             console.error('Failed to fetch receipt:', error);
@@ -84,8 +93,6 @@ export default function TransactionHistoryPage() {
     // Close receipt modal
     const handleCloseReceipt = () => {
         setIsReceiptModalOpen(false);
-        setSelectedTransaction(null);
-        setReceiptData(null);
     };
 
     // Transaction type icons
@@ -145,6 +152,26 @@ export default function TransactionHistoryPage() {
             hour: '2-digit',
             minute: '2-digit'
         });
+    };
+
+    // Handle receipt download
+    const handleDownloadReceipt = async () => {
+        if (!selectedTransaction || !receiptData) return;
+
+        try {
+            const blob = await downloadTransactionReceipt(selectedTransaction.transactionId);
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `HoaDon_${selectedTransaction.transactionId}_${new Date().getTime()}.pdf`; // Generate a filename
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            document.body.removeChild(a);
+        } catch (error) {
+            console.error('Failed to download receipt:', error);
+            // Optional: Show error toast/alert
+        }
     };
 
     return (
@@ -231,56 +258,59 @@ export default function TransactionHistoryPage() {
                     ) : filteredTransactions.length > 0 ? (
                         <>
                             <div className="space-y-4 mb-6">
-                                {filteredTransactions.map(transaction => (
-                                    <div
-                                        key={transaction.transactionID}
-                                        onClick={() => handleTransactionClick(transaction)}
-                                        className={`flex items-center justify-between border-b border-slate-700 pb-4 last:border-b-0 p-2 rounded transition-colors ${transaction.status === 'COMPLETED'
-                                            ? 'hover:bg-slate-800 cursor-pointer'
-                                            : 'opacity-75'
-                                            }`}
-                                    >
-                                        <div className="flex items-center gap-4">
-                                            {getTypeIcon(transaction.type)}
-                                            <div>
-                                                <p className="font-medium text-white">{transaction.description}</p>
-                                                <div className="flex gap-2">
-                                                    <p className="text-sm text-slate-400">
-                                                        {formatDateTime(transaction.requestTime)}
+                                {filteredTransactions.map(transaction => {
+                                    const type = getTransactionType(transaction);
+                                    return (
+                                        <div
+                                            key={transaction.transactionId}
+                                            onClick={() => handleTransactionClick(transaction)}
+                                            className={`flex items-center justify-between border-b border-slate-700 pb-4 last:border-b-0 p-2 rounded transition-colors ${transaction.status === 'COMPLETED'
+                                                ? 'hover:bg-slate-800 cursor-pointer'
+                                                : 'opacity-75'
+                                                }`}
+                                        >
+                                            <div className="flex items-center gap-4">
+                                                {getTypeIcon(type)}
+                                                <div>
+                                                    <p className="font-medium text-white">{transaction.description}</p>
+                                                    <div className="flex gap-2">
+                                                        <p className="text-sm text-slate-400">
+                                                            {formatDateTime(transaction.paymentDate)}
+                                                        </p>
+                                                        {transaction.balanceAfter !== null && (
+                                                            <p className="text-sm text-slate-500">
+                                                                | Số dư sau: ₫{transaction.balanceAfter.toLocaleString('vi-VN')}
+                                                            </p>
+                                                        )}
+                                                    </div>
+
+                                                    <p className="text-xs text-slate-500 mt-1">
+                                                        <span className="font-medium">Phương thức:</span> {transaction.paymentMethod}
                                                     </p>
-                                                    {transaction.balanceAfter !== null && (
-                                                        <p className="text-sm text-slate-500">
-                                                            | Số dư sau: ₫{transaction.balanceAfter.toLocaleString('vi-VN')}
+                                                    {transaction.gatewayTransactionId && (
+                                                        <p className="text-xs text-slate-500">
+                                                            <span className="font-medium">Mã GD:</span> {transaction.gatewayTransactionId.substring(0, 20)}...
+                                                        </p>
+                                                    )}
+                                                    {transaction.status === 'COMPLETED' && (
+                                                        <p className="text-xs text-blue-400 mt-1 flex items-center gap-1">
+                                                            <Receipt className="h-3 w-3" />
+                                                            Nhấn để xem hóa đơn
                                                         </p>
                                                     )}
                                                 </div>
-
-                                                <p className="text-xs text-slate-500 mt-1">
-                                                    <span className="font-medium">Phương thức:</span> {transaction.paymentMethod}
+                                            </div>
+                                            <div className="text-right">
+                                                <p className={`font-semibold text-lg ${type === 'DEPOSIT' ? 'text-green-400' : 'text-red-400'}`}>
+                                                    {type === 'DEPOSIT' ? '+' : '-'}₫{transaction.amount.toLocaleString('vi-VN')}
                                                 </p>
-                                                {transaction.gatewayTransactionId && (
-                                                    <p className="text-xs text-slate-500">
-                                                        <span className="font-medium">Mã GD:</span> {transaction.gatewayTransactionId.substring(0, 20)}...
-                                                    </p>
-                                                )}
-                                                {transaction.status === 'COMPLETED' && (
-                                                    <p className="text-xs text-blue-400 mt-1 flex items-center gap-1">
-                                                        <Receipt className="h-3 w-3" />
-                                                        Nhấn để xem hóa đơn
-                                                    </p>
-                                                )}
+                                                <Badge className={`${getStatusColor(transaction.status)} mt-1`}>
+                                                    {getStatusText(transaction.status)}
+                                                </Badge>
                                             </div>
                                         </div>
-                                        <div className="text-right">
-                                            <p className={`font-semibold text-lg ${transaction.type === 'DEPOSIT' ? 'text-green-400' : 'text-red-400'}`}>
-                                                {transaction.type === 'DEPOSIT' ? '+' : '-'}₫{transaction.money.toLocaleString('vi-VN')}
-                                            </p>
-                                            <Badge className={`${getStatusColor(transaction.status)} mt-1`}>
-                                                {getStatusText(transaction.status)}
-                                            </Badge>
-                                        </div>
-                                    </div>
-                                ))}
+                                    );
+                                })}
                             </div>
 
                             {/* Pagination Controls */}
@@ -434,13 +464,21 @@ export default function TransactionHistoryPage() {
                                 </div>
                             </div>
 
-                            {/* Close Button */}
-                            <div className="pt-2">
+                            {/* Close Button & Download */}
+                            <div className="pt-2 flex gap-3">
                                 <Button
                                     onClick={handleCloseReceipt}
-                                    className="w-full bg-blue-600 hover:bg-blue-700"
+                                    variant="outline"
+                                    className="flex-1 bg-slate-800 border-slate-600 text-slate-300 hover:bg-slate-700 hover:text-white"
                                 >
                                     Đóng
+                                </Button>
+                                <Button
+                                    onClick={handleDownloadReceipt}
+                                    className="flex-1 bg-blue-600 hover:bg-blue-700 flex items-center justify-center gap-2"
+                                >
+                                    <Download className="h-4 w-4" />
+                                    Tải hóa đơn
                                 </Button>
                             </div>
                         </div>

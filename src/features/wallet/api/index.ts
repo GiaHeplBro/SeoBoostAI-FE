@@ -17,11 +17,11 @@ export const fetchUserProfile = async (): Promise<User> => {
 
 /**
  * Get transaction history with pagination
- * GET /api/transactions/{page}/{pageSize}
+ * GET /api/transactions/history/{currentPage}/{pageSize}
  */
 export const fetchTransactions = async (page: number, pageSize: number): Promise<PaginatedTransactionResponse> => {
-    const { data } = await api.get(`/transactions/${page}/${pageSize}`);
-    return data;
+    const { data } = await api.get(`/transactions/history/${page}/${pageSize}`);
+    return data.data; // Response is wrapped in { data: { ... } }
 };
 
 /**
@@ -33,6 +33,7 @@ export const fetchTransactionReceipt = async (transactionId: number): Promise<Tr
     return data;
 };
 
+
 /**
  * Create PayOS payment link
  * POST /api/payment/create-payment-link
@@ -40,4 +41,15 @@ export const fetchTransactionReceipt = async (transactionId: number): Promise<Tr
 export const createPaymentLink = async (amount: number): Promise<{ checkoutUrl: string }> => {
     const { data } = await api.post('/payment/create-payment-link', { amount });
     return data;
+};
+
+/**
+ * Download transaction receipt PDF
+ * GET /api/transactions/{id}/receipt/download
+ */
+export const downloadTransactionReceipt = async (transactionId: number): Promise<Blob> => {
+    const response = await api.get(`/transactions/${transactionId}/receipt/download`, {
+        responseType: 'blob'
+    });
+    return response.data;
 };

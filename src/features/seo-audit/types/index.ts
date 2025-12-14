@@ -118,19 +118,17 @@ export interface PerformanceHistoryResponse {
 
 // Response từ API 2 (Chuyên sâu) - Element data
 export interface ElementSuggestion {
-    elementID: number;
-    analysisCacheID: number;
-    tagName: string;
-    innerText: string;
-    outerHTML: string;
-    important: boolean;
+    auditId: string;
+    title: string;
+    extractedEvidenceJson: string; // JSON string array of strings
     hasSuggestion: boolean;
     aiRecommendation: string | null;
     description: string | null;
-    createdAt: string;
-    updatedAt: string | null;
-    isDeleted: boolean;
-    analysisCache: AnalysisCache | null;
+    // Old fields that might still be useful or need validation if they are gone
+    elementID?: number; // Optional now as it wasn't in the simplified example but present in the full response example?
+    // User example: { "auditId": "...", "title": "...", "extractedEvidenceJson": "...", "hasSuggestion": true, ... }
+    // The user's NEW example for GET /api/elements/suggestion/{id} shows:
+    // { auditId, title, extractedEvidenceJson, hasSuggestion, aiRecommendation, description }
 }
 
 // Response wrapper cho element APIs
@@ -138,6 +136,43 @@ export interface ElementsResponse {
     success: boolean;
     message: string;
     data: ElementSuggestion[];
+}
+
+// Payload for Batch Fix API
+export interface BatchFixPayload {
+    analysisCacheId: number;
+    repoOwner: string;
+    repoName: string;
+    createSinglePR: boolean;
+    useForkPR: boolean;
+}
+
+// Result item for Batch Fix
+export interface BatchFixResultItem {
+    elementId?: number; // Note: Input example showed elementID in the POST output, 
+    // even if GET suggestion didn't explicitly show it in the user's snippet, 
+    // it's likely part of the data or mapped.
+    // Wait, the user's GET suggestion example DOES NOT have elementID.
+    // BUT the POST batch-fix output data DOES have elementId: 6231.
+    // Let's keep it optional or assume the backend handles matching.
+    auditId: string;
+    title: string;
+    filePath: string;
+    success: boolean;
+    errorMessage: string | null;
+}
+
+// Response for Batch Fix API
+export interface BatchFixResponse {
+    success: boolean;
+    message: string;
+    data: {
+        totalIssues: number;
+        fixedCount: number;
+        failedCount: number;
+        results: BatchFixResultItem[];
+        pullRequestUrl: string | null;
+    };
 }
 
 // Kiểu dữ liệu cho một mục trong danh sách

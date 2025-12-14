@@ -31,11 +31,21 @@ export const fetchExistingElements = async (analysisCacheID: number): Promise<El
 };
 
 // API 3: Tạo mới Element (POST) - actually GET with suggestions
-// API 3: Tạo mới Element (POST) - actually GET with suggestions
 // Correct endpoint for Deep Dive Analysis
 export const generateDeepDiveAnalysis = async (analysisCacheID: number): Promise<ElementSuggestion[]> => {
     const { data } = await api.get(`/elements/suggestion/${analysisCacheID}`);
-    return data.data; // Extract data from wrapper
+    // Note: The new API returns { success: true, message: "...", data: [...] }
+    // Our existing code in seo-audit.tsx expects the array directly or we handle it here.
+    // The previous implementation returned `data.data`. Let's assume the response structure is consistant with the wrapper.
+    return data.data;
+};
+
+import { BatchFixPayload, BatchFixResponse } from '../types';
+
+// API 7: Batch Fix Issues (POST)
+export const batchFixIssues = async (payload: BatchFixPayload): Promise<BatchFixResponse> => {
+    const { data } = await api.post('/autofix/batch-fix', payload);
+    return data;
 };
 
 // API 4: Lấy lịch sử (GET List) - userId từ token, có pagination
