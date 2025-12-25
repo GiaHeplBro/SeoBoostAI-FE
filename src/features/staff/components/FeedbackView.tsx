@@ -1,11 +1,12 @@
 // Staff Feedback View with SignalR Real-time Chat
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import * as signalR from '@microsoft/signalr';
 import {
     MessageSquare, Send, CheckCircle, Clock, ChevronLeft, ChevronRight,
-    User, AlertCircle, RefreshCw, Search, Filter, X
+    User, AlertCircle, RefreshCw, Search, Filter, X, BarChart3, ChevronDown, ChevronUp
 } from 'lucide-react';
+import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import { getFeedbacksPaginated, getChatHistory, updateFeedback, getUsersFilter } from '../api';
 import type { Feedback, FeedbackListResponse, FeedbackMessage, ChatMessage } from '../types';
 
@@ -124,6 +125,7 @@ export function FeedbackView() {
     const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'completed'>('pending'); // Default to pending
     const [topicFilter, setTopicFilter] = useState('all');
     const [showCompleteConfirm, setShowCompleteConfirm] = useState(false);
+    const [showCharts, setShowCharts] = useState(true); // Toggle for charts visibility
 
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const selectedTicketRef = useRef<Feedback | null>(null);
@@ -216,8 +218,9 @@ export function FeedbackView() {
 
             // Listen for messages
             newConnection.on('ReceiveMessage', (user: string, message: string, time: string) => {
-                // Check if message is from staff (comparing with 'Staff' or 'Admin')
-                const isMe = user === 'Staff' || user === 'Admin' || user === 'Bạn (Staff)';
+                // Message sent by staff is always isMe = true for real-time messages
+                // Since we're the one sending, if we receive it back, it's our message
+                const isMe = true; // Staff sending message in this component
                 const msg: ChatMessage = { user, message, time, isMe };
                 setMessages(prev => {
                     const updated = [...prev, msg];
@@ -341,6 +344,46 @@ export function FeedbackView() {
     const totalPages = feedbackData?.totalPages || 1;
     const totalItems = feedbackData?.totalItems || 0;
 
+    // Calculate statistics and chart data
+    const { stats, chartData } = useMemo(() => {
+        const total = tickets.length;
+        const pending = tickets.filter(fb => {
+            const status = fb.status?.toUpperCase();
+            return status === 'PENDING' || status === 'OPEN' || status === 'IN PROGRESS';
+        }).length;
+        const completed = tickets.filter(fb => {
+            const status = fb.status?.toUpperCase();
+            return status === 'COMPLETED' || status === 'RESOLVED';
+        }).length;
+
+        // Status distribution for chart
+        const statusData = [
+            { name: 'Đang chờ', value: pending, color: '#f97316' },
+            { name: 'Hoàn thành', value: completed, color: '#22c55e' },
+        ];
+
+        // Topic distribution
+        const topicCounts: Record<string, number> = {};
+        tickets.forEach(fb => {
+            const topic = fb.topic || 'Khác';
+            topicCounts[topic] = (topicCounts[topic] || 0) + 1;
+        });
+        const topicColors = ['#3b82f6', '#8b5cf6', '#ec4899', '#f97316', '#22c55e'];
+        const topicData = Object.entries(topicCounts)
+            .map(([name, value], index) => ({
+                name: name.length > 15 ? name.substring(0, 13) + '...' : name,
+                fullName: name,
+                value,
+                color: topicColors[index % topicColors.length],
+            }))
+            .sort((a, b) => b.value - a.value);
+
+        return {
+            stats: { total, pending, completed },
+            chartData: { statusData, topicData }
+        };
+    }, [tickets]);
+
     // Filter and sort tickets
     const filteredTickets = tickets
         .filter(ticket => {
@@ -402,6 +445,82 @@ export function FeedbackView() {
                             </Button>
                         </div>
                     </div>
+
+                    {/* Stats Summary */}
+                    <div className="grid grid-cols-3 gap-2 text-center">
+                        <div className="bg-blue-50 rounded-lg p-2">
+                            <div className="text-lg font-bold text-blue-600">{stats.total}</div>
+                            <div className="text-xs text-gray-500">Tổng</div>
+                        </div>
+                        <div className="bg-orange-50 rounded-lg p-2">
+                            <div className="text-lg font-bold text-orange-600">{stats.pending}</div>
+                            <div className="text-xs text-gray-500">Chờ xử lý</div>
+                        </div>
+                        <div className="bg-green-50 rounded-lg p-2">
+                            <div className="text-lg font-bold text-green-600">{stats.completed}</div>
+                            <div className="text-xs text-gray-500">Hoàn thành</div>
+                        </div>
+                    </div>
+
+                    {/* Toggle Charts Button */}
+                    <button
+                        onClick={() => setShowCharts(!showCharts)}
+                        className="w-full flex items-center justify-center gap-2 py-1.5 text-xs text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                    >
+                        <BarChart3 className="h-3 w-3" />
+                        {showCharts ? 'An biểu đồ' : 'Xem biểu đồ'}
+                        {showCharts ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+                    </button>
+
+                    {/* Charts Section (Collapsible) */}
+                    {showCharts && (
+                        <div className="space-y-3 pt-2">
+                            {/* Status Pie Chart */}
+                            <div className="bg-white rounded-lg border p-2">
+                                <h4 className="text-xs font-medium text-gray-600 mb-1">Trạng thái</h4>
+                                <div className="h-28">
+                                    <ResponsiveContainer width="100%" height="100%">
+                                        <PieChart>
+                                            <Pie
+                                                data={chartData.statusData}
+                                                cx="50%"
+                                                cy="50%"
+                                                innerRadius={20}
+                                                outerRadius={40}
+                                                paddingAngle={5}
+                                                dataKey="value"
+                                            >
+                                                {chartData.statusData.map((entry, index) => (
+                                                    <Cell key={`cell-${index}`} fill={entry.color} />
+                                                ))}
+                                            </Pie>
+                                            <Tooltip formatter={(value) => [value, null]} />
+                                            <Legend wrapperStyle={{ fontSize: '10px' }} />
+                                        </PieChart>
+                                    </ResponsiveContainer>
+                                </div>
+                            </div>
+
+                            {/* Topic Bar Chart */}
+                            <div className="bg-white rounded-lg border p-2">
+                                <h4 className="text-xs font-medium text-gray-600 mb-1">Theo chủ đề</h4>
+                                <div className="h-32">
+                                    <ResponsiveContainer width="100%" height="100%">
+                                        <BarChart data={chartData.topicData} layout="vertical">
+                                            <XAxis type="number" tick={{ fontSize: 8 }} />
+                                            <YAxis type="category" dataKey="name" tick={{ fontSize: 8 }} width={70} />
+                                            <Tooltip formatter={(value, name, props) => [`${value}`, props.payload.fullName]} />
+                                            <Bar dataKey="value" radius={[0, 4, 4, 0]}>
+                                                {chartData.topicData.map((entry, index) => (
+                                                    <Cell key={`cell-${index}`} fill={entry.color} />
+                                                ))}
+                                            </Bar>
+                                        </BarChart>
+                                    </ResponsiveContainer>
+                                </div>
+                            </div>
+                        </div>
+                    )}
 
                     {/* Search Input */}
                     <div className="relative">
