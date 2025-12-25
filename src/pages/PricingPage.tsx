@@ -207,9 +207,9 @@ export default function PricingPage() {
   return (
     <div className="container mx-auto py-12">
       <div className="text-center mb-12">
-        <h1 className="text-4xl font-bold tracking-tight" style={{ color: 'whitesmoke' }}>Gói tốt nhất cho bạn</h1>
+        <h1 className="text-4xl font-bold tracking-tight" style={{ color: 'whitesmoke' }}>Giá tốt nhất cho bạn</h1>
         <p className="mt-4 text-lg text-muted-foreground" style={{ color: 'whitesmoke' }}>
-          Chọn gói phù hợp với nhu cầu của bạn và bắt đầu cải thiện SEO ngay hôm nay.
+          Chọn chức năng phù hợp với nhu cầu của bạn và bắt đầu cải thiện SEO ngay hôm nay.
         </p>
       </div>
 

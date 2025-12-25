@@ -13,6 +13,7 @@ import {
   Gift,
   Zap,
   FileText,
+  ExternalLink,
 } from "lucide-react";
 import {
   Card,
@@ -53,9 +54,9 @@ const featureIcons: { [key: string]: any } = {
 
 // Vietnamese name mapping
 const featureNames: { [key: string]: string } = {
-  "ContentOptimizations": "Tối ưu nội dung",
-  "TrendSearches": "Phân tích xu hướng",
-  "PerformanceAnalysis": "Phân tích hiệu suất",
+  "ContentOptimizations": "Phân tích xu hướng",
+  "TrendSearches": "Tối ưu hóa Website",
+  "PerformanceAnalysis": "Tối ưu hóa nội dung",
 };
 
 export default function Dashboard() {
@@ -203,7 +204,7 @@ export default function Dashboard() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-green-700 dark:text-green-400">
               <Gift className="h-5 w-5" />
-              Quota miễn phí tháng này
+              Lượt sử dụng miễn phí tháng này
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -220,7 +221,7 @@ export default function Dashboard() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-purple-700 dark:text-purple-400">
               <Zap className="h-5 w-5" />
-              Quota đã mua
+              Lượt sử dụng đã mua
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -237,7 +238,7 @@ export default function Dashboard() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-orange-700 dark:text-orange-400">
               <Sparkles className="h-5 w-5" />
-              Tổng quota
+              Tổng lượt sử dụng
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -266,26 +267,30 @@ export default function Dashboard() {
           </CardHeader>
           <CardContent className="space-y-3">
             {[
-              { title: "Tối ưu nội dung", desc: "Sử dụng AI để tối ưu hóa nội dung SEO của bạn" },
-              { title: "Phân tích xu hướng", desc: "Tìm kiếm từ khóa và xu hướng trending" },
-              { title: "Phân tích hiệu suất", desc: "Đánh giá hiệu suất website của bạn" },
+              { title: "Tối ưu nội dung", desc: "Sử dụng AI để tối ưu hóa nội dung SEO của bạn", url: "/docs/content-optimization" },
+              { title: "Phân tích xu hướng", desc: "Tìm kiếm từ khóa và xu hướng trending", url: "/docs/trend-analysis" },
+              { title: "Phân tích hiệu suất", desc: "Đánh giá hiệu suất website của bạn", url: "/docs/performance-analysis" },
+              { title: "Điều khoản thanh toán", desc: "Chính sách thanh toán và hoàn tiền", url: "/docs/payment-terms" },
             ].map((guide, i) => (
-              <div
+              <a
                 key={i}
-                className="flex items-start gap-3 p-3 border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer transition-colors"
+                href={guide.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-start gap-3 p-3 border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer transition-colors group"
               >
                 <div className="bg-blue-50 dark:bg-blue-900 p-2 rounded-md flex-shrink-0">
                   <Info className="h-4 w-4 text-blue-600" />
                 </div>
                 <div className="flex-1">
-                  <h4 className="font-medium text-sm">{guide.title}</h4>
+                  <h4 className="font-medium text-sm flex items-center gap-2">
+                    {guide.title}
+                    <ExternalLink className="h-3 w-3 text-gray-400 group-hover:text-blue-500 transition-colors" />
+                  </h4>
                   <p className="text-xs text-gray-500 mt-1">{guide.desc}</p>
                 </div>
-              </div>
+              </a>
             ))}
-            <Button variant="outline" className="w-full mt-4">
-              Xem tất cả hướng dẫn
-            </Button>
           </CardContent>
         </Card>
 
@@ -297,7 +302,7 @@ export default function Dashboard() {
               <CardTitle>Cách tính điểm SEO</CardTitle>
             </div>
             <CardDescription>
-              Hiểu rõ cách hệ thống đánh giá website của bạn
+              Hiểu rõ cách hệ thống chúng tôi đánh giá website của bạn
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -358,15 +363,15 @@ export default function Dashboard() {
               <ul className="space-y-2 text-sm text-gray-600 dark:text-gray-400">
                 <li className="flex items-start gap-2">
                   <span className="text-purple-600 dark:text-purple-400 mt-1">•</span>
-                  <span>Sử dụng quota miễn phí trước khi dùng quota đã mua</span>
+                  <span>Sử dụng lượt sử dụng miễn phí trước khi dùng lượt sử dụng đã mua</span>
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="text-purple-600 dark:text-purple-400 mt-1">•</span>
-                  <span>Quota miễn phí sẽ được reset vào đầu mỗi tháng</span>
+                  <span>Lượt sử dụng miễn phí sẽ được reset vào đầu mỗi tháng</span>
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="text-purple-600 dark:text-purple-400 mt-1">•</span>
-                  <span>Mua quota với số lượng lớn để tiết kiệm chi phí</span>
+                  <span>Viết ticket hỗ trợ khi gặp bất cứ vấn đề gì</span>
                 </li>
               </ul>
             </div>

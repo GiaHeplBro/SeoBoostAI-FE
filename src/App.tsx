@@ -12,7 +12,6 @@ import SeoAudit from "@/pages/seo-audit";
 import OnPageOptimization from "@/pages/on-page-optimization";
 import BacklinkAnalysis from "@/pages/backlink-analysis";
 import ContentOptimization from "@/pages/content-optimization";
-import ProfilePage from '@/pages/ProfilePage';
 import PricingPage from '@/pages/PricingPage';
 import LandingPage from '@/pages/LandingPage';
 import Auth from '@/components/loginGoogle/Auth';
@@ -21,11 +20,15 @@ import Header from "@/components/layout/header";
 import FeatureComparisonPage from '@/pages/FeatureComparisonPage';
 import AdminPageNew from '@/pages/AdminPageNew';
 import StaffPageNew from '@/pages/StaffPageNew';
-import UsersPage from '@/pages/UsersPage';
 import TransactionHistoryPage from '@/pages/TransactionHistoryPage';
 import DepositPage from '@/pages/DepositPage';
-import PaymentResultPage from '@/pages/PaymentResultPage';
+import PaymentSuccessPage from '@/pages/PaymentSuccessPage';
+import PaymentFailedPage from '@/pages/PaymentFailedPage';
 import UserFeedbackPage from '@/pages/UserFeedbackPage';
+import PerformanceAnalysisGuide from '@/pages/docs/PerformanceAnalysisGuide';
+import ContentOptimizationGuide from '@/pages/docs/ContentOptimizationGuide';
+import PaymentTermsGuide from '@/pages/docs/PaymentTermsGuide';
+import TrendAnalysisGuide from '@/pages/docs/TrendAnalysisGuide';
 
 // Định nghĩa interface UserProfile
 interface UserProfile {
@@ -56,14 +59,12 @@ function MainAppLayout({ onLogout, user }: { onLogout: () => void; user: UserPro
             <Route path="/on-page-optimization" component={OnPageOptimization} />
             <Route path="/backlink-analysis" component={BacklinkAnalysis} />
             <Route path="/content-optimization" component={ContentOptimization} />
-            <Route path="/users" component={UsersPage} />
-            <Route path="/profile" component={ProfilePage} />
             <Route path="/pricing" component={PricingPage} />
             <Route path="/feature-comparison" component={FeatureComparisonPage} />
             <Route path="/transaction-history" component={TransactionHistoryPage} />
             <Route path="/deposit" component={DepositPage} />
-            <Route path="/payment/success" component={PaymentResultPage} />
-            <Route path="/payment/failed" component={PaymentResultPage} />
+            <Route path="/payment/success" component={PaymentSuccessPage} />
+            <Route path="/payment/failed" component={PaymentFailedPage} />
             <Route path="/support" component={UserFeedbackPage} />
 
             <Route path="/pricing" component={PricingPage} />
@@ -82,6 +83,7 @@ function MainAppLayout({ onLogout, user }: { onLogout: () => void; user: UserPro
 // --- Component App chính với logic routing mới ---
 function App() {
   const [user, setUser] = useState<UserProfile | null>(null);
+  const [isLoading, setIsLoading] = useState(true); // Wait for localStorage check
   const [, navigate] = useLocation();
 
   useEffect(() => {
@@ -95,12 +97,22 @@ function App() {
       } catch (error) {
         console.error("❌ Lỗi khi giải mã user từ localStorage", error);
         console.log("🧹 Clearing corrupted localStorage...");
-        localStorage.clear(); // ✅ FIX: Dùng clear() thay vì removeItem()
+        localStorage.clear();
       }
     } else {
       console.log("ℹ️ No existing session found");
     }
+    setIsLoading(false); // Done checking
   }, []);
+
+  // Show loading while checking localStorage
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+      </div>
+    );
+  }
 
   const handleLoginSuccess = (loggedInUser: UserProfile) => {
     setUser(loggedInUser);
@@ -174,6 +186,10 @@ function App() {
 
         {/* Public routes */}
         <Route path="/" component={LandingPage} />
+        <Route path="/docs/performance-analysis" component={PerformanceAnalysisGuide} />
+        <Route path="/docs/content-optimization" component={ContentOptimizationGuide} />
+        <Route path="/docs/payment-terms" component={PaymentTermsGuide} />
+        <Route path="/docs/trend-analysis" component={TrendAnalysisGuide} />
         <Route path="/login">
           {user ? (
             user.role === 'Admin' ? <Redirect to="/admin" /> :
@@ -182,6 +198,14 @@ function App() {
           ) : (
             <Auth onLoginSuccess={handleLoginSuccess} />
           )}
+        </Route>
+
+        {/* Payment Result Routes - All logged-in users can access */}
+        <Route path="/payment/success">
+          {user ? <PaymentSuccessPage /> : <Redirect to="/login" />}
+        </Route>
+        <Route path="/payment/failed">
+          {user ? <PaymentFailedPage /> : <Redirect to="/login" />}
         </Route>
 
         {/* Member routes - CHỈ MEMBER MỚI ĐƯỢC VÀO */}

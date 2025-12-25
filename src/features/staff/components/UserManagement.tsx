@@ -1,10 +1,11 @@
 // Staff User Management Component - Members only, no Promote function
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
     ChevronLeft, ChevronRight, Eye, Ban, CheckCircle,
-    X, Users, UserX, Search
+    X, Users, UserX, Search, BarChart3, Shield
 } from 'lucide-react';
+import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import { getUsersFilter, getUserById, toggleBanUser } from '../api';
 import type { User, UserFilterRequest, UserFilterResponse } from '../types';
 
@@ -63,7 +64,6 @@ export function UserManagement() {
     // Filter states - Staff only sees Members, no Role filter
     const [currentPage, setCurrentPage] = useState(1);
     const [bannedFilter, setBannedFilter] = useState<string>(''); // '' | 'true' | 'false'
-    const [deletedFilter, setDeletedFilter] = useState<string>(''); // '' | 'true' | 'false'
     const [searchQuery, setSearchQuery] = useState('');
     const pageSize = 10;
 
@@ -79,13 +79,12 @@ export function UserManagement() {
             Role: 'Member', // Staff can only see Members
         };
         if (bannedFilter !== '') req.IsBanned = bannedFilter === 'true';
-        if (deletedFilter !== '') req.IsDeleted = deletedFilter === 'true';
         return req;
     };
 
     // Fetch users with filters
     const { data: usersData, isLoading, isError } = useQuery<UserFilterResponse>({
-        queryKey: ['staff-users', currentPage, bannedFilter, deletedFilter],
+        queryKey: ['staff-users', currentPage, bannedFilter],
         queryFn: () => getUsersFilter(buildFilterRequest()),
     });
 
@@ -128,6 +127,39 @@ export function UserManagement() {
         return user.fullName?.toLowerCase().includes(query) ||
             user.email?.toLowerCase().includes(query);
     });
+
+    // Chart colors
+    const CHART_COLORS = {
+        active: '#22c55e',
+        banned: '#ef4444',
+        bar: '#3b82f6',
+    };
+
+    // Calculate chart data
+    const chartData = useMemo(() => {
+        // Active vs Banned
+        const activeCount = users.filter(u => !u.isBanned).length;
+        const bannedCount = users.filter(u => u.isBanned).length;
+        const statusData = [
+            { name: 'Hoạt động', value: activeCount, color: CHART_COLORS.active },
+            { name: 'Đã khóa', value: bannedCount, color: CHART_COLORS.banned },
+        ];
+
+        // Monthly registrations (last 6 months)
+        const monthlyData: { month: string; count: number }[] = [];
+        const now = new Date();
+        for (let i = 5; i >= 0; i--) {
+            const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
+            const monthKey = `${date.getMonth() + 1}/${date.getFullYear()}`;
+            const count = users.filter(u => {
+                const created = new Date(u.createdAt);
+                return created.getMonth() === date.getMonth() && created.getFullYear() === date.getFullYear();
+            }).length;
+            monthlyData.push({ month: monthKey, count });
+        }
+
+        return { statusData, monthlyData };
+    }, [users]);
 
     if (isError) {
         return (
@@ -181,16 +213,55 @@ export function UserManagement() {
                             <option value="true">Đã khóa</option>
                         </select>
                     </div>
+                </div>
+            </div>
 
-                    {/* Deleted Filter */}
-                    <div className="flex-1 min-w-[150px]">
-                        <label className="block text-xs font-medium text-gray-500 mb-1">Trạng thái xóa</label>
-                        <select value={deletedFilter} onChange={(e) => handleFilterChange(setDeletedFilter, e.target.value)}
-                            className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
-                            <option value="">Tất cả</option>
-                            <option value="false">Chưa xóa</option>
-                            <option value="true">Đã xóa</option>
-                        </select>
+            {/* Statistics Charts */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                {/* Monthly Registrations Bar Chart */}
+                <div className="bg-white rounded-xl border p-4">
+                    <h3 className="text-sm font-medium text-gray-700 mb-3 flex items-center gap-2">
+                        <BarChart3 className="h-4 w-4 text-blue-500" />
+                        Đăng ký theo tháng (6 tháng gần nhất)
+                    </h3>
+                    <div className="h-48">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <BarChart data={chartData.monthlyData}>
+                                <XAxis dataKey="month" tick={{ fontSize: 10 }} />
+                                <YAxis allowDecimals={false} tick={{ fontSize: 10 }} />
+                                <Tooltip />
+                                <Bar dataKey="count" fill={CHART_COLORS.bar} name="Members mới" radius={[4, 4, 0, 0]} />
+                            </BarChart>
+                        </ResponsiveContainer>
+                    </div>
+                </div>
+
+                {/* Active vs Banned Pie Chart */}
+                <div className="bg-white rounded-xl border p-4">
+                    <h3 className="text-sm font-medium text-gray-700 mb-3 flex items-center gap-2">
+                        <Shield className="h-4 w-4 text-purple-500" />
+                        Trạng thái tài khoản
+                    </h3>
+                    <div className="h-48">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <PieChart>
+                                <Pie
+                                    data={chartData.statusData}
+                                    cx="50%"
+                                    cy="50%"
+                                    innerRadius={40}
+                                    outerRadius={60}
+                                    paddingAngle={5}
+                                    dataKey="value"
+                                >
+                                    {chartData.statusData.map((entry, index) => (
+                                        <Cell key={`cell-${index}`} fill={entry.color} />
+                                    ))}
+                                </Pie>
+                                <Tooltip formatter={(value) => [`${value} người dùng`, '']} />
+                                <Legend />
+                            </PieChart>
+                        </ResponsiveContainer>
                     </div>
                 </div>
             </div>

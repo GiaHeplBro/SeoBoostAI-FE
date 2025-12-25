@@ -1,7 +1,8 @@
 // Admin Feedback Management Component - Read-only view with statistics
 import { useState, useMemo, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Search, MessageSquare, CheckCircle, Clock, ChevronDown, ChevronUp, AlertCircle, Filter, X, Users, Eye, User } from 'lucide-react';
+import { Search, MessageSquare, CheckCircle, Clock, ChevronDown, ChevronUp, AlertCircle, Filter, X, Users, Eye, User, BarChart3 } from 'lucide-react';
+import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import { getFeedbacksPaginated, getUsersFilter, getChatHistory } from '../api';
 import type { FeedbackListResponse, UserFilterResponse, FeedbackMessage } from '../types';
 
@@ -142,6 +143,33 @@ export function FeedbackManagement() {
         return { total, pending, completed };
     }, [feedbacks]);
 
+    // Chart data
+    const chartData = useMemo(() => {
+        // Status distribution
+        const statusData = [
+            { name: 'Đang chờ', value: stats.pending, color: '#f97316' },
+            { name: 'Hoàn thành', value: stats.completed, color: '#22c55e' },
+        ];
+
+        // Topic distribution
+        const topicCounts: Record<string, number> = {};
+        feedbacks.forEach(fb => {
+            const topic = fb.topic || 'Khác';
+            topicCounts[topic] = (topicCounts[topic] || 0) + 1;
+        });
+        const topicColors = ['#3b82f6', '#8b5cf6', '#ec4899', '#f97316', '#22c55e'];
+        const topicData = Object.entries(topicCounts)
+            .map(([name, value], index) => ({
+                name: name.length > 20 ? name.substring(0, 18) + '...' : name,
+                fullName: name,
+                value,
+                color: topicColors[index % topicColors.length],
+            }))
+            .sort((a, b) => b.value - a.value);
+
+        return { statusData, topicData };
+    }, [feedbacks, stats]);
+
     // Filter and sort feedbacks
     const filteredFeedbacks = useMemo(() => {
         return feedbacks
@@ -201,6 +229,60 @@ export function FeedbackManagement() {
                 <StatCard title="Tổng feedback" value={stats.total} icon={MessageSquare} color="bg-blue-500" />
                 <StatCard title="Đang chờ xử lý" value={stats.pending} icon={Clock} color="bg-orange-500" />
                 <StatCard title="Đã hoàn thành" value={stats.completed} icon={CheckCircle} color="bg-green-500" />
+            </div>
+
+            {/* Charts */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                {/* Status Distribution Pie Chart */}
+                <div className="bg-white rounded-xl border p-4">
+                    <h3 className="text-sm font-medium text-gray-700 mb-3 flex items-center gap-2">
+                        <CheckCircle className="h-4 w-4 text-green-500" />
+                        Trạng thái xử lý
+                    </h3>
+                    <div className="h-56">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <PieChart>
+                                <Pie
+                                    data={chartData.statusData}
+                                    cx="50%"
+                                    cy="50%"
+                                    innerRadius={50}
+                                    outerRadius={80}
+                                    paddingAngle={5}
+                                    dataKey="value"
+                                >
+                                    {chartData.statusData.map((entry, index) => (
+                                        <Cell key={`cell-${index}`} fill={entry.color} />
+                                    ))}
+                                </Pie>
+                                <Tooltip formatter={(value) => [`${value} feedback`, '']} />
+                                <Legend />
+                            </PieChart>
+                        </ResponsiveContainer>
+                    </div>
+                </div>
+
+                {/* Topic Distribution Bar Chart */}
+                <div className="bg-white rounded-xl border p-4">
+                    <h3 className="text-sm font-medium text-gray-700 mb-3 flex items-center gap-2">
+                        <BarChart3 className="h-4 w-4 text-purple-500" />
+                        Phân bố theo chủ đề
+                    </h3>
+                    <div className="h-56">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <BarChart data={chartData.topicData} layout="vertical">
+                                <XAxis type="number" tick={{ fontSize: 10 }} />
+                                <YAxis type="category" dataKey="name" tick={{ fontSize: 10 }} width={100} />
+                                <Tooltip formatter={(value, name, props) => [`${value} feedback`, props.payload.fullName]} />
+                                <Bar dataKey="value" name="Số lượng" radius={[0, 4, 4, 0]}>
+                                    {chartData.topicData.map((entry, index) => (
+                                        <Cell key={`cell-${index}`} fill={entry.color} />
+                                    ))}
+                                </Bar>
+                            </BarChart>
+                        </ResponsiveContainer>
+                    </div>
+                </div>
             </div>
 
             {/* Filters */}

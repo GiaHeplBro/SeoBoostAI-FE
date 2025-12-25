@@ -22,7 +22,7 @@ const pathToTitle: Record<string, string> = {
   "/on-page-optimization": "On-Page Optimization",
   "/content-optimization": "Content Optimization",
   "/profile": "Hồ sơ của tôi",
-  "/pricing": "Upgrade Plan",
+  "/pricing": "Mua chức năng",
   "/feature-comparison": "Pricing Details",
   "/transaction-history": "Lịch sử giao dịch",
   "/support": "Hỗ trợ trực tuyến",
@@ -31,8 +31,8 @@ const pathToTitle: Record<string, string> = {
 const pathToDescription: Record<string, string> = {
   "/": "Overview of your SEO performance and recent optimizations",
   "/profile": "Xem và chỉnh sửa thông tin cá nhân của bạn",
-  "/pricing": "Choose a plan that fits your needs",
-  "/feature-comparison": "A detailed look at our features and plans",
+  "/pricing": "Chọn chức năng bạn muốn mua",
+  "/feature-comparison": "So sánh các chức năng",
   "/transaction-history": "Xem tất cả giao dịch của ví",
   "/support": "Liên hệ với đội ngũ hỗ trợ của chúng tôi",
 };
@@ -88,22 +88,12 @@ export default function Header({ onLogout, user, setSidebarOpen }: HeaderProps) 
           <Link href="/pricing">
             <Button size="sm" className="hidden md:flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white">
               <Zap className="h-4 w-4" />
-              <span>Upgrade</span>
+              <span>Mua chức năng</span>
             </Button>
           </Link>
           <TimezoneClock />
           {/* Wallet Balance */}
           <WalletBalance />
-          <div className="relative">
-            <button className="relative p-1 text-slate-400 hover:text-blue-400 focus:outline-none">
-              <Bell className="h-5 w-5" />
-              {notificationCount > 0 && (
-                <Badge className="absolute -top-1 -right-1 w-4 h-4 p-0 flex items-center justify-center bg-blue-600">
-                  {notificationCount}
-                </Badge>
-              )}
-            </button>
-          </div>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button className="ml-3 flex items-center focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 rounded-full">
@@ -115,7 +105,7 @@ export default function Header({ onLogout, user, setSidebarOpen }: HeaderProps) 
                   <p className="text-sm font-medium text-white">{user.fullName || "User"}</p>
                   <div className="flex items-center text-xs text-blue-400">
                     <Zap className="mr-1 h-3 w-3" />
-                    <span>Pro Plan</span>
+                    <span>Member</span>
                   </div>
                 </div>
               </button>
@@ -123,12 +113,6 @@ export default function Header({ onLogout, user, setSidebarOpen }: HeaderProps) 
             <DropdownMenuContent className="w-56" align="end">
               <DropdownMenuLabel>Tài khoản của tôi</DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <Link href="/profile">
-                <DropdownMenuItem className="cursor-pointer">
-                  <UserIcon className="mr-2 h-4 w-4" />
-                  <span>Hồ sơ</span>
-                </DropdownMenuItem>
-              </Link>
               <DropdownMenuItem onClick={onLogout} className="cursor-pointer">
                 <LogOut className="mr-2 h-4 w-4" />
                 <span>Đăng xuất</span>

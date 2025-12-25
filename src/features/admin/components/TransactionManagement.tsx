@@ -1,10 +1,11 @@
 // Admin Transaction Management Component
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
     Search, ChevronLeft, ChevronRight, Eye, DollarSign, ArrowDownCircle, ShoppingCart,
-    X, Users, Receipt, CheckCircle, Clock, Download
+    X, Users, Receipt, CheckCircle, Clock, Download, Wallet, BarChart3
 } from 'lucide-react';
+import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import { getTransactionsPaginated, getTransactionById, adminDeposit, getUsersFilter } from '../api';
 import { downloadTransactionReceipt } from '@/features/wallet/api';
 import type { Transaction, TransactionListResponse, User, UserFilterResponse } from '../types';
@@ -148,6 +149,48 @@ export function TransactionManagement() {
     const userTransactions = selectedUser
         ? transactions.filter(tx => tx.userID === selectedUser.userID)
         : transactions;
+
+    // Chart data calculation
+    const chartData = useMemo(() => {
+        const allUsers = usersData?.data?.items || [];
+        const filteredUsers = allUsers.filter(u => u.role !== 'Admin');
+
+        // Balance distribution: <100k, 100k-1M, 1M-10M, 10M-100M, >100M
+        const balanceRanges = [
+            { name: '< 100K', min: 0, max: 100000, color: '#ef4444' },
+            { name: '100K - 1M', min: 100000, max: 1000000, color: '#f97316' },
+            { name: '1M - 10M', min: 1000000, max: 10000000, color: '#eab308' },
+            { name: '10M - 100M', min: 10000000, max: 100000000, color: '#22c55e' },
+            { name: '> 100M', min: 100000000, max: Infinity, color: '#3b82f6' },
+        ];
+        const balanceData = balanceRanges.map(range => ({
+            name: range.name,
+            value: filteredUsers.filter(u => u.currency >= range.min && u.currency < range.max).length,
+            color: range.color,
+        }));
+
+        // Transaction count distribution (using transactions data)
+        // Count transactions per user
+        const txCountPerUser: Record<string, number> = {};
+        transactions.forEach(tx => {
+            txCountPerUser[tx.userID] = (txCountPerUser[tx.userID] || 0) + 1;
+        });
+
+        // Users with no transactions (not in txCountPerUser)
+        const usersWithNoTx = filteredUsers.filter(u => !txCountPerUser[u.userID]).length;
+        const usersWith1to10 = Object.values(txCountPerUser).filter(c => c >= 1 && c <= 10).length;
+        const usersWith10to100 = Object.values(txCountPerUser).filter(c => c > 10 && c <= 100).length;
+        const usersWithOver100 = Object.values(txCountPerUser).filter(c => c > 100).length;
+
+        const txCountData = [
+            { name: '0 GD', value: usersWithNoTx, color: '#94a3b8' },
+            { name: '1-10 GD', value: usersWith1to10, color: '#3b82f6' },
+            { name: '11-100 GD', value: usersWith10to100, color: '#8b5cf6' },
+            { name: '> 100 GD', value: usersWithOver100, color: '#22c55e' },
+        ];
+
+        return { balanceData, txCountData };
+    }, [usersData, transactions]);
 
     const formatCurrency = (value: number) => new Intl.NumberFormat('vi-VN').format(value) + ' đ';
     const formatDate = (dateString: string) => new Date(dateString).toLocaleString('vi-VN');
@@ -298,6 +341,60 @@ export function TransactionManagement() {
                                     className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500" />
                                 <span className="text-sm text-gray-600"><DollarSign className="h-4 w-4 inline mr-1" />Sắp xếp theo số dư cao nhất</span>
                             </label>
+                        </div>
+                    </div>
+
+                    {/* Statistics Charts */}
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                        {/* Balance Distribution Chart */}
+                        <div className="bg-white rounded-xl border p-4">
+                            <h3 className="text-sm font-medium text-gray-700 mb-3 flex items-center gap-2">
+                                <Wallet className="h-4 w-4 text-green-500" />
+                                Phân bố theo số dư
+                            </h3>
+                            <div className="h-56">
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <BarChart data={chartData.balanceData} layout="vertical">
+                                        <XAxis type="number" tick={{ fontSize: 10 }} />
+                                        <YAxis type="category" dataKey="name" tick={{ fontSize: 10 }} width={80} />
+                                        <Tooltip />
+                                        <Bar dataKey="value" name="Người dùng" radius={[0, 4, 4, 0]}>
+                                            {chartData.balanceData.map((entry, index) => (
+                                                <Cell key={`cell-${index}`} fill={entry.color} />
+                                            ))}
+                                        </Bar>
+                                    </BarChart>
+                                </ResponsiveContainer>
+                            </div>
+                        </div>
+
+                        {/* Transaction Count Distribution Pie Chart */}
+                        <div className="bg-white rounded-xl border p-4">
+                            <h3 className="text-sm font-medium text-gray-700 mb-3 flex items-center gap-2">
+                                <BarChart3 className="h-4 w-4 text-purple-500" />
+                                Phân bố theo số lượng giao dịch
+                            </h3>
+                            <div className="h-56">
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <PieChart>
+                                        <Pie
+                                            data={chartData.txCountData}
+                                            cx="50%"
+                                            cy="50%"
+                                            innerRadius={50}
+                                            outerRadius={80}
+                                            paddingAngle={5}
+                                            dataKey="value"
+                                        >
+                                            {chartData.txCountData.map((entry, index) => (
+                                                <Cell key={`cell-${index}`} fill={entry.color} />
+                                            ))}
+                                        </Pie>
+                                        <Tooltip formatter={(value, name) => [`${value} người dùng`, name]} />
+                                        <Legend />
+                                    </PieChart>
+                                </ResponsiveContainer>
+                            </div>
                         </div>
                     </div>
 
