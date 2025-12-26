@@ -5,9 +5,9 @@
 export interface ContentOptimizationPayload {
     keyword: string;
     content: string;
-    contentLength: string;
+    contentLength: number; // Enum index (0-3): Ngắn, Trung bình, Dài, Rất dài
     optimizationLevel: number;
-    readabilityLevel: string;
+    readabilityLevel: number; // Enum index (0-4): Dễ hiểu, Bình thường, Nâng cao, Chuyên sâu, Học thuật
     featureId: number; // Feature ID for Content Optimization
 }
 

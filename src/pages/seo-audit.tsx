@@ -396,7 +396,7 @@ export default function ContentOptimization() {
     const payload: PerformanceHistoryPayload = {
       url: url,
       strategy: strategy,
-      featureId: 3 // featureId cho SEO Audit
+      featureId: 5 // featureId cho SEO Audit (đã cập nhật theo BE mới)
     };
     analysisMutation.mutate(payload);
   };
@@ -407,7 +407,7 @@ export default function ContentOptimization() {
 
     const payload: UpdatePerformanceHistoryPayload = {
       performanceHistoryId: currentAnalysis.scanHistoryID,
-      featureId: 3 // featureId cho SEO Audit
+      featureId: 5 // featureId cho SEO Audit (đã cập nhật theo BE mới)
     };
 
     updateAnalysisMutation.mutate(payload);

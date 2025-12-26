@@ -300,3 +300,30 @@ export const updateSystemConfig = async (key: string, value: string) => {
     const response = await api.put(`/system-configs/${key}`, { settingValue: value });
     return response.data;
 };
+
+// Feature Information APIs
+import type { FeatureInformation, CreateFeatureInformationRequest, UpdateFeatureInformationRequest } from '../types';
+
+// GET /api/feature-informations/feature/{featureId} - Get informations by feature ID
+export const getFeatureInformationsByFeatureId = async (featureId: number): Promise<FeatureInformation[]> => {
+    const response = await api.get(`/feature-informations/feature/${featureId}`);
+    return response.data;
+};
+
+// POST /api/feature-informations - Create new feature information
+export const createFeatureInformation = async (data: CreateFeatureInformationRequest): Promise<FeatureInformation> => {
+    const response = await api.post('/feature-informations', data);
+    return response.data;
+};
+
+// PUT /api/feature-informations/{id} - Update feature information
+export const updateFeatureInformation = async (id: number, data: UpdateFeatureInformationRequest): Promise<{ message: string }> => {
+    const response = await api.put(`/feature-informations/${id}`, data);
+    return response.data;
+};
+
+// DELETE /api/feature-informations/{id} - Delete feature information
+export const deleteFeatureInformation = async (id: number): Promise<{ message: string }> => {
+    const response = await api.delete(`/feature-informations/${id}`);
+    return response.data;
+};

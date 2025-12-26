@@ -5,8 +5,8 @@ import {
     Search, ChevronDown, ChevronRight, Settings, Edit2, Save, X, Filter, Key, Plus,
     Package, DollarSign, List, Gauge, Trash2, Eye, EyeOff, Zap, Clock
 } from 'lucide-react';
-import { getAdminSettings, updateAdminSetting, getSettingsByFeatureId, getFeatures, getFeaturesPaginated, updateFeature, getFeatureQuotas, updateMonthlyLimit, getGeminiKeys, createGeminiKey, deleteGeminiKey } from '../api';
-import type { AdminSettingsResponse, Feature, SettingsByFeatureResponse, FeaturesPaginatedResponse, UpdateFeatureRequest, FeatureQuota, GeminiKey, CreateGeminiKeyRequest } from '../types';
+import { getAdminSettings, updateAdminSetting, getSettingsByFeatureId, getFeatures, getFeaturesPaginated, updateFeature, getFeatureQuotas, updateMonthlyLimit, getGeminiKeys, createGeminiKey, deleteGeminiKey, getFeatureInformationsByFeatureId, createFeatureInformation, updateFeatureInformation, deleteFeatureInformation } from '../api';
+import type { AdminSettingsResponse, Feature, SettingsByFeatureResponse, FeaturesPaginatedResponse, UpdateFeatureRequest, FeatureQuota, GeminiKey, CreateGeminiKeyRequest, FeatureInformation, CreateFeatureInformationRequest, UpdateFeatureInformationRequest } from '../types';
 
 // ==================== UI Components ====================
 
@@ -96,6 +96,13 @@ export function SystemSettings({ defaultSection = 'settings', showSectionToggle 
 
     // Limit dialog
     const [limitDialog, setLimitDialog] = useState<{ open: boolean; limit: number }>({ open: false, limit: 0 });
+
+    // Feature Information states
+    const [expandedFeatures, setExpandedFeatures] = useState<Set<number>>(new Set());
+    const [featureInfoDialog, setFeatureInfoDialog] = useState<{ open: boolean; mode: 'create' | 'edit'; featureId: number; informationId: number; informationFeature: string }>({
+        open: false, mode: 'create', featureId: 0, informationId: 0, informationFeature: ''
+    });
+    const [deleteInfoDialog, setDeleteInfoDialog] = useState<{ open: boolean; id: number; text: string }>({ open: false, id: 0, text: '' });
 
     // API Key states
     const [showApiKey, setShowApiKey] = useState<Set<number>>(new Set());
@@ -194,11 +201,51 @@ export function SystemSettings({ defaultSection = 'settings', showSectionToggle 
         onError: (error: any) => alert(error.response?.data?.message || 'Có lỗi xảy ra'),
     });
 
+    // Feature Information Mutations
+    const createInfoMutation = useMutation({
+        mutationFn: createFeatureInformation,
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['features-paginated'] });
+            queryClient.invalidateQueries({ queryKey: ['feature-informations'] });
+            setFeatureInfoDialog({ open: false, mode: 'create', featureId: 0, informationId: 0, informationFeature: '' });
+            alert('Thêm mô tả thành công!');
+        },
+        onError: (error: any) => alert(error.response?.data?.message || 'Có lỗi xảy ra'),
+    });
+
+    const updateInfoMutation = useMutation({
+        mutationFn: ({ id, data }: { id: number; data: UpdateFeatureInformationRequest }) => updateFeatureInformation(id, data),
+        onSuccess: (data: { message: string }) => {
+            queryClient.invalidateQueries({ queryKey: ['features-paginated'] });
+            queryClient.invalidateQueries({ queryKey: ['feature-informations'] });
+            setFeatureInfoDialog({ open: false, mode: 'create', featureId: 0, informationId: 0, informationFeature: '' });
+            alert(data.message || 'Cập nhật thành công!');
+        },
+        onError: (error: any) => alert(error.response?.data?.message || 'Có lỗi xảy ra'),
+    });
+
+    const deleteInfoMutation = useMutation({
+        mutationFn: deleteFeatureInformation,
+        onSuccess: (data: { message: string }) => {
+            queryClient.invalidateQueries({ queryKey: ['features-paginated'] });
+            queryClient.invalidateQueries({ queryKey: ['feature-informations'] });
+            setDeleteInfoDialog({ open: false, id: 0, text: '' });
+            alert(data.message || 'Xóa thành công!');
+        },
+        onError: (error: any) => alert(error.response?.data?.message || 'Có lỗi xảy ra'),
+    });
+
     // Helpers
     const toggleExpand = (key: string) => {
         const newSet = new Set(expandedKeys);
         newSet.has(key) ? newSet.delete(key) : newSet.add(key);
         setExpandedKeys(newSet);
+    };
+
+    const toggleFeatureExpand = (featureId: number) => {
+        const newSet = new Set(expandedFeatures);
+        newSet.has(featureId) ? newSet.delete(featureId) : newSet.add(featureId);
+        setExpandedFeatures(newSet);
     };
 
     const toggleShowApiKey = (id: number) => {
@@ -371,36 +418,78 @@ export function SystemSettings({ defaultSection = 'settings', showSectionToggle 
                             <div className="divide-y">
                                 {(featuresData?.items || []).map((feature) => {
                                     const quota = quotasData?.find(q => q.featureId === feature.featureID);
+                                    const isExpanded = expandedFeatures.has(feature.featureID);
                                     return (
-                                        <div key={feature.featureID} className="p-4 hover:bg-gray-50">
-                                            <div className="flex items-start justify-between">
-                                                <div className="flex-1">
-                                                    <div className="flex items-center gap-3 mb-2">
-                                                        <Badge variant="info">ID: {feature.featureID}</Badge>
-                                                        <h4 className="font-semibold text-gray-800">{feature.name}</h4>
-                                                    </div>
-                                                    <p className="text-sm text-gray-600 mb-3">{feature.description}</p>
-                                                    <div className="flex items-center gap-4 flex-wrap">
-                                                        <div className="flex items-center gap-1">
-                                                            <DollarSign className="h-4 w-4 text-green-600" />
-                                                            <span className="font-mono font-medium text-green-600">{formatCurrency(feature.price)}</span>
+                                        <div key={feature.featureID} className="hover:bg-gray-50">
+                                            <div className="p-4">
+                                                <div className="flex items-start justify-between">
+                                                    <div className="flex-1">
+                                                        <div className="flex items-center gap-3 mb-2">
+                                                            <Badge variant="info">ID: {feature.featureID}</Badge>
+                                                            <h4 className="font-semibold text-gray-800">{feature.name}</h4>
                                                         </div>
-                                                        <div className="flex items-center gap-1 text-gray-500 text-sm">
-                                                            <List className="h-4 w-4" />
-                                                            <span>{feature.featureInformations?.length || 0} benefits</span>
-                                                        </div>
-                                                        {quota && (
-                                                            <div className="flex items-center gap-2 bg-blue-50 px-2 py-1 rounded text-sm">
-                                                                <Gauge className="h-4 w-4 text-blue-600" />
-                                                                <span className="text-blue-700">Free: {quota.freeLimit}</span>
+                                                        <p className="text-sm text-gray-600 mb-3">{feature.description}</p>
+                                                        <div className="flex items-center gap-4 flex-wrap">
+                                                            <div className="flex items-center gap-1">
+                                                                <DollarSign className="h-4 w-4 text-green-600" />
+                                                                <span className="font-mono font-medium text-green-600">{formatCurrency(feature.price)}</span>
                                                             </div>
-                                                        )}
+                                                            <div className="flex items-center gap-1 text-gray-500 text-sm">
+                                                                <List className="h-4 w-4" />
+                                                                <span>{feature.featureInformations?.length || 0} benefits</span>
+                                                            </div>
+                                                            {quota && (
+                                                                <div className="flex items-center gap-2 bg-blue-50 px-2 py-1 rounded text-sm">
+                                                                    <Gauge className="h-4 w-4 text-blue-600" />
+                                                                    <span className="text-blue-700">Free: {quota.freeLimit}</span>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                    <div className="flex items-center gap-2">
+                                                        <Button variant="ghost" size="sm" onClick={() => toggleFeatureExpand(feature.featureID)}>
+                                                            {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                                                            {isExpanded ? 'Thu gọn' : 'Mở rộng'}
+                                                        </Button>
+                                                        <Button variant="outline" size="sm" onClick={() => setFeatureDialog({ open: true, featureId: feature.featureID, price: feature.price, description: feature.description })}>
+                                                            <Edit2 className="h-4 w-4 mr-1" />Chỉnh sửa
+                                                        </Button>
                                                     </div>
                                                 </div>
-                                                <Button variant="outline" size="sm" onClick={() => setFeatureDialog({ open: true, featureId: feature.featureID, price: feature.price, description: feature.description })}>
-                                                    <Edit2 className="h-4 w-4 mr-1" />Chỉnh sửa
-                                                </Button>
                                             </div>
+                                            {/* Expanded Feature Informations */}
+                                            {isExpanded && (
+                                                <div className="px-4 pb-4 bg-gray-50 border-t">
+                                                    <div className="flex items-center justify-between py-3">
+                                                        <h5 className="text-sm font-semibold text-gray-700">Mô tả chức năng</h5>
+                                                        <Button size="sm" onClick={() => setFeatureInfoDialog({ open: true, mode: 'create', featureId: feature.featureID, informationId: 0, informationFeature: '' })}>
+                                                            <Plus className="h-3 w-3 mr-1" />Thêm
+                                                        </Button>
+                                                    </div>
+                                                    {(feature.featureInformations?.length || 0) === 0 ? (
+                                                        <div className="text-center py-4 text-gray-400 text-sm">Chưa có mô tả nào</div>
+                                                    ) : (
+                                                        <div className="space-y-2">
+                                                            {feature.featureInformations?.map((info) => (
+                                                                <div key={info.informationID} className="flex items-center justify-between bg-white rounded-lg border px-3 py-2">
+                                                                    <div className="flex items-center gap-2 flex-1">
+                                                                        <Badge variant="purple">#{info.informationID}</Badge>
+                                                                        <span className="text-sm text-gray-700">{info.informationFeature}</span>
+                                                                    </div>
+                                                                    <div className="flex items-center gap-1">
+                                                                        <Button variant="ghost" size="icon" onClick={() => setFeatureInfoDialog({ open: true, mode: 'edit', featureId: feature.featureID, informationId: info.informationID, informationFeature: info.informationFeature })}>
+                                                                            <Edit2 className="h-3 w-3 text-blue-600" />
+                                                                        </Button>
+                                                                        <Button variant="ghost" size="icon" onClick={() => setDeleteInfoDialog({ open: true, id: info.informationID, text: info.informationFeature })}>
+                                                                            <Trash2 className="h-3 w-3 text-red-600" />
+                                                                        </Button>
+                                                                    </div>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            )}
                                         </div>
                                     );
                                 })}
@@ -614,6 +703,44 @@ export function SystemSettings({ defaultSection = 'settings', showSectionToggle 
                     </div>
                 </div>
             </Dialog>
+
+            {/* Feature Information Dialog - Create/Edit */}
+            <Dialog open={featureInfoDialog.open} onClose={() => setFeatureInfoDialog({ open: false, mode: 'create', featureId: 0, informationId: 0, informationFeature: '' })} title={featureInfoDialog.mode === 'create' ? 'Thêm mô tả chức năng' : 'Chỉnh sửa mô tả'}>
+                <div className="space-y-4">
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Mô tả chức năng</label>
+                        <textarea value={featureInfoDialog.informationFeature} onChange={(e) => setFeatureInfoDialog({ ...featureInfoDialog, informationFeature: e.target.value })}
+                            className="w-full px-4 py-2 border rounded-lg" rows={3} placeholder="Nhập mô tả chức năng..." />
+                    </div>
+                    <div className="flex gap-2 justify-end pt-4 border-t">
+                        <Button variant="outline" onClick={() => setFeatureInfoDialog({ open: false, mode: 'create', featureId: 0, informationId: 0, informationFeature: '' })}>Hủy</Button>
+                        <Button variant="success" onClick={() => {
+                            if (featureInfoDialog.mode === 'create') {
+                                createInfoMutation.mutate({ featureID: featureInfoDialog.featureId, informationFeature: featureInfoDialog.informationFeature });
+                            } else {
+                                updateInfoMutation.mutate({ id: featureInfoDialog.informationId, data: { informationFeature: featureInfoDialog.informationFeature } });
+                            }
+                        }} disabled={createInfoMutation.isPending || updateInfoMutation.isPending || !featureInfoDialog.informationFeature.trim()}>
+                            <Save className="h-4 w-4 mr-2" />{(createInfoMutation.isPending || updateInfoMutation.isPending) ? 'Đang lưu...' : (featureInfoDialog.mode === 'create' ? 'Thêm' : 'Lưu')}
+                        </Button>
+                    </div>
+                </div>
+            </Dialog>
+
+            {/* Delete Feature Information Confirmation */}
+            <Dialog open={deleteInfoDialog.open} onClose={() => setDeleteInfoDialog({ open: false, id: 0, text: '' })} title="Xác nhận xóa mô tả">
+                <div className="space-y-4">
+                    <p className="text-gray-600">Bạn có chắc chắn muốn xóa mô tả:</p>
+                    <p className="text-gray-800 font-medium bg-gray-50 p-3 rounded-lg">"{deleteInfoDialog.text}"</p>
+                    <div className="flex gap-2 justify-end pt-4 border-t">
+                        <Button variant="outline" onClick={() => setDeleteInfoDialog({ open: false, id: 0, text: '' })}>Hủy</Button>
+                        <Button variant="danger" onClick={() => deleteInfoMutation.mutate(deleteInfoDialog.id)} disabled={deleteInfoMutation.isPending}>
+                            <Trash2 className="h-4 w-4 mr-2" />{deleteInfoMutation.isPending ? 'Đang xóa...' : 'Xóa'}
+                        </Button>
+                    </div>
+                </div>
+            </Dialog>
         </div>
     );
 }
+

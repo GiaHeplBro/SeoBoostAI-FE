@@ -79,6 +79,12 @@ const Auth: React.FC<{ onLoginSuccess: (user: UserProfile) => void }> = ({ onLog
     const credential = credentialResponse.credential;
     const headers = { headers: { 'Content-Type': 'application/json' } };
 
+
+    console.log("╔══════════════════════════════════════════════════════════");
+    console.log("║ GOOGLE ID TOKEN (Admin,Staff)");
+    console.log("╠══════════════════════════════════════════════════════════");
+    console.log(credentialResponse.credential);
+    console.log("╠══════════════════════════════════════════════════════════");
     try {
       // BƯỚC 1: Thử đăng nhập vào cổng ADMIN
       try {

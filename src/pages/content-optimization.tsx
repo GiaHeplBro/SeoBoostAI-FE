@@ -91,9 +91,18 @@ export default function ContentOptimization() {
       queryClient.invalidateQueries({ queryKey: ['optimizationHistory'] });
     },
     onError: (error: any) => {
+      // Handle 403 - quota exceeded
+      if (error.response?.status === 403) {
+        toast({
+          title: "Hết lượt sử dụng",
+          description: "Bạn đã hết lượt sử dụng miễn phí cho tháng này. Vui lòng mua thêm lượt hoặc đợi tháng sau.",
+          variant: "destructive"
+        });
+        return;
+      }
       toast({
         title: "Thất bại",
-        description: error.message || "Có lỗi xảy ra",
+        description: error.response?.data?.message || error.message || "Có lỗi xảy ra",
         variant: "destructive"
       });
     },
@@ -101,7 +110,7 @@ export default function ContentOptimization() {
 
   // Handle optimization request
   const handleOptimize = () => {
-
+    // Check required fields
     if (!content || !targetKeyword) {
       const missing = [];
       if (!content) missing.push('nội dung');
@@ -115,12 +124,23 @@ export default function ContentOptimization() {
       return;
     }
 
+    // Validate minimum 10 words
+    const wordCount = content.trim().split(/\s+/).filter(word => word.length > 0).length;
+    if (wordCount < 10) {
+      toast({
+        title: "Nội dung quá ngắn",
+        description: `Nội dung cần ít nhất 10 từ. Hiện tại: ${wordCount} từ.`,
+        variant: "destructive"
+      });
+      return;
+    }
+
     const payload: ContentOptimizationPayload = {
       keyword: targetKeyword,
       content: content,
       optimizationLevel: optimizationLevel[0],
-      readabilityLevel: READABILITY_LEVELS[readabilityPreference[0]],
-      contentLength: CONTENT_LENGTH_OPTIONS[contentLengthPreference[0]],
+      readabilityLevel: readabilityPreference[0], // Gửi số nguyên (index) thay vì chuỗi tiếng Việt
+      contentLength: contentLengthPreference[0], // Gửi số nguyên (index) thay vì chuỗi tiếng Việt
       featureId: 1 // Feature ID for Content Optimization
     };
 
@@ -288,7 +308,7 @@ export default function ContentOptimization() {
                       <CardDescription className="text-slate-400">Cải thiện của nội dung sau khi tối ưu</CardDescription>
                     </div>
                     <a
-                      href="https://docs.google.com/document/d/your-doc-id"
+                      href="/docs/content-optimization"
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-slate-400 hover:text-blue-400 transition-colors"

@@ -307,3 +307,14 @@ export interface SystemConfig {
     description: string;
 }
 
+// Request for POST /api/feature-informations
+export interface CreateFeatureInformationRequest {
+    featureID: number;
+    informationFeature: string;
+}
+
+// Request for PUT /api/feature-informations/{id}
+export interface UpdateFeatureInformationRequest {
+    informationFeature: string;
+}
+
