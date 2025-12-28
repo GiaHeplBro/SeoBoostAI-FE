@@ -273,12 +273,6 @@ export default function ContentOptimization() {
   const generateDeepDiveMutation = useMutation<ElementSuggestion[], Error, number>({
     mutationFn: generateDeepDiveAnalysis,
     onSuccess: (data) => {
-      console.log("✅ Deep dive RAW data received:", data);
-      console.log("✅ Data type:", typeof data);
-      console.log("✅ Data is array?:", Array.isArray(data));
-      console.log("✅ Data length:", data?.length);
-      console.log("✅ First 3 items:", data?.slice(0, 3));
-
       setDeepDiveAnalysis(data);
       // Khi chạy POST, dữ liệu trả về chắc chắn đã có AI Suggestion
       // nên ta có thể set showDeepDive = true luôn.
@@ -316,7 +310,6 @@ export default function ContentOptimization() {
     },
     onError: (error: any) => {
       // 404 means elements don't exist yet - this is OK, just don't show deep dive
-      console.log("Chưa có phân tích chuyên sâu (404 is expected):", error?.response?.status);
       setDeepDiveAnalysis(null);
       setShowDeepDive(false); // Make sure button shows up
     },
@@ -440,7 +433,6 @@ export default function ContentOptimization() {
         });
         if (response.data.pullRequestUrl) {
           // Option to open PR or just show link
-          console.log("PR URL:", response.data.pullRequestUrl);
           window.open(response.data.pullRequestUrl, '_blank');
         }
       } else {

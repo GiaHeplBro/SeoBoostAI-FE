@@ -35,12 +35,7 @@ const Auth: React.FC<{ onLoginSuccess: (user: UserProfile) => void }> = ({ onLog
   const handleMemberLoginSuccess = async (credentialResponse: CredentialResponse) => {
     if (!credentialResponse.credential) return;
 
-    // ✅ LOG TOKEN ĐỂ TEST BACKEND
-    console.log("╔══════════════════════════════════════════════════════════");
-    console.log("║ GOOGLE ID TOKEN (Member)");
-    console.log("╠══════════════════════════════════════════════════════════");
-    console.log(credentialResponse.credential);
-    console.log("╠══════════════════════════════════════════════════════════");
+
 
     try {
       const response = await api.post(
@@ -80,11 +75,6 @@ const Auth: React.FC<{ onLoginSuccess: (user: UserProfile) => void }> = ({ onLog
     const headers = { headers: { 'Content-Type': 'application/json' } };
 
 
-    console.log("╔══════════════════════════════════════════════════════════");
-    console.log("║ GOOGLE ID TOKEN (Admin,Staff)");
-    console.log("╠══════════════════════════════════════════════════════════");
-    console.log(credentialResponse.credential);
-    console.log("╠══════════════════════════════════════════════════════════");
     try {
       // BƯỚC 1: Thử đăng nhập vào cổng ADMIN
       try {
@@ -130,7 +120,6 @@ const Auth: React.FC<{ onLoginSuccess: (user: UserProfile) => void }> = ({ onLog
     const { accessToken, refreshToken } = data;
 
     // Clear localStorage trước để tránh conflict
-    console.log("🧹 Clearing localStorage before saving new user...");
     localStorage.clear();
 
     // Giải mã JWT để lấy role từ backend

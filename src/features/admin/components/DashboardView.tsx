@@ -188,12 +188,6 @@ export function DashboardView() {
         enabled: true,
     });
 
-    // Debug: Log chart data
-    console.log('Chart Type:', chartType);
-    console.log('Chart Data:', chartData);
-    console.log('Loading Chart:', loadingChart);
-    console.log('Error Chart:', errorChart);
-
     // Fetch Gemini Keys Usage
     const { data: geminiKeys, isLoading: loadingKeys } = useQuery<GeminiKeyUsage[]>({
         queryKey: ['admin-gemini-keys-usage'],
