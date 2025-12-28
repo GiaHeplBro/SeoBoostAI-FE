@@ -576,7 +576,7 @@ export default function ContentOptimization() {
                     </div>
                   )}
                   <div className="mt-4 text-center text-xs text-slate-400">
-                    {currentAnalysis.scanTime ? new Date(currentAnalysis.scanTime.replace(' ', 'T')).toLocaleString('vi-VN') : ''}
+                    {currentAnalysis.scanTime ? new Date(currentAnalysis.scanTime.replace(' ', 'T')).toLocaleDateString('vi-VN') : ''}
                   </div>
                   <Button
                     variant="outline"
