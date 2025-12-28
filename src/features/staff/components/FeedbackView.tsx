@@ -79,7 +79,6 @@ const getCurrentUserId = (): number | null => {
     try {
         const decoded = JSON.parse(decodeURIComponent(atob(userStr)));
         const userId = decoded.userID || decoded.user_ID;
-        console.log('🔍 Staff User ID from localStorage:', userId);
         return userId ? Number(userId) : null;
     } catch (error) {
         console.error('Error getting user ID:', error);
@@ -183,13 +182,9 @@ export function FeedbackView() {
             return;
         }
 
-        // Log token info (first 30 chars only for security)
-        console.log('🔑 Token found:', token.substring(0, 30) + '...');
-
         // Build hub URL - use the same base as API but without /api
         const baseUrl = import.meta.env.VITE_API_BASE_URL?.replace('/api', '') || 'https://localhost:7012';
         const hubUrl = `${baseUrl}/chatHub`;
-        console.log('🔗 Connecting to SignalR Hub:', hubUrl);
 
         const newConnection = new signalR.HubConnectionBuilder()
             .withUrl(hubUrl, {
@@ -204,7 +199,6 @@ export function FeedbackView() {
 
         try {
             await newConnection.start();
-            console.log('✅ SignalR Connected');
             setConnectionStatus('connected');
 
             // Join AdminGroup to receive notifications
@@ -212,7 +206,6 @@ export function FeedbackView() {
 
             // Listen for new ticket notifications
             newConnection.on('ReceiveNewTicketNotification', (data) => {
-                console.log('📥 New Ticket:', data);
                 refetch();
             });
 
@@ -266,8 +259,6 @@ export function FeedbackView() {
         // Fetch chat history
         try {
             const history = await getChatHistory(ticket.feedbackID);
-            console.log('📜 Staff Chat history:', history);
-            console.log('🔍 Staff User ID for comparison:', currentUserId);
 
             const formattedHistory: ChatMessage[] = history
                 .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
@@ -276,7 +267,6 @@ export function FeedbackView() {
                     const senderId = Number(h.senderID);
                     const myId = Number(currentUserId);
                     const isMe = senderId === myId;
-                    console.log(`Staff: Message from senderID=${senderId}, myId=${myId}, isMe=${isMe}`);
                     return {
                         user: isMe ? 'Staff' : 'User',
                         message: h.content,
@@ -293,7 +283,6 @@ export function FeedbackView() {
         if (connection && connection.state === signalR.HubConnectionState.Connected) {
             try {
                 await connection.invoke('JoinChatRoom', ticket.feedbackID.toString());
-                console.log('✅ Joined room:', ticket.feedbackID);
             } catch (error) {
                 console.error('Error joining room:', error);
             }

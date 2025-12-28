@@ -405,7 +405,7 @@ export default function ContentOptimization() {
                                 {(parsedRequest as any)?.Keyword || (parsedRequest as any)?.keyword || 'N/A'}
                               </p>
                               <p className="text-xs text-slate-400">
-                                {new Date(item.createdAt).toLocaleString('vi-VN')}
+                                {item.createdAt ? new Date(item.createdAt.replace(' ', 'T')).toLocaleString('vi-VN') : ''}
                               </p>
                             </div>
                           </AccordionTrigger>

@@ -92,7 +92,6 @@ const createFeedback = async (data: { topic: string; description: string }): Pro
 
     // API returns { success, message, id } - construct Feedback object
     const result = response.data;
-    console.log('📝 Create feedback response:', result);
 
     // Handle response: API returns { id } or { data: Feedback }
     if (result.id) {
@@ -134,7 +133,6 @@ const getCurrentUserId = (): number | null => {
     try {
         const decoded = JSON.parse(decodeURIComponent(atob(userStr)));
         const userId = decoded.userID || decoded.user_ID;
-        console.log('🔍 User ID from localStorage:', userId);
         return userId ? Number(userId) : null;
     } catch (error) {
         console.error('Error getting user ID:', error);
@@ -241,7 +239,6 @@ export default function UserFeedbackPage() {
 
         const baseUrl = import.meta.env.VITE_API_BASE_URL?.replace('/api', '') || 'https://localhost:7012';
         const hubUrl = `${baseUrl}/chatHub`;
-        console.log('🔗 Connecting to SignalR Hub:', hubUrl);
 
         const newConnection = new signalR.HubConnectionBuilder()
             .withUrl(hubUrl, {
@@ -256,7 +253,6 @@ export default function UserFeedbackPage() {
 
         try {
             await newConnection.start();
-            console.log('✅ SignalR Connected');
             setConnectionStatus('connected');
 
             // Listen for messages
@@ -306,8 +302,6 @@ export default function UserFeedbackPage() {
         // Fetch chat history
         try {
             const history = await getChatHistory(ticket.feedbackID);
-            console.log('📜 Chat history:', history);
-            console.log('🔍 Current User ID for comparison:', currentUserId);
 
             const formattedHistory: ChatMessage[] = history
                 .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
@@ -316,7 +310,6 @@ export default function UserFeedbackPage() {
                     const senderId = Number(h.senderID);
                     const myId = Number(currentUserId);
                     const isMe = senderId === myId;
-                    console.log(`Message from senderID=${senderId} (type=${typeof h.senderID}), myId=${myId}, isMe=${isMe}`);
                     return {
                         user: isMe ? currentUserName : 'Staff',
                         message: h.content,
@@ -333,7 +326,6 @@ export default function UserFeedbackPage() {
         if (connection && connection.state === signalR.HubConnectionState.Connected) {
             try {
                 await connection.invoke('JoinChatRoom', ticket.feedbackID.toString());
-                console.log('✅ Joined room:', ticket.feedbackID);
             } catch (error) {
                 console.error('Error joining room:', error);
             }
@@ -556,8 +548,8 @@ export default function UserFeedbackPage() {
                                     key={opt.value}
                                     onClick={() => setStatusFilter(opt.value as any)}
                                     className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${statusFilter === opt.value
-                                            ? 'bg-blue-600 text-white'
-                                            : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
+                                        ? 'bg-blue-600 text-white'
+                                        : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
                                         }`}
                                 >
                                     {opt.label}

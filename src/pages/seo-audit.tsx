@@ -273,12 +273,6 @@ export default function ContentOptimization() {
   const generateDeepDiveMutation = useMutation<ElementSuggestion[], Error, number>({
     mutationFn: generateDeepDiveAnalysis,
     onSuccess: (data) => {
-      console.log("✅ Deep dive RAW data received:", data);
-      console.log("✅ Data type:", typeof data);
-      console.log("✅ Data is array?:", Array.isArray(data));
-      console.log("✅ Data length:", data?.length);
-      console.log("✅ First 3 items:", data?.slice(0, 3));
-
       setDeepDiveAnalysis(data);
       // Khi chạy POST, dữ liệu trả về chắc chắn đã có AI Suggestion
       // nên ta có thể set showDeepDive = true luôn.
@@ -316,7 +310,6 @@ export default function ContentOptimization() {
     },
     onError: (error: any) => {
       // 404 means elements don't exist yet - this is OK, just don't show deep dive
-      console.log("Chưa có phân tích chuyên sâu (404 is expected):", error?.response?.status);
       setDeepDiveAnalysis(null);
       setShowDeepDive(false); // Make sure button shows up
     },
@@ -440,7 +433,6 @@ export default function ContentOptimization() {
         });
         if (response.data.pullRequestUrl) {
           // Option to open PR or just show link
-          console.log("PR URL:", response.data.pullRequestUrl);
           window.open(response.data.pullRequestUrl, '_blank');
         }
       } else {
@@ -584,7 +576,7 @@ export default function ContentOptimization() {
                     </div>
                   )}
                   <div className="mt-4 text-center text-xs text-slate-400">
-                    {new Date(currentAnalysis.scanTime).toLocaleString('vi-VN')}
+                    {currentAnalysis.scanTime ? new Date(currentAnalysis.scanTime.replace(' ', 'T')).toLocaleString('vi-VN') : ''}
                   </div>
                   <Button
                     variant="outline"
@@ -961,7 +953,7 @@ export default function ContentOptimization() {
                           onClick={() => handleLoadFromHistory(item.scanHistoryID)}
                         >
                           <p className="font-semibold text-sm text-white truncate">{item.analysisCache.normalizedUrl}</p>
-                          <p className="text-xs text-slate-400 mt-1">{new Date(item.scanTime).toLocaleString('vi-VN')}</p>
+                          <p className="text-xs text-slate-400 mt-1">{item.scanTime ? new Date(item.scanTime.replace(' ', 'T')).toLocaleString('vi-VN') : ''}</p>
                           {singleReportMutation.isPending && singleReportMutation.variables === item.scanHistoryID && (
                             <p className="text-xs text-blue-400 mt-1">Đang tải...</p>
                           )}
