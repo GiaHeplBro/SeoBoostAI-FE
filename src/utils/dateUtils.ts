@@ -1,17 +1,19 @@
-export const formatDateTime = (dateString: string | null | undefined, timezone?: string): string => {
+/**
+ * Format a date string for display.
+ * 
+ * NOTE: Backend already returns dates in UTC+7 (Asia/Ho_Chi_Minh) timezone.
+ * Do NOT add 'Z' suffix to date strings as that would incorrectly treat them as UTC
+ * and cause the browser to convert them again, resulting in wrong times (+7 hours error).
+ */
+export const formatDateTime = (dateString: string | null | undefined): string => {
     if (!dateString) return '';
 
     try {
         // Handle input like "2025-12-07 10:23:05.260" (SQL style) by replacing space with T
-        let dateToParse = dateString.replace(' ', 'T');
+        const dateToParse = dateString.replace(' ', 'T');
 
-        // Check if timezone info is missing. 
-        // If it looks like ISO without offset (e.g. ends in digits or milliseconds), assume UTC by appending Z.
-        // Regex checks for NO timezone offset at the end (e.g. +07:00 or Z).
-        if (!dateToParse.endsWith('Z') && !/[+-]\d{2}:?\d{2}$/.test(dateToParse)) {
-            dateToParse += 'Z';
-        }
-
+        // Parse the date directly without adding 'Z' suffix
+        // BE already returns UTC+7 time, so we don't need to convert
         const date = new Date(dateToParse);
 
         if (isNaN(date.getTime())) {
@@ -26,7 +28,6 @@ export const formatDateTime = (dateString: string | null | undefined, timezone?:
             minute: '2-digit',
             second: '2-digit',
             hour12: false, // 24-hour format
-            timeZone: timezone || undefined, // Use provided timezone or default to browser's
         }).format(date);
     } catch (error) {
         console.error("Error formatting date:", error);

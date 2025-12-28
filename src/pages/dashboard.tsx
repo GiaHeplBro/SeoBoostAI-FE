@@ -102,7 +102,7 @@ export default function Dashboard() {
             <Link href="/pricing">
               <Button size="lg" className="bg-blue-600 hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-600">
                 <ShoppingCart className="h-5 w-5 mr-2" />
-                Nạp thêm
+                Mua thêm chức năng
               </Button>
             </Link>
           </div>

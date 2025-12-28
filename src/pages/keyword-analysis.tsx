@@ -161,7 +161,7 @@ export default function KeywordAnalysis() {
                                         <div className="flex-1 min-w-0">
                                             <p className="text-xs font-medium truncate">{item.originalQuestion}</p>
                                             <p className="text-[10px] opacity-70">
-                                                {new Date(item.createdAt).toLocaleDateString('vi-VN')}
+                                                {item.createdAt ? new Date(item.createdAt.replace(' ', 'T')).toLocaleDateString('vi-VN') : ''}
                                             </p>
                                         </div>
                                     </button>

@@ -611,8 +611,8 @@ export function TransactionManagement() {
                         <label className="block text-sm font-medium text-gray-700 mb-1">Số tiền (VNĐ)</label>
                         <div className="relative">
                             <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                            <input type="number" value={depositForm.money} onChange={(e) => setDepositForm({ ...depositForm, money: parseInt(e.target.value) || 0 })}
-                                className="w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="Nhập số tiền..." />
+                            <input type="number" value={depositForm.money} onChange={(e) => setDepositForm({ ...depositForm, money: Math.max(0, parseInt(e.target.value) || 0) })}
+                                min={0} className="w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="Nhập số tiền..." />
                         </div>
                     </div>
                     <div>

@@ -584,7 +584,7 @@ export default function ContentOptimization() {
                     </div>
                   )}
                   <div className="mt-4 text-center text-xs text-slate-400">
-                    {new Date(currentAnalysis.scanTime).toLocaleString('vi-VN')}
+                    {currentAnalysis.scanTime ? new Date(currentAnalysis.scanTime.replace(' ', 'T')).toLocaleString('vi-VN') : ''}
                   </div>
                   <Button
                     variant="outline"
@@ -961,7 +961,7 @@ export default function ContentOptimization() {
                           onClick={() => handleLoadFromHistory(item.scanHistoryID)}
                         >
                           <p className="font-semibold text-sm text-white truncate">{item.analysisCache.normalizedUrl}</p>
-                          <p className="text-xs text-slate-400 mt-1">{new Date(item.scanTime).toLocaleString('vi-VN')}</p>
+                          <p className="text-xs text-slate-400 mt-1">{item.scanTime ? new Date(item.scanTime.replace(' ', 'T')).toLocaleString('vi-VN') : ''}</p>
                           {singleReportMutation.isPending && singleReportMutation.variables === item.scanHistoryID && (
                             <p className="text-xs text-blue-400 mt-1">Đang tải...</p>
                           )}
